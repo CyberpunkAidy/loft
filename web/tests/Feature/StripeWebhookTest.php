@@ -102,6 +102,31 @@ class StripeWebhookTest extends TestCase
         $this->assertSame($end, $e->fresh()->current_period_end->getTimestamp());
     }
 
+    /** API versions from 2025-03-31 move invoice.subscription under parent, and current_period_end onto the items. */
+    public function test_current_api_version_payload_shapes(): void
+    {
+        $this->fakeStripe();
+        Event::fake([PaymentFailed::class]);
+        $studio = $this->studio(['stripe_account_id' => 'acct_A']);
+        $e = $this->membership($studio, $this->userIn($studio), null, ['stripe_subscription_id' => 'sub_4']);
+        $parent = ['parent' => ['subscription_details' => ['subscription' => 'sub_4']]];
+
+        $this->postWebhook($this->event('invoice.payment_failed', $parent, 'acct_A', 'evt_n1'))->assertOk();
+        $this->assertSame('past_due', $e->fresh()->status);
+
+        $end = now()->addMonth()->getTimestamp();
+        $this->postWebhook($this->event('invoice.paid', $parent + ['lines' => ['data' => [['period' => ['end' => $end]]]]], 'acct_A', 'evt_n2'))->assertOk();
+        $this->assertSame('active', $e->fresh()->status);
+
+        $itemEnd = now()->addDays(40)->getTimestamp();
+        $this->postWebhook($this->event('customer.subscription.updated', [
+            'id' => 'sub_4', 'status' => 'active', 'cancel_at_period_end' => true,
+            'items' => ['data' => [['id' => 'si_1', 'current_period_end' => $itemEnd]]],
+        ], 'acct_A', 'evt_n3'))->assertOk();
+        $this->assertSame($itemEnd, $e->fresh()->current_period_end->getTimestamp());
+        $this->assertSame($itemEnd, $e->fresh()->expires_at->getTimestamp());
+    }
+
     public function test_subscription_updates_and_deletion(): void
     {
         $this->fakeStripe();

@@ -166,7 +166,7 @@ class StripeWebhooks
     /** @param array<string, mixed> $invoice */
     private function invoicePaid(Studio $studio, array $invoice): void
     {
-        $subscriptionId = $invoice['subscription'] ?? null;
+        $subscriptionId = self::invoiceSubscriptionId($invoice);
         if (! $subscriptionId) {
             return;
         }
@@ -202,8 +202,9 @@ class StripeWebhooks
     /** @param array<string, mixed> $invoice */
     private function invoiceFailed(Studio $studio, array $invoice): void
     {
-        $entitlement = ($invoice['subscription'] ?? null)
-            ? $studio->entitlements()->where('stripe_subscription_id', $invoice['subscription'])->first()
+        $subscriptionId = self::invoiceSubscriptionId($invoice);
+        $entitlement = $subscriptionId
+            ? $studio->entitlements()->where('stripe_subscription_id', $subscriptionId)->first()
             : null;
         if ($entitlement && $entitlement->status === 'active') {
             $entitlement->update(['status' => 'past_due']);
@@ -294,8 +295,29 @@ class StripeWebhooks
         }
     }
 
+    /**
+     * The subscription's current period end. API versions before 2025-03-31 put it on the
+     * subscription; later ones put it on each subscription item (webhook payloads use the
+     * endpoint's version, so both shapes arrive).
+     */
     private function periodEnd(array $subscription): ?Carbon
     {
-        return ! empty($subscription['current_period_end']) ? Carbon::createFromTimestamp((int) $subscription['current_period_end']) : null;
+        $end = (int) ($subscription['current_period_end'] ?? 0);
+        foreach ($subscription['items']['data'] ?? [] as $item) {
+            $end = max($end, (int) ($item['current_period_end'] ?? 0));
+        }
+
+        return $end > 0 ? Carbon::createFromTimestamp($end) : null;
+    }
+
+    /** `invoice.subscription` before API version 2025-03-31; `invoice.parent.subscription_details.subscription` after. */
+    private static function invoiceSubscriptionId(array $invoice): ?string
+    {
+        $id = $invoice['subscription'] ?? $invoice['parent']['subscription_details']['subscription'] ?? null;
+        if (is_array($id)) {
+            $id = $id['id'] ?? null;
+        }
+
+        return is_string($id) && $id !== '' ? $id : null;
     }
 }
