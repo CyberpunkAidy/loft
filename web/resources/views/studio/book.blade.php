@@ -1,0 +1,65 @@
+@extends('layouts.studio')
+
+@section('title', 'Book '.$session->program->title)
+
+@section('content')
+@php
+    $start = $studio->local($session->starts_at);
+    $end = $studio->local($session->ends_at);
+    $here = route('studio.book', ['session' => $session], false);
+    $bookable = $attendees->filter(fn ($a) => ! $states[$a->id]['booking'] && ! $states[$a->id]['age_error']);
+@endphp
+<div class="narrow" style="margin: 0 auto">
+    <p class="small"><a href="{{ route('studio.schedule') }}">‹ Schedule</a></p>
+    <div class="card mb">
+        <h1 style="margin-bottom:.25rem">{{ $session->program->title }}</h1>
+        <p class="muted" style="margin:0">{{ $start->format('l, F j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}</p>
+        <p class="small" style="margin:.5rem 0 0">
+            @if ($session->isFull())
+                <span class="badge badge-full">Full</span> You’ll join the waitlist{{ $session->waitlistCount() ? ' ('.$session->waitlistCount().' ahead of you)' : '' }} and we’ll email you if a spot opens.
+            @else
+                <span class="badge">{{ $session->spotsLeft() }} {{ $session->spotsLeft() === 1 ? 'spot' : 'spots' }} left</span>
+            @endif
+        </p>
+    </div>
+
+    @if ($closed)
+        <div class="alert alert-warning">{{ $closed }}</div>
+    @elseif ($attendees->isEmpty())
+        <div class="card empty">
+            <p>Who’s coming? Add yourself or a family member first.</p>
+            <a class="btn" href="{{ route('studio.attendees.create', ['return' => $here]) }}">Add a family member</a>
+        </div>
+    @else
+        <form method="post" action="{{ route('studio.book', ['session' => $session]) }}" class="form">
+            @csrf
+            <h2>Who’s coming?</h2>
+            <div class="list" role="radiogroup">
+                @foreach ($attendees as $a)
+                    @php $st = $states[$a->id]; $disabled = $st['booking'] || $st['age_error']; @endphp
+                    <label @class(['pick', 'disabled' => $disabled])>
+                        <input type="radio" name="attendee_id" value="{{ $a->id }}" @disabled($disabled) @checked(! $disabled && $bookable->count() === 1)>
+                        <span class="grow">
+                            <strong>{{ $a->name }}</strong>
+                            <span class="muted small" style="display:block">
+                                @if ($st['booking'])
+                                    Already {{ $st['booking']->status === 'waitlisted' ? 'on the waitlist' : 'booked' }}
+                                @elseif ($st['age_error'])
+                                    {{ $st['age_error'] }}
+                                @elseif ($st['needs_waiver'])
+                                    We’ll ask you to sign the waiver first
+                                @endif
+                            </span>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            @error('attendee_id')<small class="error-text">Choose who’s coming.</small>@enderror
+            <div class="actions">
+                <button class="btn" @disabled($bookable->isEmpty())>{{ $session->isFull() ? 'Join waitlist' : 'Book' }}</button>
+                <a class="link small" href="{{ route('studio.attendees.create', ['return' => $here]) }}">+ Add someone else</a>
+            </div>
+        </form>
+    @endif
+</div>
+@endsection

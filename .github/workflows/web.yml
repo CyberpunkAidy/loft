@@ -1,0 +1,51 @@
+name: Web app
+
+on:
+  push:
+    paths: ['web/**', '.github/workflows/web.yml']
+  pull_request:
+    paths: ['web/**', '.github/workflows/web.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: loft_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pdo_sqlite, intl
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Code style
+        run: vendor/bin/pint --test
+      - name: Prepare app
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - name: Tests (SQLite)
+        run: php artisan test
+      - name: Tests (Postgres)
+        run: php vendor/bin/phpunit
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: loft_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+      - name: Routes cache
+        run: php artisan route:cache && php artisan route:clear

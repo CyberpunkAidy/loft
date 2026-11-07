@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Providers;
+
+use App\Listeners\StudioEmails;
+use App\Models\Studio;
+use App\Services\Stripe\StripeClient;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->singleton(StripeClient::class, fn () => new StripeClient(
+            config('loft.stripe.secret'),
+            (string) config('loft.stripe.api_version'),
+            (float) config('loft.stripe.platform_fee_percent'),
+        ));
+    }
+
+    public function boot(): void
+    {
+        Event::subscribe(StudioEmails::class);
+
+        // Explicit binding runs before implicit ones, so {program}, {booking}, … under {studio}
+        // always resolve through the studio's relationships (scoped bindings), whatever the controller signature.
+        Route::bind('studio', fn (string $slug) => Studio::where('slug', $slug)->firstOrFail());
+        Paginator::defaultView('partials.pagination');
+    }
+}
