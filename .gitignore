@@ -1,0 +1,3 @@
+# Release zips built by bin/build-zip.sh
+/dist/
+.DS_Store

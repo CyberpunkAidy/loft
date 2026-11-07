@@ -1,0 +1,123 @@
+/* Loft Studio — themeable via CSS variables. Override in your theme/Elementor custom CSS. */
+:root {
+	--loft-accent: #c2410c;
+	--loft-accent-ink: #ffffff;
+	--loft-ink: #1c1917;
+	--loft-muted: #78716c;
+	--loft-bg: #ffffff;
+	--loft-card: #ffffff;
+	--loft-line: #e7e5e4;
+	--loft-radius: 14px;
+	--loft-ok: #15803d;
+	--loft-warn: #b45309;
+	--loft-err: #b91c1c;
+	--loft-font: inherit;
+}
+.loft-app { font-family: var(--loft-font); color: var(--loft-ink); line-height: 1.45; }
+.loft-app *, .loft-modal * { box-sizing: border-box; }
+.loft-loading, .loft-empty { color: var(--loft-muted); padding: 1.5rem 0; text-align: center; }
+.loft-muted { color: var(--loft-muted); font-size: .92em; }
+.loft-warn { color: var(--loft-warn); font-size: .9em; }
+.loft-card { background: var(--loft-card); border: 1px solid var(--loft-line); border-radius: var(--loft-radius); padding: 1rem 1.1rem; }
+
+/* Buttons */
+.loft-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; background: var(--loft-accent); color: var(--loft-accent-ink); border: 1px solid var(--loft-accent); border-radius: 999px; padding: .55rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; transition: filter .15s; }
+.loft-btn:hover { filter: brightness(.92); color: var(--loft-accent-ink); }
+.loft-btn:disabled { opacity: .5; cursor: not-allowed; }
+.loft-btn-secondary { background: transparent; color: var(--loft-ink); border-color: var(--loft-line); }
+.loft-btn-secondary:hover { background: #f5f5f4; color: var(--loft-ink); }
+.loft-btn-small { padding: .35rem .8rem; font-size: .88em; }
+.loft-link { background: none; border: 0; color: var(--loft-accent); cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
+.loft-x { background: none; border: 0; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--loft-muted); }
+
+/* Filters & nav */
+.loft-filters { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: 1rem; }
+.loft-chip { border: 1px solid var(--loft-line); background: var(--loft-card); color: var(--loft-ink); border-radius: 999px; padding: .35rem .85rem; font: inherit; font-size: .9em; cursor: pointer; }
+.loft-chip.active { background: var(--loft-ink); color: #fff; border-color: var(--loft-ink); }
+.loft-sep { width: 1px; height: 1.4rem; background: var(--loft-line); margin: 0 .3rem; }
+.loft-nav { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .5rem 0 1rem; }
+.loft-range { color: var(--loft-muted); font-size: .9em; }
+.loft-day { font-size: 1.05rem; margin: 1.4rem 0 .6rem; padding-bottom: .3rem; border-bottom: 1px solid var(--loft-line); }
+
+/* Session cards */
+.loft-sessions { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .9rem; }
+.loft-session { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.loft-session-img { width: 100%; aspect-ratio: 16/7; object-fit: cover; display: block; }
+.loft-session-body { padding: .9rem 1rem 1rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+.loft-session-time { font-weight: 600; font-size: .95em; }
+.loft-session h4 { margin: 0; font-size: 1.05rem; }
+.loft-session h4 a { color: inherit; text-decoration: none; }
+.loft-session-event { border-color: var(--loft-accent); }
+.loft-session-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: auto; padding-top: .5rem; }
+.loft-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.loft-tag { font-size: .78em; background: #f5f5f4; border-radius: 6px; padding: .1rem .5rem; color: var(--loft-muted); }
+.loft-badge { font-size: .8em; font-weight: 600; color: var(--loft-ok); background: #ecfdf5; padding: .2rem .6rem; border-radius: 999px; }
+.loft-badge-low { color: var(--loft-warn); background: #fffbeb; }
+.loft-badge-full { color: var(--loft-err); background: #fef2f2; }
+.loft-badge-mine { color: #1d4ed8; background: #eff6ff; }
+.loft-mine { display: flex; flex-wrap: wrap; gap: .3rem; }
+
+/* Plans */
+.loft-plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .9rem; }
+.loft-plan { display: flex; flex-direction: column; gap: .4rem; }
+.loft-plan h4 { margin: 0; }
+.loft-plan-kind { font-size: .75em; text-transform: uppercase; letter-spacing: .06em; color: var(--loft-muted); }
+.loft-plan-price { font-size: 1.5rem; font-weight: 700; }
+.loft-plan-price small { display: block; font-size: .55em; font-weight: 400; color: var(--loft-muted); }
+.loft-plan .loft-btn { margin-top: auto; }
+
+/* Account */
+.loft-account-head h2 { margin: 0 0 .6rem; }
+.loft-tabs { display: flex; gap: .3rem; border-bottom: 1px solid var(--loft-line); margin-bottom: 1rem; overflow-x: auto; }
+.loft-tabs-wrap { flex-wrap: wrap; overflow: visible; }
+.loft-tab { background: none; border: 0; border-bottom: 2px solid transparent; padding: .6rem .8rem; font: inherit; cursor: pointer; color: var(--loft-muted); white-space: nowrap; }
+.loft-tab.active { color: var(--loft-ink); border-bottom-color: var(--loft-accent); font-weight: 600; }
+.loft-strike { text-decoration: line-through; }
+.loft-list { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+.loft-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.loft-row-actions { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+.loft-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.loft-roster-row.loft-status-attended { border-color: var(--loft-ok); }
+.loft-roster-row.loft-status-no_show { opacity: .6; }
+
+/* Forms */
+.loft-form { display: flex; flex-direction: column; gap: .8rem; }
+.loft-form label, .loft-waiver label { display: flex; flex-direction: column; gap: .25rem; font-size: .92em; font-weight: 600; }
+.loft-form input:not([type=checkbox]), .loft-form textarea, .loft-form select, .loft-waiver input[type=text], .loft-waiver select, .loft-nav input[type=date] { font: inherit; padding: .55rem .7rem; border: 1px solid var(--loft-line); border-radius: 10px; width: 100%; }
+.loft-form textarea { min-height: 80px; }
+.loft-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.loft-check { flex-direction: row !important; align-items: flex-start !important; gap: .5rem !important; font-weight: 400 !important; }
+.loft-check input { margin-top: .25rem; }
+.loft-hp { position: absolute; left: -9999px; }
+.loft-alert { padding: .7rem 1rem; border-radius: 10px; margin-bottom: 1rem; }
+.loft-alert-error { background: #fef2f2; color: var(--loft-err); }
+.loft-login-prompt { text-align: center; }
+
+/* Waiver */
+.loft-waiver { display: flex; flex-direction: column; gap: 1rem; max-width: 760px; }
+.loft-waiver-text { max-height: 320px; overflow: auto; padding: 1rem; border: 1px solid var(--loft-line); border-radius: 10px; background: #fafaf9; font-size: .95em; }
+.loft-sigpad { width: 100%; height: 150px; border: 1px dashed var(--loft-line); border-radius: 10px; background: #fff; touch-action: none; display: block; margin: .3rem 0; }
+
+/* Modal */
+.loft-modal-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 99999; padding: 1rem; }
+.loft-modal { background: var(--loft-bg); color: var(--loft-ink); border-radius: var(--loft-radius); width: 100%; max-width: 640px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.loft-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.2rem .5rem; }
+.loft-modal-head h3 { margin: 0; font-size: 1.15rem; }
+.loft-modal-body { padding: .5rem 1.2rem 1rem; overflow: auto; }
+.loft-modal-actions { display: flex; justify-content: flex-end; gap: .6rem; padding: .8rem 1.2rem 1.2rem; border-top: 1px solid var(--loft-line); }
+.loft-attendee-pick { display: flex; flex-direction: column; gap: .5rem; }
+.loft-pick { display: flex; justify-content: space-between; align-items: center; width: 100%; text-align: left; padding: .8rem 1rem; border: 1px solid var(--loft-line); border-radius: 10px; background: var(--loft-card); font: inherit; cursor: pointer; }
+.loft-pick:hover { border-color: var(--loft-accent); }
+
+/* Toasts */
+.loft-toasts { position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: .5rem; z-index: 100000; }
+.loft-toast { background: var(--loft-ink); color: #fff; padding: .7rem 1.1rem; border-radius: 10px; opacity: 0; transform: translateY(10px); transition: all .25s; max-width: 90vw; }
+.loft-toast.show { opacity: 1; transform: none; }
+.loft-toast-error { background: var(--loft-err); }
+.loft-toast-warn { background: var(--loft-warn); }
+
+@media (max-width: 600px) {
+	.loft-grid-2 { grid-template-columns: 1fr; }
+	.loft-row { flex-direction: column; align-items: flex-start; }
+	.loft-row-actions { width: 100%; justify-content: flex-start; }
+}

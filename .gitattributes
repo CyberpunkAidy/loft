@@ -1,0 +1,6 @@
+# Left out of release zips (git archive / bin/build-zip.sh).
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/bin export-ignore
+/dist export-ignore
+/RELEASING.md export-ignore
