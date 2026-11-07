@@ -84,16 +84,21 @@ class StripeWebhooks
         return [200, ['received' => true]];
     }
 
-    /** @param array<string, mixed> $event */
+    /**
+     * Webhook payloads come in the endpoint's API version, which Stripe picks for new endpoints and
+     * which reshapes subscriptions and invoices between versions. So events are used only for the
+     * object's id; each handler gets the object fetched from the API in the client's pinned version
+     * (config loft.stripe.api_version). That works with any endpoint version and always acts on the
+     * latest state, even when events arrive out of order.
+     *
+     * @param  array<string, mixed>  $event
+     */
     public function process(array $event, ?Studio $studio): void
     {
-        $object = $event['data']['object'] ?? [];
+        $id = (string) ($event['data']['object']['id'] ?? '');
 
         if ($event['type'] === 'account.updated' && $studio) {
-            $studio->update([
-                'stripe_charges_enabled' => (bool) ($object['charges_enabled'] ?? false),
-                'stripe_details_submitted' => (bool) ($object['details_submitted'] ?? false),
-            ]);
+            $this->stripe->refreshAccountStatus($studio);
 
             return;
         }
@@ -107,16 +112,16 @@ class StripeWebhooks
 
             return;
         }
-        if (! $studio) {
+        if (! $studio || $id === '') {
             return; // not from a studio we know
         }
 
         match ($event['type']) {
-            'checkout.session.completed' => $this->fulfillCheckout($studio, $object),
-            'invoice.paid' => $this->invoicePaid($studio, $object),
-            'invoice.payment_failed' => $this->invoiceFailed($studio, $object),
-            'customer.subscription.updated' => $this->subscriptionUpdated($studio, $object),
-            'customer.subscription.deleted' => $this->subscriptionDeleted($studio, $object),
+            'checkout.session.completed' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
+            'invoice.paid' => $this->invoicePaid($studio, $this->stripe->retrieveInvoice($studio, $id)),
+            'invoice.payment_failed' => $this->invoiceFailed($studio, $this->stripe->retrieveInvoice($studio, $id)),
+            'customer.subscription.updated' => $this->subscriptionUpdated($studio, $this->stripe->retrieveSubscription($studio, $id)),
+            'customer.subscription.deleted' => $this->subscriptionDeleted($studio, ['id' => $id]),
             default => null,
         };
     }

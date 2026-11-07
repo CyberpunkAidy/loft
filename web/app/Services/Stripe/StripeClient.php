@@ -241,6 +241,11 @@ class StripeClient
         return $this->get('subscriptions/'.$id, [], $this->account($studio));
     }
 
+    public function retrieveInvoice(Studio $studio, string $id): array
+    {
+        return $this->get('invoices/'.$id, [], $this->account($studio));
+    }
+
     /** Season tuition: stop billing when the season ends. */
     public function setSeasonEnd(Studio $studio, Plan $plan, string $subscriptionId): void
     {
