@@ -123,7 +123,16 @@ All four are paid Render plans. Workers, cron jobs, disks and pre-deploy command
 2. Render asks for `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. Leave them blank to start, and add them later in `loft-web`'s environment. See [Payments](#payments-stripe-connect).
 3. Deploy. The first build takes a few minutes. Then open `https://loft-web.onrender.com/signup` and create your studio.
 4. Check `APP_URL` in the **loft-shared** environment group. It's preset to `https://loft-web.onrender.com`; if Render gave the web service a different address, change it so links in emails point to the right place. Set it to your own domain once you add one.
-5. **Mail.** No email is sent until you add a provider. In **loft-shared**, set `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT` (usually 587), `MAIL_USERNAME`, `MAIL_PASSWORD` and `MAIL_FROM_ADDRESS`. Postmark, Resend, SES and SendGrid all offer SMTP.
+5. **Mail, with Resend.** No email is sent until you turn it on; until then emails are only written to the log.
+   1. In [Resend](https://resend.com), add and verify a sending domain. A subdomain such as `mail.yourdomain.com` keeps this email's reputation separate from your normal mail.
+   2. Create a Resend API key with sending access.
+   3. In Render, open the **loft-shared** environment group and add:
+      - `RESEND_API_KEY`: the key
+      - `MAIL_FROM_ADDRESS`: an address on the verified domain, e.g. `hello@mail.yourdomain.com`
+      - `MAIL_MAILER`: `resend`
+   4. Save. Render redeploys `loft-web`, `loft-worker` and `loft-housekeeping`.
+
+   Studio emails use the studio's name as the sender name and its contact address as Reply-To. These settings live only in the dashboard, not in `render.yaml`, so Blueprint syncs leave them alone.
 6. **Stripe.** Point the Connect webhook at `https://<your-domain>/stripe/webhook`.
 7. **Custom domain.** Add it under `loft-web` → Settings → Custom Domains, then update `APP_URL`.
 
@@ -144,7 +153,7 @@ docker build -t loft web
 - **Database:** Postgres (`DB_CONNECTION=pgsql`). Run `php artisan migrate --force` on deploy.
 - **Queue:** emails are queued, so keep a worker running: `php artisan queue:work`.
 - **Scheduler:** `* * * * * php artisan schedule:run` drives the hourly `loft:housekeeping` (reminders, expiry warnings, expiring credits).
-- **Mail:** set a real mailer (Postmark, SES, Resend…). `MAIL_FROM_ADDRESS` must be a domain you've verified. Studio emails use the studio's name as the sender name and its contact address as Reply-To.
+- **Mail:** Resend is installed: set `MAIL_MAILER=resend` and `RESEND_API_KEY`. Laravel's SMTP, Postmark and SES mailers work too. `MAIL_FROM_ADDRESS` must be on a domain you've verified with the provider. Studio emails use the studio's name as the sender name and its contact address as Reply-To.
 - **Caching:** `php artisan optimize` caches config, routes and views. Every route is named, so route caching works.
 - **Storage:** waiver signature drawings are stored on the private `local` disk (`storage/app/private/signatures`). Back it up, or point the disk at S3.
 - **HTTPS behind a load balancer:** set `TRUSTED_PROXIES=*`, or a list of the proxy's IPs. Leave it unset when nothing sits in front of the app.
@@ -156,12 +165,13 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 76 tests. They cover:
+There are 78 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles
 - proxy trust
+- sending through Resend
 - every member and admin page
 
 They run on SQLite by default. To run them against Postgres:

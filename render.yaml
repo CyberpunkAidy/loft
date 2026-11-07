@@ -36,11 +36,10 @@ envVarGroups:
         value: "true"
       - key: TRUSTED_PROXIES
         value: "*"
-      # No email is delivered until you set up a mail provider: change MAIL_MAILER to smtp and add
-      # MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM_ADDRESS here.
-      # (With "log", emails go to the logs only when LOG_LEVEL is debug.)
-      - key: MAIL_MAILER
-        value: log
+      # Email is off until you turn it on in Render's dashboard (loft-shared group), so that a
+      # Blueprint sync never overwrites it. Without MAIL_MAILER the app writes emails to the log.
+      # To send with Resend: MAIL_MAILER=resend, RESEND_API_KEY=re_..., and MAIL_FROM_ADDRESS on
+      # a domain verified in Resend. See web/README.md → "Deploy on Render".
 
 services:
   - type: web
