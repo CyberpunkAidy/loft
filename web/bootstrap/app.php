@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         // Stripe signs webhooks instead.
         $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+        // Behind a load balancer that terminates HTTPS (Render, Fly, Cloudflare…), trust its
+        // X-Forwarded-* headers so URLs are https and client IPs are real. Off unless set:
+        // TRUSTED_PROXIES=* or a comma-separated list of proxy IPs/CIDRs.
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));
+        }
         // Guests on a studio page sign in on that studio's branded login page.
         $middleware->redirectGuestsTo(function (Request $request) {
             $studio = $request->route('studio');
