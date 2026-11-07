@@ -18,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
             config('loft.stripe.secret'),
             (string) config('loft.stripe.api_version'),
             (float) config('loft.stripe.platform_fee_percent'),
+            (string) config('loft.stripe.v2_api_version'),
         ));
     }
 
