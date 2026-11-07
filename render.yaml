@@ -1,0 +1,111 @@
+# Render Blueprint for the Loft web app (web/). In Render: New → Blueprint → this repository.
+# Creates a web service, a queue worker, an hourly cron job and a Postgres database, all from
+# the Docker image in web/Dockerfile. Setup notes: web/README.md → "Deploy on Render".
+
+envVarGroups:
+  - name: loft-shared
+    envVars:
+      - key: APP_NAME
+        value: Loft
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      # Render generates this once; the start script adds Laravel's "base64:" prefix.
+      - key: APP_KEY
+        generateValue: true
+      # The web service's public address. Change it if Render gives the service a different
+      # URL, and when you add a custom domain. Used for links in emails.
+      - key: APP_URL
+        value: https://loft-web.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: TRUSTED_PROXIES
+        value: "*"
+      # No email is delivered until you set up a mail provider: change MAIL_MAILER to smtp and add
+      # MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD and MAIL_FROM_ADDRESS here.
+      # (With "log", emails go to the logs only when LOG_LEVEL is debug.)
+      - key: MAIL_MAILER
+        value: log
+
+services:
+  - type: web
+    name: loft-web
+    runtime: docker
+    plan: 0.5c-512mb
+    region: oregon
+    rootDir: web
+    dockerContext: web
+    dockerfilePath: web/Dockerfile
+    healthCheckPath: /up
+    preDeployCommand: /usr/local/bin/start migrate
+    # Waiver signature drawings. A service with a disk can't scale past one instance.
+    disk:
+      name: signatures
+      mountPath: /var/www/html/storage/app/private
+      sizeGB: 1
+    envVars:
+      - fromGroup: loft-shared
+      - key: DB_URL
+        fromDatabase:
+          name: loft-db
+          property: connectionString
+      - key: STRIPE_SECRET
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: LOFT_PLATFORM_FEE_PERCENT
+        value: "0"
+
+  - type: worker
+    name: loft-worker
+    runtime: docker
+    plan: 0.5c-512mb
+    region: oregon
+    rootDir: web
+    dockerContext: web
+    dockerfilePath: web/Dockerfile
+    dockerCommand: /usr/local/bin/start worker
+    envVars:
+      - fromGroup: loft-shared
+      - key: DB_URL
+        fromDatabase:
+          name: loft-db
+          property: connectionString
+
+  - type: cron
+    name: loft-housekeeping
+    runtime: docker
+    plan: 0.5c-512mb
+    region: oregon
+    schedule: "0 * * * *"
+    rootDir: web
+    dockerContext: web
+    dockerfilePath: web/Dockerfile
+    dockerCommand: /usr/local/bin/start housekeeping
+    envVars:
+      - fromGroup: loft-shared
+      - key: DB_URL
+        fromDatabase:
+          name: loft-db
+          property: connectionString
+
+databases:
+  - name: loft-db
+    databaseName: loft
+    user: loft
+    plan: 0.1c-256mb
+    region: oregon
+    postgresMajorVersion: "16"

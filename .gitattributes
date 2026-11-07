@@ -6,3 +6,4 @@
 /RELEASING.md export-ignore
 /.github export-ignore
 /web export-ignore
+/render.yaml export-ignore

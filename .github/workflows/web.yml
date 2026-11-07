@@ -2,9 +2,9 @@ name: Web app
 
 on:
   push:
-    paths: ['web/**', '.github/workflows/web.yml']
+    paths: ['web/**', 'render.yaml', '.github/workflows/web.yml']
   pull_request:
-    paths: ['web/**', '.github/workflows/web.yml']
+    paths: ['web/**', 'render.yaml', '.github/workflows/web.yml']
 
 jobs:
   test:
@@ -49,3 +49,21 @@ jobs:
           DB_PASSWORD: postgres
       - name: Routes cache
         run: php artisan route:cache && php artisan route:clear
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build -t loft-web web
+      - name: Image starts and answers /up
+        run: |
+          # An APP_KEY without the "base64:" prefix, like the one Render generates.
+          docker run -d --name loft -p 8080:8080 \
+            -e APP_KEY="$(head -c 32 /dev/urandom | base64)" \
+            -e APP_ENV=production -e LOG_CHANNEL=stderr -e SESSION_DRIVER=array -e CACHE_STORE=array \
+            loft-web
+          curl --fail --silent --show-error --retry 15 --retry-delay 1 --retry-all-errors http://localhost:8080/up
+      - name: Container logs
+        if: always()
+        run: docker logs loft || true
