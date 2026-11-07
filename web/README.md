@@ -121,20 +121,23 @@ All four are paid Render plans. Workers, cron jobs, disks and pre-deploy command
 
 1. In Render, choose **New → Blueprint**, connect this repository, and pick the branch to deploy.
 2. Render asks for `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. Leave them blank to start, and add them later in `loft-web`'s environment. See [Payments](#payments-stripe-connect).
-3. Deploy. The first build takes a few minutes. Then open `https://loft-web.onrender.com/signup` and create your studio.
-4. Check `APP_URL` in the **loft-shared** environment group. It's preset to `https://loft-web.onrender.com`; if Render gave the web service a different address, change it so links in emails point to the right place. Set it to your own domain once you add one.
-5. **Mail, with Resend.** No email is sent until you turn it on; until then emails are only written to the log.
-   1. In [Resend](https://resend.com), add and verify a sending domain. A subdomain such as `mail.yourdomain.com` keeps this email's reputation separate from your normal mail.
+3. Deploy. The first build takes a few minutes. The site answers at `https://loft-web.onrender.com` straight away; open `/signup` there to create your studio.
+4. **Domain: loftstudio.app.** `render.yaml` adds `loftstudio.app` to `loft-web`, and Render adds `www.loftstudio.app` and redirects it to the bare domain. At your DNS provider:
+   - `loftstudio.app`: an `ALIAS` or `ANAME` record to `loft-web.onrender.com`. If your provider has neither, use an `A` record with `216.24.57.1`.
+   - `www.loftstudio.app`: a `CNAME` record to `loft-web.onrender.com`.
+   - Remove any `AAAA` records for these names.
+
+   Render issues the HTTPS certificates once the records resolve; check `loft-web` → Settings → Custom Domains. `APP_URL` is already `https://loftstudio.app`.
+5. **Mail, with Resend.** No email is sent until you turn it on; until then emails are only written to the log. The sender is preset to `hello@mail.loftstudio.app` (`MAIL_FROM_ADDRESS` in `render.yaml`).
+   1. In [Resend](https://resend.com), add the domain `mail.loftstudio.app` and add the DNS records Resend shows at your DNS provider. Wait until Resend says it's verified. Using a subdomain keeps this email's reputation separate from any other mail on `loftstudio.app`.
    2. Create a Resend API key with sending access.
    3. In Render, open the **loft-shared** environment group and add:
       - `RESEND_API_KEY`: the key
-      - `MAIL_FROM_ADDRESS`: an address on the verified domain, e.g. `hello@mail.yourdomain.com`
       - `MAIL_MAILER`: `resend`
    4. Save. Render redeploys `loft-web`, `loft-worker` and `loft-housekeeping`.
 
-   Studio emails use the studio's name as the sender name and its contact address as Reply-To. These settings live only in the dashboard, not in `render.yaml`, so Blueprint syncs leave them alone.
-6. **Stripe.** Point the Connect webhook at `https://<your-domain>/stripe/webhook`.
-7. **Custom domain.** Add it under `loft-web` → Settings → Custom Domains, then update `APP_URL`.
+   Studio emails use the studio's name as the sender name and its contact address as Reply-To. The key and `MAIL_MAILER` live only in the dashboard, not in `render.yaml`, so Blueprint syncs leave them alone.
+6. **Stripe.** Point the Connect webhook at `https://loftstudio.app/stripe/webhook`.
 
 How the image works:
 - One image (`web/Dockerfile`, PHP 8.3 + Apache) serves every role. `web/docker/start.sh` picks the role: `web`, `worker`, `housekeeping` or `migrate`.
