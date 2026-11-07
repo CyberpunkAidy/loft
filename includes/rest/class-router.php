@@ -22,11 +22,12 @@ class Router {
 		add_action( 'rest_api_init', [ __CLASS__, 'routes' ] );
 	}
 
-	private static function member(): bool {
+	// Public: WordPress calls these as REST permission callbacks from outside the class.
+	public static function member(): bool {
 		return is_user_logged_in();
 	}
 
-	private static function staff(): bool {
+	public static function staff(): bool {
 		return current_user_can( 'loft_manage_attendance' ) || current_user_can( 'loft_manage_studio' );
 	}
 

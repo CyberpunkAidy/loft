@@ -1,4 +1,4 @@
-# Loft Studio (v0.1.0)
+# Loft Studio (v0.1.1)
 
 Class scheduling, memberships, family accounts, waivers and Stripe billing for studios — as a WordPress plugin.
 Built by Goldseam Tech. No Composer, no build step, no external SDKs. Stripe handles all money.

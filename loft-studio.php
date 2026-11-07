@@ -3,7 +3,7 @@
  * Plugin Name:       Loft Studio
  * Plugin URI:        https://goldseamtech.com/loft
  * Description:       Class scheduling, memberships, family accounts, waivers and Stripe billing for dance, aerial, gymnastics and fitness studios.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            Goldseam Tech LLC
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LOFT_VERSION', '0.1.0' );
+define( 'LOFT_VERSION', '0.1.1' );
 define( 'LOFT_DB_VERSION', '1' );
 define( 'LOFT_FILE', __FILE__ );
 define( 'LOFT_DIR', plugin_dir_path( __FILE__ ) );
