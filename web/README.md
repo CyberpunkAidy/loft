@@ -91,7 +91,7 @@ These are fixed here; the plugin still has them.
 2. Set `STRIPE_SECRET` to the platform's secret key.
 3. Under **Developers → Webhooks**, add an endpoint for **events on connected accounts**:
    - URL: `https://<your-domain>/stripe/webhook`
-   - API version: `2024-06-20`, the version the client pins.
+   - API version: any; the latest is fine. The app takes only the object's ID from each webhook and fetches the object from the API in the version it pins (`2024-06-20`).
    - Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
 
    Put its signing secret in `STRIPE_WEBHOOK_SECRET`.

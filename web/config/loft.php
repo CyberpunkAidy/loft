@@ -6,7 +6,8 @@ return [
     | Stripe Connect. The platform account's secret key; each studio connects its own Stripe
     | account from Admin → Payments. The webhook secret belongs to a *Connect* webhook endpoint
     | (Developers → Webhooks → "Events on connected accounts") pointing at /stripe/webhook.
-    | The client pins the API version the plugin used; create the endpoint with the same version.
+    | The client pins the API version below for every call. Webhooks may use any API version: the
+    | app reads only the object's id from them and fetches the object itself (StripeWebhooks).
     */
     'stripe' => [
         'secret' => env('STRIPE_SECRET'),
