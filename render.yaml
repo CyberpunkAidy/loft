@@ -16,10 +16,10 @@ envVarGroups:
       # Render generates this once; the start script adds Laravel's "base64:" prefix.
       - key: APP_KEY
         generateValue: true
-      # The web service's public address. Change it if Render gives the service a different
-      # URL, and when you add a custom domain. Used for links in emails.
+      # The site's public address, used for links in emails. loft-web also answers at
+      # https://loft-web.onrender.com.
       - key: APP_URL
-        value: https://loft-web.onrender.com
+        value: https://loftstudio.app
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
@@ -36,10 +36,13 @@ envVarGroups:
         value: "true"
       - key: TRUSTED_PROXIES
         value: "*"
+      # Sender for all studio emails (the studio's name is the display name). mail.loftstudio.app
+      # must be verified in Resend.
+      - key: MAIL_FROM_ADDRESS
+        value: hello@mail.loftstudio.app
       # Email is off until you turn it on in Render's dashboard (loft-shared group), so that a
-      # Blueprint sync never overwrites it. Without MAIL_MAILER the app writes emails to the log.
-      # To send with Resend: MAIL_MAILER=resend, RESEND_API_KEY=re_..., and MAIL_FROM_ADDRESS on
-      # a domain verified in Resend. See web/README.md → "Deploy on Render".
+      # Blueprint sync never overwrites it: add RESEND_API_KEY and set MAIL_MAILER=resend.
+      # Without MAIL_MAILER the app writes emails to the log. See web/README.md.
 
 services:
   - type: web
@@ -51,6 +54,9 @@ services:
     dockerContext: .
     dockerfilePath: ./Dockerfile
     healthCheckPath: /up
+    # Render also adds www.loftstudio.app and redirects it here. DNS: web/README.md.
+    domains:
+      - loftstudio.app
     preDeployCommand: /usr/local/bin/start migrate
     # Waiver signature drawings. A service with a disk can't scale past one instance.
     disk:
