@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+/**
+ * An attendee reserved into a session (or waiting for a seat).
+ */
+#[Fillable([
+    'studio_id', 'class_session_id', 'attendee_id', 'user_id', 'entitlement_id', 'status', 'position',
+    'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at',
+])]
+class Booking extends Model
+{
+    use HasFactory;
+
+    /** Column defaults, so new instances match what the database would store. */
+    protected $attributes = ['status' => 'booked', 'credit_consumed' => false, 'source' => 'web'];
+
+    /** Statuses that occupy a seat. */
+    public const SEAT_STATUSES = ['booked', 'attended', 'no_show'];
+
+    /** Statuses a member can still cancel. */
+    public const ACTIVE_STATUSES = ['booked', 'waitlisted'];
+
+    /** Statuses that count toward a membership's weekly limit. */
+    public const WEEKLY_USAGE_STATUSES = ['booked', 'attended', 'no_show', 'late_cancelled'];
+
+    public const STATUS_LABELS = [
+        'booked' => 'Booked',
+        'waitlisted' => 'Waitlist',
+        'cancelled' => 'Cancelled',
+        'late_cancelled' => 'Late cancel',
+        'no_show' => 'No-show',
+        'attended' => 'Attended',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'credit_consumed' => 'boolean',
+            'booked_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'attended_at' => 'datetime',
+            'position' => 'integer',
+        ];
+    }
+
+    public function studio(): BelongsTo
+    {
+        return $this->belongsTo(Studio::class);
+    }
+
+    public function classSession(): BelongsTo
+    {
+        return $this->belongsTo(ClassSession::class);
+    }
+
+    public function attendee(): BelongsTo
+    {
+        return $this->belongsTo(Attendee::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function entitlement(): BelongsTo
+    {
+        return $this->belongsTo(Entitlement::class);
+    }
+
+    public function isActive(): bool
+    {
+        return in_array($this->status, self::ACTIVE_STATUSES, true);
+    }
+
+    public function canCancel(): bool
+    {
+        return $this->isActive() && $this->classSession->starts_at->isFuture();
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUS_LABELS[$this->status] ?? $this->status;
+    }
+}

@@ -3,6 +3,10 @@
 Class scheduling, memberships, family accounts, waivers and Stripe billing for studios — as a WordPress plugin.
 Built by Goldseam Tech. No Composer, no build step, no external SDKs. Stripe handles all money.
 
+> **The hosted web app lives in [`web/`](web/README.md).** It's the same product for many studios at once
+> (Laravel, Postgres, Stripe Connect), with the same booking, billing and waiver rules. This plugin
+> is unchanged and still releases from the repository root; `web/` is left out of plugin zips.
+
 ## Install (staging first)
 
 1. Upload the `loft-studio` folder to `wp-content/plugins/` and activate.
