@@ -1,6 +1,8 @@
 # Render Blueprint for the Loft web app (web/). In Render: New → Blueprint → this repository.
 # Creates a web service, a queue worker, an hourly cron job and a Postgres database, all from
 # the Docker image in web/Dockerfile. Setup notes: web/README.md → "Deploy on Render".
+# With rootDir set, Render resolves dockerContext and dockerfilePath inside it, so they're "."
+# and "./Dockerfile" here (both mean web/). Changes outside web/ don't trigger a build.
 
 envVarGroups:
   - name: loft-shared
@@ -47,8 +49,8 @@ services:
     plan: 0.5c-512mb
     region: oregon
     rootDir: web
-    dockerContext: web
-    dockerfilePath: web/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /up
     preDeployCommand: /usr/local/bin/start migrate
     # Waiver signature drawings. A service with a disk can't scale past one instance.
@@ -75,8 +77,8 @@ services:
     plan: 0.5c-512mb
     region: oregon
     rootDir: web
-    dockerContext: web
-    dockerfilePath: web/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     dockerCommand: /usr/local/bin/start worker
     envVars:
       - fromGroup: loft-shared
@@ -92,8 +94,8 @@ services:
     region: oregon
     schedule: "0 * * * *"
     rootDir: web
-    dockerContext: web
-    dockerfilePath: web/Dockerfile
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     dockerCommand: /usr/local/bin/start housekeeping
     envVars:
       - fromGroup: loft-shared
@@ -109,3 +111,5 @@ databases:
     plan: 0.1c-256mb
     region: oregon
     postgresMajorVersion: "16"
+    # Only Render services can connect. To reach it from your computer, add your IP here.
+    ipAllowList: []
