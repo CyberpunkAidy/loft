@@ -9,7 +9,28 @@ for many studios at once.
 - **Stack:** PHP 8.3+, Laravel 13, PostgreSQL 16 (SQLite works for local development), server-rendered Blade.
   There is no JavaScript build step. `public/css/app.css` and `public/js/app.js` are hand-written, and every page works without JS.
 - **Payments:** Stripe Connect. The platform has one Stripe account, each studio connects its own, and money goes straight to the studio.
-- **Domain:** nothing is hard-coded. The platform lives at whatever `APP_URL` says.
+- **Domain:** nothing is hard-coded. The platform lives at whatever `APP_URL` says. Production is **https://loftstudio.app** (Render).
+
+## Documentation
+
+This README is the quick reference. The [project wiki](https://github.com/CyberpunkAidy/loft-studio/wiki) has the rest. Its source is in [`docs/wiki/`](../docs/wiki), and the **Wiki** workflow publishes it on every merge.
+
+| Page | Covers |
+|---|---|
+| [Architecture](https://github.com/CyberpunkAidy/loft-studio/wiki/Architecture) | Code layout, tenancy and roles, data model, services, events |
+| [Features](https://github.com/CyberpunkAidy/loft-studio/wiki/Features) | What members, staff and owners can do; booking rules and their defaults |
+| [Deployment](https://github.com/CyberpunkAidy/loft-studio/wiki/Deployment) | Render services, environment variables, DNS, releasing and rolling back |
+| [Stripe](https://github.com/CyberpunkAidy/loft-studio/wiki/Stripe) | Connect setup checklist, API versions, webhook events, troubleshooting |
+| [Email](https://github.com/CyberpunkAidy/loft-studio/wiki/Email) | Resend, templates, deliverability |
+| [Payments](https://github.com/CyberpunkAidy/loft-studio/wiki/Payments) | Online, delayed (bank) and in-person payments |
+| [Accounts and Data](https://github.com/CyberpunkAidy/loft-studio/wiki/Accounts-and-Data) | Deleting accounts, closing studios, where personal data lives |
+| [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
+| [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
+| [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Next features: waivers, apparatus capacity, events and marketing, point of sale, mobile API, check-in kiosks, churn |
+| [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
+
+When behavior changes, update this README and `docs/wiki/` in the same pull request.
 
 ## Run it locally
 

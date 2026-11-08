@@ -7,3 +7,4 @@
 /.github export-ignore
 /web export-ignore
 /render.yaml export-ignore
+/docs export-ignore
