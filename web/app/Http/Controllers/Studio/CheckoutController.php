@@ -67,6 +67,12 @@ class CheckoutController extends Controller
             return redirect()->route('studio.account.billing')->with('success', 'Payment received — thank you! Your plan will appear here in a moment.');
         }
 
+        if (! $result->entitlement && ($cs['status'] ?? '') === 'complete' && ($cs['payment_status'] ?? '') === 'unpaid') {
+            // A delayed method, like a bank debit: fulfilled by the async_payment_succeeded webhook.
+            $booking = (int) ($meta['session_id'] ?? 0) > 0 ? ' and finish your booking' : '';
+
+            return redirect()->route('studio.account.billing')->with('success', "Thanks! Your payment is processing. Bank payments can take a few business days; we’ll email you when it goes through{$booking}.");
+        }
         if (! $result->entitlement) {
             return redirect()->route('studio.account.billing')->with('success', 'Thanks! We’re confirming your payment; your plan will appear here shortly.');
         }

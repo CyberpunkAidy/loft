@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\BookingCancelled;
 use App\Events\BookingCreated;
+use App\Events\CheckoutPaymentFailed;
 use App\Events\EntitlementGranted;
 use App\Events\MemberJoined;
 use App\Events\PaymentFailed;
@@ -32,6 +33,7 @@ class StudioEmails
             SessionBookingCancelled::class => 'sessionCancelled',
             EntitlementGranted::class => 'entitlementGranted',
             PaymentFailed::class => 'paymentFailed',
+            CheckoutPaymentFailed::class => 'checkoutPaymentFailed',
             MemberJoined::class => 'welcome',
         ];
     }
@@ -81,8 +83,13 @@ class StudioEmails
     {
         $e = $event->entitlement;
         $what = $e->isCredits() ? "{$e->credits_total} class ".($e->credits_total === 1 ? 'credit' : 'credits') : 'your '.($e->plan?->name ?? 'membership');
+        // Paid at the front desk: the email doubles as a receipt.
+        $payment = $e->payment;
+        $receipt = $payment && ! $payment->isComp()
+            ? ['Paid' => $payment->amountLabel().' · '.$payment->methodLabel(), 'Date' => $payment->paid_on->format('M j, Y')]
+            : [];
         $this->send($e->user, new StudioMessage($e->studio, 'Thanks for your purchase',
-            ["You now have {$what}. Head to the schedule to book your classes."], [], [],
+            ["You now have {$what}. Head to the schedule to book your classes."], $receipt, [],
             route('studio.schedule', $e->studio), 'Book a class', 'purchase'));
     }
 
@@ -92,6 +99,17 @@ class StudioEmails
         $this->send($e->user, new StudioMessage($e->studio, 'Payment failed — action needed',
             ["We couldn't process your latest membership payment. Please update your card from the billing page of your account. Bookings are paused until payment goes through."],
             [], [], route('studio.account.billing', $e->studio), 'Update your card', 'payment_failed'));
+    }
+
+    public function checkoutPaymentFailed(CheckoutPaymentFailed $event): void
+    {
+        $what = $event->plan ? "for {$event->plan->name} " : '';
+        $lines = ["Your payment {$what}didn't go through, so nothing was added to your account and you haven't been charged."];
+        if ($event->hadBooking) {
+            $lines[] = "The class you were booking wasn't booked either.";
+        }
+        $this->send($event->user, new StudioMessage($event->studio, "Your payment didn't go through", $lines, [],
+            ['You can try again with a card or another payment method.'], route('studio.plans', $event->studio), 'Try again', 'checkout_failed'));
     }
 
     public function welcome(MemberJoined $event): void

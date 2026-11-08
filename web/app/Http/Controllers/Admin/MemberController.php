@@ -4,16 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Studio;
 use App\Models\User;
-use App\Services\Entitlements;
+use App\Services\OfflinePayments;
 use App\Services\Waivers;
+use App\Support\Money;
 use App\Support\Search;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Member accounts: families, plans, bookings, and comping a plan. */
+/** Member accounts: families, plans, bookings, and giving a plan by hand (paid in person or comped). */
 class MemberController extends Controller
 {
     public function index(Request $request, Studio $studio): View
@@ -43,7 +46,8 @@ class MemberController extends Controller
             'role' => $member->pivot->role,
             'attendees' => $attendees,
             'waiverStatus' => $attendees->mapWithKeys(fn ($a) => [$a->id => $waivers->statusFor($studio, $a)]),
-            'entitlements' => $studio->entitlements()->with('plan')->where('user_id', $member->id)->latest()->get(),
+            'entitlements' => $studio->entitlements()->with(['plan', 'payment'])->where('user_id', $member->id)->latest()->get(),
+            'payments' => $studio->payments()->with(['plan', 'recordedBy'])->where('user_id', $member->id)->latest('paid_on')->latest('id')->get(),
             'upcoming' => $studio->bookings()->with(['classSession.program', 'attendee'])->where('user_id', $member->id)
                 ->whereIn('status', Booking::ACTIVE_STATUSES)
                 ->whereHas('classSession', fn ($q) => $q->where('starts_at', '>', now()))
@@ -55,11 +59,28 @@ class MemberController extends Controller
         ]);
     }
 
-    public function comp(Request $request, Studio $studio, User $member, Entitlements $entitlements): RedirectResponse
+    /** Give a member a plan: paid in person (cash, check, card terminal…) or comped. */
+    public function grant(Request $request, Studio $studio, User $member, OfflinePayments $payments): RedirectResponse
     {
-        $plan = $studio->plans()->findOrFail($request->integer('plan_id'));
-        $entitlements->grantFromPlan($plan, $member->id);
+        $data = $request->validate([
+            'plan_id' => ['required', Rule::exists('plans', 'id')->where('studio_id', $studio->id)],
+            'method' => ['required', Rule::in(array_keys(Payment::METHODS))],
+            'amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'paid_on' => ['nullable', 'date', 'before_or_equal:tomorrow'],
+            'ends_on' => ['nullable', 'date', 'after_or_equal:today'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+        $plan = $studio->plans()->findOrFail($data['plan_id']);
+        $payment = $payments->record($plan, $member, $request->user(), [
+            'method' => $data['method'],
+            'amount_cents' => Money::toCents($data['amount'] ?? null),
+            'paid_on' => $data['paid_on'] ?? $studio->localNow()->toDateString(),
+            'ends_on' => $data['ends_on'] ?? null,
+            'note' => $data['note'] ?? null,
+        ]);
 
-        return back()->with('success', "Granted “{$plan->name}” to {$member->name} at no charge.");
+        return back()->with('success', $payment->isComp()
+            ? "Gave “{$plan->name}” to {$member->name} at no charge."
+            : "Recorded {$payment->amountLabel()} ({$payment->methodLabel()}) and added “{$plan->name}” for {$member->name}.");
     }
 }

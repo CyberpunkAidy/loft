@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Models\Studio;
+use App\Services\OfflinePayments;
 use App\Services\Stripe\StripeClient;
 use App\Services\Stripe\StripeException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Stripe Connect onboarding: the studio connects (or creates) its own Stripe account. */
+/** Stripe Connect onboarding, and the payments staff recorded by hand. */
 class PaymentsController extends Controller
 {
     public function show(Studio $studio, StripeClient $stripe): View
@@ -24,11 +26,29 @@ class PaymentsController extends Controller
             }
         }
 
+        $monthStart = $studio->localNow()->startOfMonth()->toDateString();
+        $thisMonth = $studio->payments()->whereNull('voided_at')->where('method', '!=', 'comp')
+            ->where('paid_on', '>=', $monthStart)->where('currency', $studio->currency);
+
         return view('admin.payments', [
             'configured' => $stripe->configured(),
             'error' => $error,
             'webhookUrl' => route('stripe.webhook'),
+            'payments' => $studio->payments()->with(['user', 'plan', 'recordedBy'])->latest('paid_on')->latest('id')->paginate(25),
+            'monthTotal' => (int) (clone $thisMonth)->sum('amount_cents'),
+            'monthCount' => (clone $thisMonth)->count(),
         ]);
+    }
+
+    /** Undo a payment recorded by mistake; the plan it granted is cancelled. */
+    public function void(Request $request, Studio $studio, Payment $payment, OfflinePayments $payments): RedirectResponse
+    {
+        if ($payment->isVoided()) {
+            return back()->with('error', 'That payment is already void.');
+        }
+        $payments->void($payment, $request->user());
+
+        return back()->with('success', 'Payment voided, and the plan it added was cancelled.');
     }
 
     public function connect(Request $request, Studio $studio, StripeClient $stripe): RedirectResponse

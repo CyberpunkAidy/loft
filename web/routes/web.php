@@ -106,7 +106,7 @@ Route::prefix('{studio}')
 
                 Route::get('members', [Admin\MemberController::class, 'index'])->name('members.index');
                 Route::get('members/{member}', [Admin\MemberController::class, 'show'])->name('members.show');
-                Route::post('members/{member}/comp', [Admin\MemberController::class, 'comp'])->name('members.comp');
+                Route::post('members/{member}/plans', [Admin\MemberController::class, 'grant'])->name('members.grant');
 
                 Route::resource('waivers', Admin\WaiverController::class)->except(['show', 'destroy']);
                 Route::post('waivers/{waiver}/activate', [Admin\WaiverController::class, 'activate'])->name('waivers.activate');
@@ -119,6 +119,7 @@ Route::prefix('{studio}')
                 Route::get('payments', [Admin\PaymentsController::class, 'show'])->name('payments');
                 Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->name('payments.connect');
                 Route::get('payments/return', [Admin\PaymentsController::class, 'return'])->name('payments.return');
+                Route::post('payments/{payment}/void', [Admin\PaymentsController::class, 'void'])->name('payments.void');
 
                 Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
                 Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

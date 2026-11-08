@@ -2,6 +2,7 @@
 
 namespace App\Services\Stripe;
 
+use App\Events\CheckoutPaymentFailed;
 use App\Events\EntitlementGranted;
 use App\Events\PaymentFailed;
 use App\Models\Booking;
@@ -117,7 +118,9 @@ class StripeWebhooks
         }
 
         match ($event['type']) {
-            'checkout.session.completed' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
+            'checkout.session.completed',
+            'checkout.session.async_payment_succeeded' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
+            'checkout.session.async_payment_failed' => $this->checkoutFailed($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
             'invoice.paid' => $this->invoicePaid($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'invoice.payment_failed' => $this->invoiceFailed($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'customer.subscription.updated' => $this->subscriptionUpdated($studio, $this->stripe->retrieveSubscription($studio, $id)),
@@ -130,6 +133,9 @@ class StripeWebhooks
      * Grant what a completed Checkout Session paid for, then finish the booking it started from.
      * Safe to call more than once (webhook and the success redirect both call it).
      *
+     * A one-time payment by a delayed method (a bank debit, say) completes checkout unpaid; it's
+     * granted when checkout.session.async_payment_succeeded arrives, days later.
+     *
      * @param  array<string, mixed>  $cs
      */
     public function fulfillCheckout(Studio $studio, array $cs): CheckoutResult
@@ -138,7 +144,7 @@ class StripeWebhooks
             return new CheckoutResult(null);
         }
         if (($cs['payment_status'] ?? '') !== 'paid' && ($cs['mode'] ?? '') !== 'subscription') {
-            return new CheckoutResult(null); // delayed payment methods: invoice.paid follows for subscriptions
+            return new CheckoutResult(null); // still processing: async_payment_succeeded (or _failed) follows
         }
         $meta = $cs['metadata'] ?? [];
         [$plan, $user] = $this->planAndUser($studio, $meta);
@@ -166,6 +172,24 @@ class StripeWebhooks
         [$booking, $error] = $this->completeBooking($studio, $entitlement, $user, $meta);
 
         return new CheckoutResult($entitlement, $created, $booking, $error);
+    }
+
+    /**
+     * A delayed one-time payment failed, so nothing was granted: tell the member. (Subscriptions
+     * report the failure through invoice.payment_failed instead.)
+     *
+     * @param  array<string, mixed>  $cs
+     */
+    private function checkoutFailed(Studio $studio, array $cs): void
+    {
+        if (($cs['mode'] ?? '') === 'subscription') {
+            return;
+        }
+        $meta = $cs['metadata'] ?? [];
+        [$plan, $user] = $this->planAndUser($studio, $meta);
+        if ($user) {
+            CheckoutPaymentFailed::dispatch($studio, $user, $plan, (int) ($meta['session_id'] ?? 0) > 0);
+        }
     }
 
     /** @param array<string, mixed> $invoice */

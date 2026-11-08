@@ -59,6 +59,13 @@
             @endif
         </section>
 
+        @if ($payments->isNotEmpty())
+            <section>
+                <h2>Payments recorded</h2>
+                @include('admin.payments._table', ['payments' => $payments, 'showMember' => false])
+            </section>
+        @endif
+
         <section>
             <h2>Recent</h2>
             @if ($recent->isEmpty())
@@ -92,7 +99,11 @@
                         <div class="muted">
                             @if ($e->isCredits()){{ $e->credits_remaining }}/{{ $e->credits_total }} credits @endif
                             @if ($e->expires_at) · ends {{ $studio->local($e->expires_at)->format('M j, Y') }}@elseif ($e->current_period_end) · renews {{ $studio->local($e->current_period_end)->format('M j') }}@endif
-                            @unless ($e->stripe_subscription_id || $e->stripe_checkout_session_id) · comped @endunless
+                            @if ($e->payment)
+                                · {{ $e->payment->isComp() ? 'comped' : 'paid in person ('.strtolower($e->payment->methodLabel()).')' }}
+                            @elseif (! $e->stripe_subscription_id && ! $e->stripe_checkout_session_id)
+                                · comped
+                            @endif
                         </div>
                     </div>
                     <span @class(['badge', 'badge-full' => $e->status === 'past_due', 'badge-muted' => in_array($e->status, ['cancelled', 'expired'])])>{{ $e->statusLabel() }}</span>
@@ -102,14 +113,22 @@
             @endforelse
         </div>
         <div class="card">
-            <h3>Comp a plan</h3>
+            <h3>Add a plan</h3>
+            <p class="muted small">Record a payment taken in person, or give a plan at no charge.</p>
             @if ($plans->isEmpty())
                 <p class="muted small" style="margin:0"><a href="{{ route('studio.admin.plans.create') }}">Create a plan</a> first.</p>
             @else
-                <form method="post" action="{{ route('studio.admin.members.comp', ['member' => $member]) }}" class="form" data-confirm="Grant this plan at no charge?">
+                <form method="post" action="{{ route('studio.admin.members.grant', ['member' => $member]) }}" class="form">
                     @csrf
-                    <x-select name="plan_id" label="Plan" :options="$plans->pluck('name', 'id')->all()" />
-                    <button class="btn btn-secondary btn-small">Grant at no charge</button>
+                    <x-select name="plan_id" label="Plan" :options="$plans->mapWithKeys(fn ($p) => [$p->id => $p->name.' · '.$p->priceLabel()])->all()" />
+                    <x-select name="method" label="Payment" :options="\App\Models\Payment::METHODS" value="cash" />
+                    <div class="form" data-show-when="method=cash,check,card,transfer,app,other">
+                        <x-money name="amount" label="Amount" :currency="$studio->currency" hint="Leave blank for the plan’s price." />
+                        <x-field name="paid_on" label="Received on" type="date" :value="$studio->localNow()->toDateString()" />
+                        <x-field name="note" label="Note" placeholder="Check #1042" maxlength="255" />
+                    </div>
+                    <x-field name="ends_on" label="Valid until (optional)" type="date" hint="Leave blank and packs follow their validity, memberships paid in person run one month, and comps don’t end." />
+                    <button class="btn btn-small">Add plan</button>
                 </form>
             @endif
         </div>

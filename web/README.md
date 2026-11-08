@@ -64,7 +64,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
   - Seats they held in upcoming classes go to the waitlist.
   - Classes they taught stay, without an instructor.
-  - Payment history stays in each studio's Stripe account.
+  - Payment history stays in each studio's Stripe account. Payments the studio recorded in person stay in its records, no longer linked to the person.
   - A studio's only owner chooses what happens to it in the same form. They can hand it to one of its staff, who becomes the owner. Or they can close it: members' renewing memberships there are cancelled in Stripe, then the studio and everything in it is deleted. Members keep their accounts and other studios.
   - Owners can also make another staff member an owner at any time (Admin → Staff → Make owner). Only owners can do that.
 
@@ -113,11 +113,30 @@ These are fixed here; the plugin still has them.
    - URL: `https://<your-domain>/stripe/webhook`
    - API version: any; the latest is fine. The app takes only the object's ID from each webhook and fetches the object from the API in the version it pins (`2024-06-20`).
    - Payload style: snapshot. These are v1 events; Stripe sends them for Accounts v2 accounts too.
-   - Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
 
    Put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 4. Each studio connects from **Admin → Payments**. The app creates the studio's Customer Portal configuration on first use.
 5. Optional: `LOFT_PLATFORM_FEE_PERCENT` takes an application fee on every studio payment.
+
+**Payment methods.** Each studio picks which payment methods checkout offers (cards, Apple Pay, Google Pay, bank debit and so on) in its own Stripe Dashboard, under Settings → Payment methods. The app doesn't restrict them.
+
+Some methods take days to clear, bank debit (ACH) for example. For one-time purchases (packs and drop-ins):
+- The member sees "your payment is processing" when they finish checkout.
+- `checkout.session.async_payment_succeeded` grants the plan, and finishes the booking if they were booking a class.
+- If the payment fails, `checkout.session.async_payment_failed` emails the member.
+
+Memberships report the same thing through `invoice.paid` and `invoice.payment_failed`.
+
+**Payments taken in person.** On a member's admin page, **Add a plan** records a payment taken at the front desk and gives the member that plan. The payment can be cash, check, a card terminal, a bank transfer, a payment app or other. The same form can also give a plan at no charge (a comp).
+- **What's saved:** each record (`payments` table, `App\Services\OfflinePayments`) keeps the amount, the date, a note and who recorded it.
+- **Receipt:** the member gets the usual purchase email with the amount and how they paid.
+- **How long it lasts:**
+  - A membership paid in person runs one month, unless you set a "valid until" date.
+  - Packs follow their validity period.
+  - Comps don't end, as before.
+- **Mistakes:** admins can void a record. The plan it granted is cancelled and the record stays, marked void.
+- **Totals:** Admin → Payments lists every record and the total taken in person this month.
 
 To test locally, forward webhooks from connected accounts with:
 
@@ -189,7 +208,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 92 tests. They cover:
+There are 99 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
@@ -199,6 +218,7 @@ There are 92 tests. They cover:
 - sending through Resend
 - every member and admin page
 - readable studio colors, the logo and the email designs
+- payments recorded in person, and delayed (bank) payments
 
 They run on SQLite by default. To run them against Postgres:
 
