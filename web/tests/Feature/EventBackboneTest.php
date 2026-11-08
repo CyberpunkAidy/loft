@@ -44,6 +44,15 @@ class EventBackboneTest extends TestCase
         return $this->attendee($studio, $user);
     }
 
+    /** The payload has these keys and values. Key order isn't compared: Postgres's jsonb reorders keys. */
+    private function assertPayloadHas(array $expected, DomainEvent $event): void
+    {
+        $actual = array_intersect_key($event->payload, $expected);
+        ksort($expected);
+        ksort($actual);
+        $this->assertSame($expected, $actual);
+    }
+
     /** @return list<string> */
     private function types(Studio $studio): array
     {
@@ -65,10 +74,8 @@ class EventBackboneTest extends TestCase
 
         $event = DomainEvent::where('type', 'booking.booked')->sole();
         $this->assertSame([$first->user_id, $first->id], [$event->user_id, $event->attendee_id]);
-        $this->assertSame(['booking_id' => $booked->id, 'session_id' => $session->id, 'program_title' => 'Silks', 'source' => 'web', 'credit_consumed' => true],
-            array_intersect_key($event->payload, array_flip(['booking_id', 'session_id', 'program_title', 'source', 'credit_consumed'])));
-        $this->assertSame(['member', false, 'booked', true], array_values(array_intersect_key(DomainEvent::where('type', 'booking.cancelled')->sole()->payload,
-            array_flip(['by', 'late', 'from', 'credit_refunded']))));
+        $this->assertPayloadHas(['booking_id' => $booked->id, 'session_id' => $session->id, 'program_title' => 'Silks', 'source' => 'web', 'credit_consumed' => true], $event);
+        $this->assertPayloadHas(['by' => 'member', 'late' => false, 'from' => 'booked', 'credit_refunded' => true], DomainEvent::where('type', 'booking.cancelled')->sole());
         $this->assertSame(1, DomainEvent::where('type', 'booking.waitlisted')->sole()->payload['position']);
 
         // Check-in: the first class at the studio is marked, then not again.
