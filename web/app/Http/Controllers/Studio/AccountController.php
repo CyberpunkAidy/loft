@@ -76,6 +76,7 @@ class AccountController extends Controller
                 ->latest()
                 ->get(),
             'canOpenPortal' => $studio->stripeReady() && $membership?->stripe_customer_id,
+            'orders' => $studio->orders()->with('items')->where('user_id', $request->user()->id)->latest('paid_at')->latest('id')->limit(20)->get(),
         ]);
     }
 

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Bookings;
 use App\Services\DomainEvents;
 use App\Services\Entitlements;
+use App\Services\Orders;
 use App\Support\BookingException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -43,6 +44,7 @@ class StripeWebhooks
         private readonly Entitlements $entitlements,
         private readonly Bookings $bookings,
         private readonly DomainEvents $events,
+        private readonly Orders $orders,
     ) {}
 
     /**
@@ -172,6 +174,9 @@ class StripeWebhooks
             $entitlement->update(['stripe_checkout_session_id' => $cs['id']]); // invoice.paid got here first
         }
 
+        if ($entitlement) {
+            $this->orders->recordCheckout($studio, $cs, $entitlement); // one-time payments; memberships record their invoices
+        }
         [$booking, $error] = $this->completeBooking($studio, $entitlement, $user, $meta);
 
         return new CheckoutResult($entitlement, $created, $booking, $error);
@@ -209,15 +214,19 @@ class StripeWebhooks
             $subscription = $this->stripe->retrieveSubscription($studio, $subscriptionId);
             [$plan, $user] = $this->planAndUser($studio, $subscription['metadata'] ?? []);
             if ($plan && $user) {
-                $this->grant($studio, $plan, $user, [
+                [$entitlement] = $this->grant($studio, $plan, $user, [
                     'customer_id' => $subscription['customer'] ?? null,
                     'subscription_id' => $subscriptionId,
                     'current_period_end' => $this->periodEnd($subscription),
                 ]);
+                if ($entitlement) {
+                    $this->orders->recordInvoice($studio, $invoice, $entitlement);
+                }
             }
 
             return;
         }
+        $this->orders->recordInvoice($studio, $invoice, $entitlement);
 
         $periodEnd = null;
         foreach ($invoice['lines']['data'] ?? [] as $line) {

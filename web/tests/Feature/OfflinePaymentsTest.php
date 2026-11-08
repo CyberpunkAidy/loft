@@ -40,7 +40,7 @@ class OfflinePaymentsTest extends TestCase
 
         // It shows on the member's page and on Payments, with this month's total.
         $this->get("/{$studio->slug}/admin/members/{$member->id}")->assertOk()
-            ->assertSee('Payments recorded')->assertSee('paid in person (cash)')->assertSee('Front desk')
+            ->assertSee('Purchases')->assertSee('paid in person (cash)')->assertSee('Front desk')
             ->assertDontSee('stripe_subscription_id'); // no template code leaking into the page
         $this->get("/{$studio->slug}/admin/payments")->assertOk()
             ->assertSee('$90.00')->assertSee('Taken in person this month')->assertSee($member->name);

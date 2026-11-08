@@ -1,6 +1,6 @@
 # Payments
 
-There are three ways money comes in. All of them end the same way: an **entitlement** (a membership or credits) on the member's account.
+There are three ways money comes in. All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
 
 ## 1. Online, through Stripe Checkout
 
@@ -43,8 +43,25 @@ At the front desk (cash, a check, a card terminal, a bank transfer, a payment ap
 - **Deleted accounts:** if a member deletes their account, the record stays in the studio's books, unlinked from the person ([Accounts and Data](Accounts-and-Data)). Signed waivers are kept the same way.
 - **Who:** admins and owners only.
 
+## The orders ledger
+
+Every sale is an **order** with **items** (`orders`, `order_items`, `App\Services\Orders`), however it was paid ([decision 25](Decisions)):
+
+| Sale | Order |
+|---|---|
+| One-time online checkout (pack, drop-in) | One per paid Checkout Session, with what Stripe charged after promotion codes and tax |
+| Membership or seasonal tuition | One per paid invoice: the first payment (with a season's registration fee as its own item) and every renewal |
+| Taken in person, or comped | One per recorded payment (comps at no charge), dated the day received (noon, studio time, for earlier days). Voiding the payment voids the order |
+
+- **Numbers:** per studio, from #1001.
+- **Once each:** orders are keyed on the Stripe Checkout Session or invoice ID, so retried webhooks and the checkout return page can't record a sale twice.
+- **History:** each order records an `order.paid` domain event (`order.voided` when voided), shown in the member's activity.
+- **Admin → Sales:** a month at a time (studio time), with total, online and in-person sales, the number of sales and comps, every order with its items, how it was paid (online ones link to the payment in the studio's Stripe Dashboard), and **Download CSV** for the books. Voided sales are listed but left out of totals.
+- **Elsewhere:** the dashboard shows sales this month; a member's admin page lists their purchases (in-person ones can be voided there); members see their purchases under **Plans & billing**.
+- **History before the ledger:** payments recorded in person before November 2026 were copied in as orders. Earlier online sales weren't (their amounts are in Stripe, not Loft), so the online history starts with the ledger.
+
 ## Not supported yet
 
-- **Merchandise and a shared cart:** products, one checkout for several items, a front-desk point of sale with Stripe Terminal. Planned ([Roadmap](Roadmap)).
-- **Stripe refunds:** refunds don't take back what they paid for. Remove it by hand.
+- **Merchandise and a shared cart:** products, one checkout for several items, a front-desk point of sale with Stripe Terminal. Planned next, on top of the orders ledger ([Roadmap](Roadmap)).
+- **Stripe refunds:** refunds don't take back what they paid for, and don't change the order. Remove the plan by hand.
 - **Other payment providers:** PayPal checkout, Square, or Loft collecting money and paying studios out. Deliberately not planned ([Decisions](Decisions)).

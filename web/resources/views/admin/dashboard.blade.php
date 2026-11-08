@@ -20,6 +20,7 @@
 
 <div class="stats">
     <div class="stat"><strong>{{ $stats['members'] }}</strong><span>Members</span></div>
+    <a class="stat" href="{{ route('studio.admin.sales.index') }}"><strong>{{ \App\Support\Money::format($stats['sales_month'], $studio->currency) }}</strong><span>Sales this month</span></a>
     <div class="stat"><strong>{{ $stats['memberships'] }}</strong><span>Active memberships</span></div>
     <div @class(['stat', 'warn' => $stats['past_due'] > 0])><strong>{{ $stats['past_due'] }}</strong><span>Past due</span></div>
     <div class="stat"><strong>{{ $stats['bookings_week'] }}</strong><span>Bookings, last 7 days</span></div>

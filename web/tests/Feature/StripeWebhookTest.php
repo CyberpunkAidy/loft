@@ -7,6 +7,7 @@ use App\Events\PaymentFailed;
 use App\Mail\StudioMessage;
 use App\Models\DomainEvent;
 use App\Models\Entitlement;
+use App\Models\Order;
 use App\Models\StripeEvent;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
@@ -69,6 +70,7 @@ class StripeWebhookTest extends TestCase
         $this->serve('acct_A', 'checkout/sessions/cs_1', [
             'id' => 'cs_1', 'mode' => 'payment', 'status' => 'complete', 'payment_status' => 'paid', 'customer' => 'cus_1',
             'metadata' => ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id, 'session_id' => $session->id, 'attendee_id' => $attendee->id],
+            'amount_subtotal' => 10000, 'amount_total' => 9000, 'total_details' => ['amount_discount' => 1000, 'amount_tax' => 0], 'currency' => 'usd', 'payment_intent' => 'pi_1',
         ]);
         $event = $this->event('checkout.session.completed', ['id' => 'cs_1', 'object' => 'checkout.session'], 'acct_A');
 
@@ -81,8 +83,14 @@ class StripeWebhookTest extends TestCase
         $this->assertSame('booked', $session->bookings()->sole()->status);
         $this->assertNotNull(StripeEvent::sole()->processed_at);
         Event::assertDispatchedTimes(EntitlementGranted::class, 1);
-        $this->assertSame(['entitlement.granted', 'booking.booked'], DomainEvent::orderBy('id')->pluck('type')->all(), 'recorded once, despite the retry');
+        $this->assertSame(['entitlement.granted', 'order.paid', 'booking.booked'], DomainEvent::orderBy('id')->pluck('type')->all(), 'recorded once, despite the retry');
         $this->assertSame(['stripe', $plan->id, $user->id], [DomainEvent::first()->payload['source'], DomainEvent::first()->payload['plan_id'], DomainEvent::first()->user_id]);
+
+        // In the orders ledger once: what Stripe actually charged, after the promotion code.
+        $order = Order::with('items')->sole();
+        $this->assertSame([1001, 'online', 'stripe', 10000, 1000, 9000, 'pi_1', $user->id], [$order->number, $order->channel, $order->method,
+            $order->subtotal_cents, $order->discount_cents, $order->total_cents, $order->stripe_payment_intent_id, $order->user_id]);
+        $this->assertSame([[$plan->name, $plan->id, $entitlement->id]], $order->items->map(fn ($i) => [$i->description, $i->plan_id, $i->entitlement_id])->all());
     }
 
     public function test_the_booking_after_checkout_takes_the_chosen_apparatus(): void
@@ -185,6 +193,41 @@ class StripeWebhookTest extends TestCase
             && $r->url() === 'https://api.stripe.com/v1/subscriptions/sub_1'
             && $r['cancel_at'] == $seasonEnd->getTimestamp()
             && $r->header('Stripe-Account') === ['acct_A']);
+    }
+
+    public function test_each_paid_membership_invoice_is_an_order(): void
+    {
+        $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
+        $season = $studio->seasons()->create(['name' => 'Season', 'starts_on' => now()->subMonth()->toDateString(), 'ends_on' => now()->addMonths(5)->toDateString(), 'is_current' => true]);
+        $user = $this->userIn($studio);
+        $plan = $this->plan($studio, ['kind' => 'season', 'name' => 'Competitive Tuition', 'season_id' => $season->id, 'price_cents' => 11500,
+            'stripe_price_id' => 'price_plan', 'stripe_fee_price_id' => 'price_fee']);
+        $meta = ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id];
+        $this->serve('acct_A', 'subscriptions/sub_1', ['id' => 'sub_1', 'customer' => 'cus_1', 'status' => 'active', 'current_period_end' => now()->addMonth()->getTimestamp(), 'metadata' => $meta]);
+        $this->serve('acct_A', 'checkout/sessions/cs_9', ['id' => 'cs_9', 'mode' => 'subscription', 'status' => 'complete', 'payment_status' => 'paid',
+            'subscription' => 'sub_1', 'customer' => 'cus_1', 'metadata' => $meta, 'amount_total' => 16500]);
+        $paidAt = now()->subMinutes(5)->getTimestamp();
+        $this->serve('acct_A', 'invoices/in_1', ['id' => 'in_1', 'subscription' => 'sub_1', 'currency' => 'usd', 'subtotal' => 16500, 'tax' => 0,
+            'amount_paid' => 16500, 'payment_intent' => 'pi_first', 'status_transitions' => ['paid_at' => $paidAt], 'lines' => ['data' => [
+                ['amount' => 11500, 'quantity' => 1, 'description' => '1 × Competitive Tuition', 'price' => ['id' => 'price_plan']],
+                ['amount' => 5000, 'quantity' => 1, 'description' => 'Registration fee', 'price' => ['id' => 'price_fee']],
+            ]]]);
+        $this->serve('acct_A', 'invoices/in_2', ['id' => 'in_2', 'subscription' => 'sub_1', 'currency' => 'usd', 'subtotal' => 11500, 'tax' => 920,
+            'amount_paid' => 12420, 'total_discount_amounts' => [], 'lines' => ['data' => [['amount' => 11500, 'quantity' => 1, 'price' => ['id' => 'price_plan']]]]]);
+
+        $this->postWebhook($this->event('invoice.paid', ['id' => 'in_1'], 'acct_A', 'evt_1'))->assertOk(); // before checkout completes
+        $this->postWebhook($this->event('checkout.session.completed', ['id' => 'cs_9'], 'acct_A', 'evt_2'))->assertOk(); // no second order
+        $this->postWebhook($this->event('invoice.paid', ['id' => 'in_2'], 'acct_A', 'evt_3'))->assertOk(); // next month
+        $this->postWebhook($this->event('invoice.paid', ['id' => 'in_2'], 'acct_A', 'evt_4'))->assertOk(); // the same invoice again
+
+        $orders = Order::with('items')->orderBy('number')->get();
+        $this->assertSame([[1001, 16500, 'pi_first', 'in_1'], [1002, 12420, null, 'in_2']],
+            $orders->map(fn ($o) => [$o->number, $o->total_cents, $o->stripe_payment_intent_id, $o->stripe_invoice_id])->all());
+        $this->assertSame([['plan', 'Competitive Tuition', 11500], ['fee', 'Registration fee', 5000]],
+            $orders[0]->items->map(fn ($i) => [$i->kind, $i->description, $i->total_cents])->all());
+        $this->assertSame($paidAt, $orders[0]->paid_at->getTimestamp());
+        $this->assertSame(920, $orders[1]->tax_cents);
+        $this->assertSame(Entitlement::sole()->id, $orders[1]->items->sole()->entitlement_id);
     }
 
     public function test_failed_renewal_marks_past_due_once_and_paid_invoice_restores(): void

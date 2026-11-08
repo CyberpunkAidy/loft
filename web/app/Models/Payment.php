@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** A payment staff recorded by hand (or a comp), and the plan it granted. See OfflinePayments. */
 #[Fillable([
     'studio_id', 'user_id', 'plan_id', 'entitlement_id', 'method', 'amount_cents', 'currency', 'paid_on', 'note',
-    'recorded_by_user_id', 'voided_at', 'voided_by_user_id',
+    'recorded_by_user_id', 'voided_at', 'voided_by_user_id', 'order_id',
 ])]
 class Payment extends Model
 {
@@ -51,6 +51,11 @@ class Payment extends Model
     public function entitlement(): BelongsTo
     {
         return $this->belongsTo(Entitlement::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function recordedBy(): BelongsTo

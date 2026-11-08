@@ -19,7 +19,7 @@ Members delete their own account under **My account → Profile → Delete accou
 
 What stays:
 - **Classes they taught** stay, with no instructor.
-- **Payments the studio recorded in person** stay in the studio's books, unlinked from the person.
+- **Payments the studio recorded in person, and every order in the sales ledger,** stay in the studio's books, unlinked from the person.
 - **Signed waivers** stay with each studio, unlinked from the person.
 - **Payment history** stays in each studio's Stripe account. That data belongs to the studio.
 

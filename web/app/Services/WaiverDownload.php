@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Studio;
 use App\Models\WaiverSignature;
 use App\Models\WaiverVersion;
+use App\Support\Csv;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -45,7 +46,7 @@ class WaiverDownload
                 $drawing = "drawings/signature-{$signature->id}.png";
                 $zip->addFromString($drawing, (string) $disk->get($signature->signature_path));
             }
-            fputcsv($csv, array_map($this->cell(...), [
+            fputcsv($csv, array_map(Csv::cell(...), [
                 $studio->local($signature->signed_at)->format('Y-m-d H:i'),
                 $studio->timezone,
                 $signature->version?->title ?? $signature->waiver?->title,
@@ -73,14 +74,6 @@ class WaiverDownload
     private function textPath(WaiverVersion $version): string
     {
         return sprintf('waiver-texts/%d-%s-v%d.txt', $version->waiver_id, Str::slug($version->title) ?: 'waiver', $version->version);
-    }
-
-    /** Stop spreadsheet apps from treating a value as a formula. */
-    private function cell(mixed $value): string
-    {
-        $value = (string) $value;
-
-        return $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
     }
 
     private function readme(Studio $studio): string
