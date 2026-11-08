@@ -29,6 +29,24 @@ Transactional email (bookings, receipts, reminders, payment problems) always goe
 - **Sending marketing email:** `Messages::email($user, $message, $dedupeKey, 'marketing')`. It checks consent, adds the footer line and the headers.
 - **SMS:** consent for marketing texts (TCPA) will be collected when SMS is added.
 
+## Automations
+
+Admin → Automations: emails a studio sets up once that then go out by themselves (`App\Services\Automations`). Each is off until the studio turns it on.
+
+| Automation | Sent | Once per |
+|---|---|---|
+| After a first class | A set number of hours (default 3) after someone's first class at the studio is checked in | attendee |
+| Birthday | On the birthday, from 10 AM studio time; children's birthdays go to the parent. Leap-day birthdays are on February 28 in other years | attendee, per year |
+| We miss you | A set number of days (default 30) after a member's last class, if they have nothing booked. Only members who lapsed in the past week are included, so turning it on doesn't email everyone who ever left | absence: coming back and lapsing again sends it again |
+
+- **Marketing:** every automation counts as marketing ([decision 23](Decisions)). It goes only to members who opted in, with the unsubscribe link and headers. Members who didn't opt in get nothing, and the delivery log shows it as "not sent".
+- **The text:** a subject and plain-text message with placeholders (`{first_name}`, `{attendee_first_name}`, `{who}`, `{studio}`, `{class}`, `{days}`, depending on the automation; unknown ones are refused). Blank lines separate paragraphs, and a button to the schedule is added. The page previews the saved version with sample names, and **Send me a test** emails it to the admin.
+- **How they run:**
+  - **After a first class:** from the outbox. `AutomationTriggers`, the first registered handler, sees `booking.attended` with `first_visit` and queues `SendAutomatedMessage` for later. When it runs, it checks the automation is still on and the member still there.
+  - **Birthday and we miss you:** checked by the hourly housekeeping run.
+  - Each send has a dedupe key (such as `automation:4:birthday:attendee:12:2026`), so it goes out once however often these run. The delivery log records which automation sent it.
+- **Text messages:** the same automations will send SMS once a provider is set up. In the US that needs A2P 10DLC brand and campaign registration (through Twilio or similar), which takes weeks, so start it early.
+
 ## Templates
 
 | File | Used for |

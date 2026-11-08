@@ -151,6 +151,7 @@ class EventBackboneTest extends TestCase
             app(DomainEvents::class)->record('booking.teleported', null);
         } finally {
             // With no handlers, events are kept as history and simply marked relayed.
+            config(['loft.event_handlers' => []]);
             $studio = $this->studio();
             $attendee = $this->member($studio);
             $this->bookings()->book($this->classSession($this->program($studio)), $attendee, $attendee->user_id);

@@ -177,6 +177,11 @@ class Studio extends Model
         return $this->hasMany(Room::class);
     }
 
+    public function automations(): HasMany
+    {
+        return $this->hasMany(Automation::class);
+    }
+
     public function attendees(): HasMany
     {
         return $this->hasMany(Attendee::class);

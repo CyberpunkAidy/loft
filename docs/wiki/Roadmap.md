@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 3 are built; the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 4 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -21,6 +21,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - Marketing email consent per studio, with one-click unsubscribe.
   - Nightly member snapshots.
   - See [Architecture](Architecture#the-outbox-domain_events).
+- **Automations (step 4, done by email):** after a first class, birthday and we miss you, as marketing email ([Email](Email#automations)). The first-class follow-up is the outbox's first consumer.
 - **API:** none. Server-rendered pages with session logins only.
 
 ## Principles
@@ -293,8 +294,8 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 
 1. [x] **Waiver hardening** (built 2026-11-08, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15)): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
 2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16)): settles the booking model before anything depends on it.
-3. [x] **Event backbone** (built 2026-11-08): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
-4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
+3. [x] **Event backbone** (built 2026-11-08, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
+4. [x] **Automations, email first** (built 2026-11-08): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early.
 5. [ ] **Orders ledger:** route plan checkouts and recorded payments through `orders`.
 6. [ ] **Merchandise and point of sale:** products, a shared cart, Stripe Terminal at the front desk.
 7. [ ] **API v1:** services first, then Sanctum, schedule, bookings, account, waivers, push tokens.

@@ -4,15 +4,22 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Event backbone** (roadmap step 3)
+- **Automations** (roadmap step 4)
+  - **Admin → Automations:** three emails that go out by themselves: after someone's first class (hours after check-in), birthdays (members and their children, from 10 AM studio time), and "we miss you" (days after a member's last class, if nothing is booked). Each is off until turned on.
+  - **Editing:** subject and text with placeholders, a preview with sample names, and **Send me a test**.
+  - **Marketing:** they go only to members who opted in, with the unsubscribe link, and each goes out once (dedupe keys). The delivery log records which automation sent each email.
+  - **Outbox:** the first-class follow-up is the event relay's first consumer (`AutomationTriggers`).
+  - **Database:** new table `automations`; `message_deliveries.automation_id`.
+
+## 2026-11-08
+
+- **Event backbone** (roadmap step 3, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17))
   - **Outbox and history:** every booking, check-in, plan, payment failure, waiver signature and consent change records a domain event in the same transaction as the change. A check-in records `booking.attended`, flagged when it's the attendee's first class. A relay hands events to handlers (none yet; automations come next).
   - **Member activity:** each member's admin page shows their recent activity and the emails sent to them.
   - **Email log:** every studio email is logged in `message_deliveries` with a dedupe key, so it goes out once, and is marked sent (with Resend's ID) or failed. Replaces `sent_notifications`, whose rows are copied over.
   - **Consent:** members opt in to a studio's news and offers when joining or in their profile. Marketing email carries a signed one-click unsubscribe link and `List-Unsubscribe` headers, and isn't sent without consent.
   - **Snapshots:** each night after 2 AM studio time, every member's activity is saved to `member_snapshots` for churn scoring later.
   - **Database:** new tables `domain_events`, `message_deliveries` and `member_snapshots`; consent columns on `studio_users`. `sent_notifications` is no longer written (dropped in a later release).
-
-## 2026-11-08
 
 - **Rooms, apparatus capacity and waitlist limits** (roadmap step 2, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16))
   - **Rooms:** Admin → Rooms. Each room has a capacity limit, and classes in it can't be bigger.

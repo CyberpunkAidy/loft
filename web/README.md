@@ -27,7 +27,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone. Next: automations, point of sale, mobile API, check-in kiosks, churn |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations. Next: orders and point of sale, mobile API, check-in kiosks, churn |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -96,6 +96,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - **Email log:** every studio email is logged in `message_deliveries` under a dedupe key, so it sends once; it's marked sent or failed.
   - **Consent:** marketing email needs opt-in per studio (join form or profile), with a signed one-click unsubscribe link.
   - **Snapshots:** housekeeping saves each member's activity nightly (`member_snapshots`), for churn scoring later.
+  - **Automations** (`App\Services\Automations`, Admin → Automations): after a first class (from the outbox), birthdays and we-miss-you emails (from housekeeping). Marketing email: only to members who opted in, once each.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
 - **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
@@ -245,10 +246,11 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 125 tests. They cover:
+There are 130 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
+- automations: first-class follow-ups through the outbox, birthdays (leap days too), win-back once per absence, and the admin screens
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles

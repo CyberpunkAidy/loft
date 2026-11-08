@@ -38,6 +38,7 @@
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus and waitlist limit for new sessions, and **Apply to upcoming sessions** to update existing ones | admin |
 | Seasons | Date ranges for weekly classes | admin |
 | Rooms | Each room's capacity limit (such as its fire-code limit) and the apparatus rigged in it: how many, and the most people on each | admin |
+| Automations | Emails that go out by themselves: **after a first class** (a set number of hours after check-in), **birthdays** (members and their children, from 10 AM), and **we miss you** (a set number of days after the last class, if nothing is booked). Edit the subject and text with placeholders, see a preview, send yourself a test, turn each on or off; see how many went out | admin |
 | Members | Search; family, waivers, plans, upcoming and past classes; **Activity** (bookings, check-ins, plans, payment problems, waivers, consent, newest first); **Emails** (each email and whether it was sent, and marketing consent); **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
 | Payments | Connect Stripe; payments recorded in person and this month's total | admin |

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * twice. Holds no address or content; the member's account is unlinked if it's deleted.
  */
 #[Fillable([
-    'studio_id', 'user_id', 'domain_event_id', 'channel', 'category', 'kind', 'dedupe_key', 'status',
+    'studio_id', 'user_id', 'domain_event_id', 'automation_id', 'channel', 'category', 'kind', 'dedupe_key', 'status',
     'provider_message_id', 'error', 'sent_at',
 ])]
 class MessageDelivery extends Model
@@ -28,6 +28,10 @@ class MessageDelivery extends Model
         'welcome' => 'Welcome',
         'reminder' => 'Class reminder',
         'credits_expiring' => 'Credits expiring',
+        'first_class' => 'After a first class (automation)',
+        'birthday' => 'Birthday (automation)',
+        'win_back' => 'We miss you (automation)',
+        'automation_test' => 'Automation test',
     ];
 
     public const STATUSES = ['queued' => 'Queued', 'sent' => 'Sent', 'failed' => 'Failed', 'suppressed' => 'Not sent (no consent)'];
@@ -45,6 +49,11 @@ class MessageDelivery extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function automation(): BelongsTo
+    {
+        return $this->belongsTo(Automation::class);
     }
 
     public function kindLabel(): string

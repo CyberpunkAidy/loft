@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Automation;
 use App\Models\Category;
 use App\Models\Program;
 use App\Models\Studio;
@@ -118,6 +119,11 @@ class DatabaseSeeder extends Seeder
                 ."I agree to follow all instructions from Skyline Aerial Arts staff and to use equipment only under supervision.\n\n"
                 .'I release Skyline Aerial Arts, its owners and staff from liability for injury arising from ordinary participation, except where caused by gross negligence.',
         ]);
+
+        // Automations: the first-class follow-up is on; birthday and win-back are ready to turn on.
+        foreach (array_keys(Automation::TRIGGERS) as $trigger) {
+            $studio->automations()->create(['trigger' => $trigger, 'active' => $trigger === 'first_class'] + Automation::defaults($trigger));
+        }
 
         // A family with a membership, booked into this week's kids class.
         $maya = $studio->attendees()->create(['user_id' => $parent->id, 'first_name' => 'Maya', 'last_name' => 'Shah', 'dob' => now()->subYears(9)->toDateString(), 'medical_notes' => 'Mild asthma — inhaler in bag.', 'emergency_contact' => 'Dev Shah 303-555-0143']);
