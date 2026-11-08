@@ -10,6 +10,7 @@
     <div class="session-time">
         {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}
         @if ($s->instructor)<span class="muted"> · {{ $s->instructor->first_name }}</span>@endif
+        @if ($s->relationLoaded('room') && $s->room)<span class="muted"> · {{ $s->room->name }}</span>@endif
     </div>
     <h3><a href="{{ route('studio.program', ['program' => $program]) }}">{{ $program->title }}</a></h3>
     @if ($labels->isNotEmpty() || $program->isEvent() || $program->ageLabel())

@@ -15,7 +15,9 @@
         <h1 style="margin-bottom:.25rem">{{ $session->program->title }}</h1>
         <p class="muted" style="margin:0">{{ $start->format('l, F j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}</p>
         <p class="small" style="margin:.5rem 0 0">
-            @if ($session->isFull())
+            @if ($session->isFull() && $session->waitlistIsFull())
+                <span class="badge badge-full">Full</span>
+            @elseif ($session->isFull())
                 <span class="badge badge-full">Full</span> You’ll join the waitlist{{ $session->waitlistCount() ? ' ('.$session->waitlistCount().' ahead of you)' : '' }} and we’ll email you if a spot opens.
             @else
                 <span class="badge">{{ $session->spotsLeft() }} {{ $session->spotsLeft() === 1 ? 'spot' : 'spots' }} left</span>
@@ -55,6 +57,37 @@
                 @endforeach
             </div>
             @error('attendee_id')<small class="error-text">Choose who’s coming.</small>@enderror
+
+            @if ($slots->count() > 1)
+                @php $pick = (string) old('apparatus_id', $chosen ?? ''); @endphp
+                <h2>Apparatus</h2>
+                <div class="list" role="radiogroup">
+                    <label class="pick">
+                        <input type="radio" name="apparatus_id" value="" @checked($pick === '')>
+                        <span class="grow"><strong>No preference</strong><span class="muted small" style="display:block">We’ll pick the one with the most room.</span></span>
+                    </label>
+                    @foreach ($slots as $slot)
+                        @php $blocked = $slot->isFull() && $session->waitlistIsFull(); @endphp
+                        <label @class(['pick', 'disabled' => $blocked])>
+                            <input type="radio" name="apparatus_id" value="{{ $slot->apparatus->id }}" @checked($pick === (string) $slot->apparatus->id) @disabled($blocked)>
+                            <span class="grow">
+                                <strong>{{ $slot->apparatus->name }}</strong>
+                                <span class="muted small" style="display:block">
+                                    @if (! $slot->isFull())
+                                        {{ $slot->left() }} {{ $slot->left() === 1 ? 'spot' : 'spots' }} left
+                                    @elseif ($blocked)
+                                        Full
+                                    @else
+                                        Full. You’ll join the waitlist for one.
+                                    @endif
+                                </span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            @elseif ($slots->count() === 1)
+                <p class="small muted" style="margin:0">On {{ $slots->first()->apparatus->name }}.</p>
+            @endif
             <div class="actions">
                 <button class="btn" @disabled($bookable->isEmpty())>{{ $session->isFull() ? 'Join waitlist' : 'Book' }}</button>
                 <a class="link small" href="{{ route('studio.attendees.create', ['return' => $here]) }}">+ Add someone else</a>

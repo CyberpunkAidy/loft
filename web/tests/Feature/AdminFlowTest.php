@@ -31,13 +31,15 @@ class AdminFlowTest extends TestCase
         $season = $studio->seasons()->create(['name' => 'Fall', 'starts_on' => '2026-09-01', 'ends_on' => '2027-05-31']);
         $plan = $this->plan($studio);
         $waiver = $this->waiver($studio);
+        $room = $studio->rooms()->create(['name' => 'Main', 'max_capacity' => 12]);
         $this->actingAs($owner);
 
         foreach ([
             'admin', 'admin/checkin', 'admin/sessions', "admin/sessions/{$session->id}", 'admin/programs', 'admin/programs/create',
             "admin/programs/{$program->id}/edit", 'admin/seasons', "admin/seasons/{$season->id}/edit", 'admin/plans', 'admin/plans/create',
             "admin/plans/{$plan->id}/edit", 'admin/members', "admin/members/{$member->id}", 'admin/waivers', 'admin/waivers/create',
-            "admin/waivers/{$waiver->id}/edit", 'admin/staff', 'admin/payments', 'admin/settings',
+            "admin/waivers/{$waiver->id}/edit", 'admin/staff', 'admin/payments', 'admin/settings', 'admin/rooms', 'admin/rooms/create',
+            "admin/rooms/{$room->id}/edit",
         ] as $page) {
             $this->get("/{$studio->slug}/{$page}")->assertOk();
         }

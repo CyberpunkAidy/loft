@@ -23,7 +23,7 @@ class AccountController extends Controller
     public function upcoming(Request $request, Studio $studio, Bookings $bookings): View
     {
         $list = $studio->bookings()
-            ->with(['classSession.program', 'attendee'])
+            ->with(['classSession.program', 'classSession.room', 'attendee', 'apparatus'])
             ->where('user_id', $request->user()->id)
             ->whereIn('status', Booking::ACTIVE_STATUSES)
             ->whereHas('classSession', fn ($q) => $q->where('ends_at', '>=', now()))
@@ -41,7 +41,7 @@ class AccountController extends Controller
     public function history(Request $request, Studio $studio): View
     {
         $list = $studio->bookings()
-            ->with(['classSession.program', 'attendee'])
+            ->with(['classSession.program', 'classSession.room', 'attendee', 'apparatus'])
             ->where('user_id', $request->user()->id)
             ->where(fn ($q) => $q->whereNotIn('status', Booking::ACTIVE_STATUSES)
                 ->orWhereHas('classSession', fn ($s) => $s->where('ends_at', '<', now())))

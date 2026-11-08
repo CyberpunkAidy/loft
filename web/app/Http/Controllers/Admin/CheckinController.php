@@ -30,7 +30,7 @@ class CheckinController extends Controller
             ?? $sessions->first();
 
         $roster = $selected
-            ? $selected->bookings()->with(['attendee', 'user'])->whereNot('status', 'cancelled')
+            ? $selected->bookings()->with(['attendee', 'user', 'apparatus'])->whereNot('status', 'cancelled')
                 ->orderByRaw("case status when 'waitlisted' then 2 when 'late_cancelled' then 3 else 1 end")
                 ->orderBy('position')->orderBy('booked_at')->get()
             : collect();

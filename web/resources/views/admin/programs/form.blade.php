@@ -47,7 +47,20 @@
                     <x-field name="duration_min" label="Length (minutes)" type="number" min="15" max="600" :value="$program->duration_min" required />
                     <x-field name="capacity" label="Capacity" type="number" min="1" max="500" :value="$program->capacity" required />
                 </div>
-                <x-select name="instructor_id" label="Instructor" :options="$instructors->mapWithKeys(fn ($u) => [$u->id => $u->name])->all()" :value="$program->instructor_id" placeholder="—" hint="Add instructors under Staff." />
+                <div class="grid-2">
+                    <x-select name="instructor_id" label="Instructor" :options="$instructors->mapWithKeys(fn ($u) => [$u->id => $u->name])->all()" :value="$program->instructor_id" placeholder="—" hint="Add instructors under Staff." />
+                    <x-field name="waitlist_capacity" label="Waitlist limit" type="number" min="0" max="500" :value="$program->waitlist_capacity" hint="Empty for no limit; 0 for no waitlist." />
+                </div>
+            </fieldset>
+
+            <fieldset class="fieldset form">
+                <legend>Room and apparatus</legend>
+                @if ($rooms->isEmpty())
+                    <p class="small muted" style="margin:0">Optional. <a href="{{ route('studio.admin.rooms.create') }}">Add a room</a> to cap classes at its capacity and take bookings per apparatus, such as one person per silk.</p>
+                @else
+                    <x-select name="room_id" label="Room" :options="$rooms->mapWithKeys(fn ($r) => [$r->id => $r->name.' (holds '.$r->max_capacity.')'])->all()" :value="$program->room_id" placeholder="No room" />
+                    @include('admin._apparatus-fields', ['rooms' => $rooms, 'current' => $allocation])
+                @endif
             </fieldset>
 
             <fieldset class="fieldset form">
@@ -91,6 +104,9 @@
                 <legend>Visibility</legend>
                 <x-checkbox name="is_published" label="Show on the schedule" :checked="$program->is_published" />
             </fieldset>
+            @if ($program->exists)
+                <x-checkbox name="apply_upcoming" label="Apply to upcoming sessions" hint="Copies the capacity, waitlist limit, room and apparatus to every upcoming session, replacing changes made to single sessions. People already booked keep their spots." />
+            @endif
             <button class="btn btn-block">{{ $program->exists ? 'Save program' : 'Create program' }}</button>
             <p class="small muted">Saving creates any missing sessions and removes future sessions that no longer fit the schedule (only if nobody booked them).</p>
         </div>
@@ -116,7 +132,7 @@
                     @foreach ($sessions as $s)
                         <tr @class(['is-cancelled' => $s->isCancelled()])>
                             <td>{{ $studio->local($s->starts_at)->format('D M j, Y') }}</td>
-                            <td>{{ $studio->local($s->starts_at)->format('g:i A') }} – {{ $studio->local($s->ends_at)->format('g:i A') }}</td>
+                            <td>{{ $studio->local($s->starts_at)->format('g:i A') }} – {{ $studio->local($s->ends_at)->format('g:i A') }}@if ($s->room)<div class="muted small">{{ $s->room->name }}</div>@endif</td>
                             <td>{{ $s->bookedCount() }} / {{ $s->capacity }}@if ($s->waitlistCount()) <span class="muted">+{{ $s->waitlistCount() }} waiting</span>@endif</td>
                             <td>{{ ucfirst($s->status) }}</td>
                             <td class="right"><a href="{{ route('studio.admin.sessions.show', ['session' => $s]) }}">Roster</a></td>

@@ -26,7 +26,7 @@ class ScheduleController extends Controller
 
         $query = $studio->sessions()
             ->withSeatCounts()
-            ->with(['program.categories', 'instructor'])
+            ->with(['program.categories', 'instructor', 'room'])
             ->where('status', 'scheduled')
             ->where('starts_at', '>=', $from->copy()->utc())
             ->where('starts_at', '<', $to->copy()->utc())
@@ -38,6 +38,7 @@ class ScheduleController extends Controller
             }
         }
         $sessions = $query->limit(500)->get()->each->setRelation('studio', $studio);
+        ClassSession::loadApparatusSlots($sessions);
 
         return view('studio.schedule', [
             'days' => $sessions->groupBy(fn (ClassSession $s) => $studio->local($s->starts_at)->format('Y-m-d')),
@@ -56,9 +57,10 @@ class ScheduleController extends Controller
     public function program(Request $request, Studio $studio, Program $program, Bookings $bookings): View
     {
         abort_unless($program->is_published, 404);
-        $sessions = $program->sessions()->withSeatCounts()->with('program.categories')
+        $sessions = $program->sessions()->withSeatCounts()->with(['program.categories', 'room'])
             ->where('status', 'scheduled')->where('starts_at', '>', now())
             ->orderBy('starts_at')->limit(12)->get()->each->setRelation('studio', $studio);
+        ClassSession::loadApparatusSlots($sessions);
 
         return view('studio.program', [
             'program' => $program->load(['categories', 'instructor', 'season']),

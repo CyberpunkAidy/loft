@@ -9,12 +9,13 @@
 
 ## Members (`/{studio}`)
 
-- **Schedule:** two weeks at a time (configurable), filtered by age group and level. Each class shows its time, instructor, tags, drop-in price and spots left.
+- **Schedule:** two weeks at a time (configurable), filtered by age group and level. Each class shows its time, instructor, room, tags, drop-in price and spots left.
 - **Booking:** choose who's coming (yourself or family members), then:
   1. Each person needs a signed, current waiver.
   2. The booking needs a plan that covers the class: a membership within its weekly limit, or a credit.
   3. If there's none, the member picks a plan, pays by Stripe Checkout, and the booking completes automatically after payment.
-- **Waitlists:** a full class takes a waitlist spot. When a seat frees up, the next person is booked automatically if their plan still covers it, and emailed.
+- **Apparatus:** when a class uses more than one kind (say silks and lyra), members choose one, with the spots left on each, or "No preference". The choice is kept through signing a waiver and paying at checkout. The account page shows the spot, such as "Silks 3".
+- **Waitlists:** a full class takes a waitlist spot, unless the class caps its waitlist and the cap is reached. When a seat frees up, the next person is booked automatically if their plan still covers it, and emailed.
 - **Cancelling:**
   - From the account page, up to class start.
   - Inside the late-cancel window, the credit is kept by the studio, unless the studio's settings say otherwise.
@@ -31,10 +32,11 @@
 | Area | What it does | Who |
 |---|---|---|
 | Dashboard | Members, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist | admin |
-| Check-in | Today's classes (or any date), roster with waiver status and medical notes, mark attended or no-show | instructor+ |
-| Sessions | Every class by date, rosters, capacity (raising it promotes the waitlist), instructor, notes, add someone (optionally comped), remove, cancel the class (emails everyone, returns credits) | admin |
-| Programs | Weekly classes and one-off events; generate sessions across the season | admin |
+| Check-in | Today's classes (or any date), roster with waiver status, apparatus spot and medical notes, mark attended or no-show | instructor+ |
+| Sessions | Every class by date, rosters, capacity (raising it promotes the waitlist), waitlist limit, room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |
+| Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus and waitlist limit for new sessions, and **Apply to upcoming sessions** to update existing ones | admin |
 | Seasons | Date ranges for weekly classes | admin |
+| Rooms | Each room's capacity limit (such as its fire-code limit) and the apparatus rigged in it: how many, and the most people on each | admin |
 | Members | Search; family, waivers, plans, upcoming and past classes; **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
 | Payments | Connect Stripe; payments recorded in person and this month's total | admin |
@@ -66,6 +68,12 @@ Other rules:
   - **Staff overrides:** staff can add or check in someone who hasn't signed by giving a reason, which is recorded.
   - **Waitlist:** someone whose waiver has lapsed keeps their waitlist place, and moves in when they sign if a seat is free.
 - **Staff bookings:** they skip the booking window.
+- **Rooms and apparatus** (optional; a studio without rooms books as before):
+  - A class can't be bigger than its room's capacity, or use more apparatus than the room has, or put more people on an item than the rig allows.
+  - When a class uses apparatus, every booking takes a spot on one, numbered ("Silks 3", the lowest free). A booking is confirmed only while the class has room *and* that apparatus has a spot. "No preference" takes the apparatus with the most spots free.
+  - Waitlist entries keep the apparatus they asked for, and move in only when a spot on it opens. Entries with no preference take any free spot.
+  - Shrinking a room's apparatus cuts back the classes using it. Removing apparatus takes it off every class; people booked on it keep their places.
+- **Waitlist limit:** per session (a program sets it for new sessions). Empty means no limit; 0 means no waitlist. When it's reached, members see the class as full, and staff are told to raise the capacity or the limit.
 
 ## Emails
 

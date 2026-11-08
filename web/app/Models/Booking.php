@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'studio_id', 'class_session_id', 'attendee_id', 'user_id', 'entitlement_id', 'status', 'position',
-    'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at',
+    'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at', 'apparatus_id', 'apparatus_item',
 ])]
 class Booking extends Model
 {
@@ -47,6 +47,7 @@ class Booking extends Model
             'cancelled_at' => 'datetime',
             'attended_at' => 'datetime',
             'position' => 'integer',
+            'apparatus_item' => 'integer',
         ];
     }
 
@@ -73,6 +74,17 @@ class Booking extends Model
     public function entitlement(): BelongsTo
     {
         return $this->belongsTo(Entitlement::class);
+    }
+
+    public function apparatus(): BelongsTo
+    {
+        return $this->belongsTo(Apparatus::class);
+    }
+
+    /** "Silks 3" (booked), "Silks" (waiting for one), or null. */
+    public function apparatusLabel(): ?string
+    {
+        return $this->apparatus?->label($this->status === 'waitlisted' ? null : $this->apparatus_item);
     }
 
     public function isActive(): bool

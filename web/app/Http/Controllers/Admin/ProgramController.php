@@ -7,7 +7,10 @@ use App\Models\Category;
 use App\Models\Program;
 use App\Models\Studio;
 use App\Models\StudioUser;
+use App\Services\Bookings;
+use App\Services\Rooms;
 use App\Services\SessionGenerator;
+use App\Support\ApparatusAllocation;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,14 +44,17 @@ class ProgramController extends Controller
         return view('admin.programs.form', $this->formData($studio, $program));
     }
 
-    public function store(Request $request, Studio $studio, SessionGenerator $generator): RedirectResponse
+    public function store(Request $request, Studio $studio, SessionGenerator $generator, Rooms $rooms): RedirectResponse
     {
-        $program = $studio->programs()->create($this->validated($request, $studio));
+        [$data, $allocation] = $this->validated($request, $studio);
+        $program = $studio->programs()->create($data);
+        $program->apparatus()->sync($allocation);
         $this->syncCategories($request, $studio, $program);
         $result = $generator->sync($program->fresh());
 
         return redirect()->route('studio.admin.programs.edit', ['program' => $program])
-            ->with('success', "Saved. {$result['created']} sessions created.");
+            ->with('success', "Saved. {$result['created']} sessions created.")
+            ->with('warning', $this->clashWarning($rooms, $program));
     }
 
     public function edit(Studio $studio, Program $program): View
@@ -56,18 +62,33 @@ class ProgramController extends Controller
         $program->load('categories');
 
         return view('admin.programs.form', $this->formData($studio, $program) + [
-            'sessions' => $program->sessions()->withSeatCounts()->where('starts_at', '>', now()->subDay())->orderBy('starts_at')->limit(40)->get(),
+            'sessions' => $program->sessions()->withSeatCounts()->with('room')->where('starts_at', '>', now()->subDay())->orderBy('starts_at')->limit(40)->get(),
             'sessionTotal' => $program->sessions()->count(),
         ]);
     }
 
-    public function update(Request $request, Studio $studio, Program $program, SessionGenerator $generator): RedirectResponse
+    public function update(Request $request, Studio $studio, Program $program, SessionGenerator $generator, Bookings $bookings, Rooms $rooms): RedirectResponse
     {
-        $program->update($this->validated($request, $studio));
+        [$data, $allocation] = $this->validated($request, $studio);
+        $program->update($data);
+        $program->apparatus()->sync($allocation);
         $this->syncCategories($request, $studio, $program);
         $result = $generator->sync($program->fresh());
+        $lead = 'Saved.';
+        if ($request->boolean('apply_upcoming')) {
+            $updated = $generator->applyToUpcoming($program->fresh(), $bookings);
+            $lead = "Saved, and {$updated} upcoming ".($updated === 1 ? 'session' : 'sessions').' updated.';
+        }
 
-        return back()->with('success', $this->syncMessage('Saved.', $result));
+        return back()->with('success', $this->syncMessage($lead, $result))
+            ->with('warning', $this->clashWarning($rooms, $program));
+    }
+
+    private function clashWarning(Rooms $rooms, Program $program): ?string
+    {
+        $count = $rooms->clashes($program->fresh());
+
+        return $count ? "{$count} upcoming ".($count === 1 ? 'session shares' : 'sessions share')." {$program->room->name} with another class at the same time. Open a session to see which." : null;
     }
 
     public function sync(Studio $studio, Program $program, SessionGenerator $generator): RedirectResponse
@@ -109,12 +130,18 @@ class ProgramController extends Controller
             'instructors' => $studio->members()->wherePivotIn('role', StudioUser::STAFF_ROLES)->orderBy('first_name')->get(),
             'categories' => $studio->categories()->orderBy('name')->get()->groupBy('type'),
             'selected' => $program->exists ? $program->categories->pluck('id')->all() : [],
+            'rooms' => $studio->rooms()->with('apparatus')->orderBy('name')->get(),
+            'allocation' => $program->exists
+                ? $program->apparatus()->get()->mapWithKeys(fn ($a) => [$a->id => ['quantity' => $a->pivot->quantity, 'max_per_item' => $a->pivot->max_per_item]])->all()
+                : [],
         ];
     }
 
+    /** @return array{0: array<string, mixed>, 1: array<int, array{quantity: int, max_per_item: int}>} the program's fields and its apparatus */
     private function validated(Request $request, Studio $studio): array
     {
         $staffIds = $studio->studioUsers()->whereIn('role', StudioUser::STAFF_ROLES)->pluck('user_id')->all();
+        $room = $request->filled('room_id') ? $studio->rooms()->with('apparatus')->find($request->integer('room_id')) : null;
         $data = $request->validate([
             'title' => ['required', 'string', 'max:190'],
             'excerpt' => ['nullable', 'string', 'max:500'],
@@ -125,14 +152,17 @@ class ProgramController extends Controller
             'start_time' => ['required', 'date_format:H:i'],
             'duration_min' => ['required', 'integer', 'between:15,600'],
             'event_date' => ['nullable', 'required_if:type,event', 'date'],
-            'capacity' => ['required', 'integer', 'between:1,500'],
+            'capacity' => ['required', 'integer', 'between:1,500', ApparatusAllocation::capacityRule($room)],
+            'room_id' => ['nullable', Rule::exists('rooms', 'id')->where('studio_id', $studio->id)],
+            'waitlist_capacity' => ['nullable', 'integer', 'between:0,500'],
             'dropin_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'instructor_id' => ['nullable', Rule::in($staffIds)],
             'min_age' => ['nullable', 'integer', 'between:0,120'],
             'max_age' => ['nullable', 'integer', 'between:0,120', 'gte:min_age'],
             'members_only' => ['nullable', 'boolean'],
             'is_published' => ['nullable', 'boolean'],
-        ], ['weekday.required_if' => 'Pick the weekday this class meets.', 'event_date.required_if' => 'Pick the event date.']);
+        ], ['weekday.required_if' => 'Pick the weekday this class meets.', 'event_date.required_if' => 'Pick the event date.'], ['waitlist_capacity' => 'waitlist limit']);
+        $allocation = ApparatusAllocation::fromRequest($request, $room);
 
         $data['dropin_price_cents'] = Money::toCents($data['dropin_price'] ?? null);
         unset($data['dropin_price']);
@@ -144,7 +174,7 @@ class ProgramController extends Controller
             $data['event_date'] = null;
         }
 
-        return $data;
+        return [$data, $allocation];
     }
 
     /** Ticked categories plus any typed as "new" (comma-separated), per type. */

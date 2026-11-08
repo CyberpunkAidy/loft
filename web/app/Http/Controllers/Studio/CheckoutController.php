@@ -30,6 +30,9 @@ class CheckoutController extends Controller
             ? $studio->attendees()->where('user_id', $request->user()->id)->find($request->integer('attendee_id'))
             : null;
         $context = $session && $attendee ? ['session_id' => $session->id, 'attendee_id' => $attendee->id] : [];
+        if ($context && $session->apparatusSlots()->has($request->integer('apparatus_id'))) {
+            $context['apparatus_id'] = $request->integer('apparatus_id');
+        }
 
         try {
             $checkout = $stripe->createCheckout(

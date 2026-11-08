@@ -82,6 +82,27 @@ class StripeWebhookTest extends TestCase
         Event::assertDispatchedTimes(EntitlementGranted::class, 1);
     }
 
+    public function test_the_booking_after_checkout_takes_the_chosen_apparatus(): void
+    {
+        $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
+        $user = $this->userIn($studio);
+        $plan = $this->plan($studio, ['kind' => 'pack', 'credits' => 5]);
+        $room = $studio->rooms()->create(['name' => 'Main', 'max_capacity' => 10]);
+        $silks = $room->apparatus()->create(['studio_id' => $studio->id, 'name' => 'Silks', 'quantity' => 4, 'max_per_item' => 1]);
+        $lyra = $room->apparatus()->create(['studio_id' => $studio->id, 'name' => 'Lyra', 'quantity' => 2, 'max_per_item' => 1]);
+        $session = $this->classSession($this->program($studio), ['room_id' => $room->id]);
+        $session->apparatus()->sync([$silks->id => ['quantity' => 4, 'max_per_item' => 1], $lyra->id => ['quantity' => 2, 'max_per_item' => 1]]);
+        $attendee = $this->attendee($studio, $user);
+        $this->serve('acct_A', 'checkout/sessions/cs_1', [
+            'id' => 'cs_1', 'mode' => 'payment', 'status' => 'complete', 'payment_status' => 'paid', 'customer' => 'cus_1',
+            'metadata' => ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id, 'session_id' => $session->id, 'attendee_id' => $attendee->id, 'apparatus_id' => $lyra->id],
+        ]);
+
+        $this->postWebhook($this->event('checkout.session.completed', ['id' => 'cs_1'], 'acct_A'))->assertOk();
+
+        $this->assertSame('Lyra 1', $session->bookings()->sole()->apparatusLabel(), 'not Silks, which had the most room');
+    }
+
     public function test_a_delayed_payment_is_granted_when_it_clears(): void
     {
         Event::fake([EntitlementGranted::class]);

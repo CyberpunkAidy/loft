@@ -11,6 +11,7 @@
             $nav('studio.admin.sessions.index', 'Sessions', 'calendar-days', 'studio.admin.sessions.*'),
             $nav('studio.admin.programs.index', 'Programs', 'layers', 'studio.admin.programs.*'),
             $nav('studio.admin.seasons.index', 'Seasons', 'calendar-range', 'studio.admin.seasons.*'),
+            $nav('studio.admin.rooms.index', 'Rooms', 'door-open', 'studio.admin.rooms.*'),
         ],
         'Business' => [
             $nav('studio.admin.members.index', 'Members', 'users', 'studio.admin.members.*'),
