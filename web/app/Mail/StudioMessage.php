@@ -9,12 +9,15 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\Attributes\DeleteWhenMissingModels;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Every member email: studio-branded, sent from the platform address with the studio's name,
- * replies going to the studio. All text is plain and escaped by the view.
+ * replies going to the studio. All text is plain and escaped by the view. Emails still queued
+ * for a studio that has since closed are dropped.
  */
+#[DeleteWhenMissingModels]
 class StudioMessage extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;

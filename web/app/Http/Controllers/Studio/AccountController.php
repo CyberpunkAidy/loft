@@ -90,9 +90,13 @@ class AccountController extends Controller
 
     public function profile(Request $request, AccountDeletion $deletion): View
     {
+        $user = $request->user();
+
         return view('studio.account.profile', [
-            'user' => $request->user(),
-            'soleOwnerOf' => $deletion->soleOwnerOf($request->user()),
+            'user' => $user,
+            // Studios they're the only owner of, each with the staff who could take it over.
+            'ownedStudios' => $deletion->soleOwnerOf($user)
+                ->map(fn (Studio $owned) => ['studio' => $owned, 'successors' => $deletion->successorsFor($owned, $user)]),
         ]);
     }
 
@@ -121,29 +125,40 @@ class AccountController extends Controller
         return back()->with('success', 'Profile saved.');
     }
 
-    /** Delete the account at every studio, after the user confirms their password. */
+    /**
+     * Delete the account at every studio, after the user confirms their password. For each studio
+     * they're the only owner of, they choose a staff member to take it over, or close it.
+     */
     public function destroy(Request $request, Studio $studio, AccountDeletion $deletion): RedirectResponse
     {
-        $request->validate(['delete_password' => ['required', 'current_password']], [], ['delete_password' => 'password']);
         $user = $request->user();
-        if ($names = $deletion->soleOwnerOf($user)->pluck('name')->join(', ', ' and ')) {
-            return back()->with('error', "You’re the only owner of {$names}. Make another staff member an owner first.");
+        $rules = ['delete_password' => ['required', 'current_password']];
+        foreach ($deletion->soleOwnerOf($user) as $owned) {
+            $choices = $deletion->successorsFor($owned, $user)->pluck('user_id')->push(AccountDeletion::CLOSE)->map(fn ($v) => (string) $v);
+            $rules["studios.{$owned->id}"] = ['required', Rule::in($choices->all())];
         }
+        $data = $request->validate($rules, [
+            'studios.*.required' => 'Choose who takes this studio over, or close it.',
+            'studios.*.in' => 'Choose who takes this studio over, or close it.',
+        ], ['delete_password' => 'password']);
 
+        $closing = ($data['studios'][$studio->id] ?? null) === AccountDeletion::CLOSE;
         try {
             // A fresh copy, so logging out below doesn't save the deleted user back.
-            $deletion->delete($user->fresh());
+            $deletion->delete($user->fresh(), $data['studios'] ?? []);
         } catch (StripeException $e) {
             report($e);
 
-            return back()->with('error', 'We couldn’t cancel your membership in Stripe, so your account wasn’t deleted. Try again in a few minutes.');
+            return back()->with('error', 'We couldn’t cancel a membership in Stripe, so your account wasn’t deleted. Try again in a few minutes.');
         }
 
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('studio.schedule')->with('success', 'Your account has been deleted.');
+        // This studio's pages are gone if they just closed it.
+        return redirect()->to($closing ? route('home') : route('studio.schedule', $studio))
+            ->with('success', 'Your account has been deleted.');
     }
 
     private function attendees(Request $request, Studio $studio)

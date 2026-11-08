@@ -52,7 +52,8 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - Seats they held in upcoming classes go to the waitlist.
   - Classes they taught stay, without an instructor.
   - Payment history stays in each studio's Stripe account.
-  - A studio's only owner can't delete their account. They first make another staff member an owner under Admin → Staff; only owners can do that.
+  - A studio's only owner chooses what happens to it in the same form. They can hand it to one of its staff, who becomes the owner. Or they can close it: members' renewing memberships there are cancelled in Stripe, then the studio and everything in it is deleted. Members keep their accounts and other studios.
+  - Owners can also make another staff member an owner at any time (Admin → Staff → Make owner). Only owners can do that.
 
 ### Where the plugin's code went
 
@@ -175,7 +176,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 84 tests. They cover:
+There are 87 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP

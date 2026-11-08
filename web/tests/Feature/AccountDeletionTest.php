@@ -113,33 +113,115 @@ class AccountDeletionTest extends TestCase
         $membership = $this->membership($studio, $user, null, ['stripe_subscription_id' => 'sub_live']);
 
         $this->actingAs($user)->delete("/{$studio->slug}/account", ['delete_password' => 'password'])
-            ->assertSessionHas('error', 'We couldn’t cancel your membership in Stripe, so your account wasn’t deleted. Try again in a few minutes.');
+            ->assertSessionHas('error', 'We couldn’t cancel a membership in Stripe, so your account wasn’t deleted. Try again in a few minutes.');
 
         $this->assertModelExists($user);
         $this->assertAuthenticatedAs($user);
         $this->assertSame('active', $membership->fresh()->status);
     }
 
-    public function test_the_only_owner_hands_the_studio_over_first(): void
+    public function test_the_only_owner_hands_a_studio_over(): void
     {
         $studio = $this->studio();
         $owner = $this->userIn($studio, 'owner');
         $admin = $this->userIn($studio, 'admin');
+        $instructor = $this->userIn($studio, 'instructor');
+        $member = $this->userIn($studio);
+        $elsewhere = $this->userIn($this->studio(), 'admin');
         $this->actingAs($owner);
 
-        $this->get("/{$studio->slug}/account/profile")->assertSee('only owner of '.$studio->name)->assertDontSee('Delete my account');
-        $this->delete("/{$studio->slug}/account", ['delete_password' => 'password'])->assertSessionHas('error');
+        $this->get("/{$studio->slug}/account/profile")->assertOk()
+            ->assertSee('only owner of '.$studio->name)
+            ->assertSeeInOrder(["Make {$admin->name} the owner (admin)", "Make {$instructor->name} the owner (instructor)", "Close {$studio->name} and delete it"])
+            ->assertDontSee("Make {$member->name} the owner");
+
+        // A choice is required, and only this studio's staff can take it over.
+        foreach ([null, $member->id, $elsewhere->id, $owner->id] as $choice) {
+            $this->delete("/{$studio->slug}/account", ['delete_password' => 'password', 'studios' => [$studio->id => $choice]])
+                ->assertSessionHasErrors("studios.{$studio->id}");
+        }
         $this->assertModelExists($owner);
 
-        $row = $studio->studioUsers()->where('user_id', $admin->id)->sole();
-        $this->get("/{$studio->slug}/admin/staff")->assertSee('Make owner');
-        $this->patch("/{$studio->slug}/admin/staff/{$row->id}", ['role' => 'owner'])->assertSessionHas('success', "{$admin->name} is now an owner.");
-
-        $this->get("/{$studio->slug}/account/profile")->assertSee('Delete my account');
-        $this->delete("/{$studio->slug}/account", ['delete_password' => 'password'])->assertRedirect("/{$studio->slug}");
+        $this->delete("/{$studio->slug}/account", ['delete_password' => 'password', 'studios' => [$studio->id => $admin->id]])
+            ->assertRedirect("/{$studio->slug}")
+            ->assertSessionHas('success', 'Your account has been deleted.');
         $this->assertModelMissing($owner);
         $this->assertModelExists($studio);
+        $this->assertSame('owner', $studio->studioUsers()->where('user_id', $admin->id)->value('role'));
+        $this->assertSame('instructor', $studio->studioUsers()->where('user_id', $instructor->id)->value('role'));
+    }
+
+    public function test_the_only_owner_closes_a_studio(): void
+    {
+        Storage::fake('local');
+        $this->fakeStripe(['api.stripe.com/v1/subscriptions/*' => Http::response(['status' => 'canceled'])]);
+        $studio = $this->studio(['stripe_account_id' => 'acct_closing']);
+        $open = $this->studio(['stripe_account_id' => 'acct_open']);
+        $owner = $this->userIn($studio, 'owner');
+        $member = $this->userIn($studio);
+        $open->studioUsers()->create(['user_id' => $member->id, 'role' => 'member']);
+        $this->membership($studio, $member, null, ['stripe_subscription_id' => 'sub_closing']);
+        $kept = $this->membership($open, $member, null, ['stripe_subscription_id' => 'sub_open']);
+        $this->attendee($studio, $member);
+        $this->classSession($this->program($studio));
+        Storage::disk('local')->put("signatures/{$studio->id}/sig-1.png", 'png');
+        Storage::disk('local')->put("signatures/{$open->id}/sig-2.png", 'png');
+
+        $this->actingAs($owner)
+            ->delete("/{$studio->slug}/account", ['delete_password' => 'password', 'studios' => [$studio->id => 'close']])
+            ->assertRedirect('/')
+            ->assertSessionHas('success', 'Your account has been deleted.');
+
+        $this->assertModelMissing($owner);
+        $this->assertModelMissing($studio);
+        $this->get("/{$studio->slug}")->assertNotFound();
+        $this->assertSame(0, Entitlement::where('studio_id', $studio->id)->count());
+        $this->assertSame(0, Attendee::where('studio_id', $studio->id)->count());
+        Storage::disk('local')->assertMissing("signatures/{$studio->id}/sig-1.png");
+        Storage::disk('local')->assertExists("signatures/{$open->id}/sig-2.png");
+
+        // Members aren't charged by a studio that's gone, and keep their accounts and other studios.
+        Http::assertSent(fn (Request $r) => $r->method() === 'DELETE'
+            && $r->url() === 'https://api.stripe.com/v1/subscriptions/sub_closing'
+            && $r->header('Stripe-Account') === ['acct_closing']);
+        $this->assertCount(1, Http::recorded());
+        $this->assertModelExists($member);
+        $this->assertSame('active', $kept->fresh()->status);
+        $this->assertTrue($member->fresh()->hasRoleIn($open, 'member'));
+    }
+
+    public function test_a_studio_isnt_closed_when_stripe_fails(): void
+    {
+        $this->fakeStripe(['api.stripe.com/v1/subscriptions/sub_closing' => Http::sequence()
+            ->push(['error' => ['message' => 'Something went wrong']], 500)
+            ->push(['id' => 'sub_closing', 'status' => 'active'])]);
+        $studio = $this->studio(['stripe_account_id' => 'acct_closing']);
+        $owner = $this->userIn($studio, 'owner');
+        $this->membership($studio, $this->userIn($studio), null, ['stripe_subscription_id' => 'sub_closing']);
+
+        $this->actingAs($owner)
+            ->delete("/{$studio->slug}/account", ['delete_password' => 'password', 'studios' => [$studio->id => 'close']])
+            ->assertSessionHas('error');
+
+        $this->assertModelExists($owner);
+        $this->assertModelExists($studio);
+    }
+
+    public function test_an_owner_makes_another_owner(): void
+    {
+        $studio = $this->studio();
+        $owner = $this->userIn($studio, 'owner');
+        $admin = $this->userIn($studio, 'admin');
+        $row = $studio->studioUsers()->where('user_id', $admin->id)->sole();
+
+        $this->actingAs($owner)->get("/{$studio->slug}/admin/staff")->assertSee('Make owner');
+        $this->patch("/{$studio->slug}/admin/staff/{$row->id}", ['role' => 'owner'])->assertSessionHas('success', "{$admin->name} is now an owner.");
         $this->assertSame('owner', $row->fresh()->role);
+
+        // With another owner, the studio needs no choice.
+        $this->get("/{$studio->slug}/account/profile")->assertDontSee('only owner of');
+        $this->delete("/{$studio->slug}/account", ['delete_password' => 'password'])->assertRedirect("/{$studio->slug}");
+        $this->assertModelMissing($owner);
     }
 
     public function test_only_owners_make_owners(): void

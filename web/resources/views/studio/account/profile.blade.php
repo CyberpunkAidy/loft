@@ -28,17 +28,23 @@
 
 <section class="fieldset form narrow delete-account" id="delete-account" aria-labelledby="delete-account-title">
     <h2 id="delete-account-title">Delete account</h2>
-    @if ($soleOwnerOf->isNotEmpty())
-        <p>You’re the only owner of {{ $soleOwnerOf->pluck('name')->join(', ', ' and ') }}. To delete your account, first make another staff member an owner under Admin → Staff.</p>
-    @else
-        <p>This deletes your account at every studio you belong to on {{ config('app.name') }}, with your family members, bookings, passes and signed waivers. It can’t be undone.</p>
-        <p>Memberships that renew are cancelled now, so you won’t be charged again. Payments you’ve already made aren’t refunded.</p>
-        <form method="post" action="{{ route('studio.account.destroy') }}" class="form" data-confirm="Delete your account? This can’t be undone.">
-            @csrf
-            @method('delete')
-            <x-field name="delete_password" label="Your password" type="password" autocomplete="current-password" required />
-            <div class="actions"><button class="btn btn-danger">Delete my account</button></div>
-        </form>
-    @endif
+    <p>This deletes your account at every studio you belong to on {{ config('app.name') }}, with your family members, bookings, passes and signed waivers. It can’t be undone.</p>
+    <p>Memberships that renew are cancelled now, so you won’t be charged again. Payments you’ve already made aren’t refunded.</p>
+    <form method="post" action="{{ route('studio.account.destroy') }}" class="form" data-confirm="Delete your account? This can’t be undone.">
+        @csrf
+        @method('delete')
+        @foreach ($ownedStudios as ['studio' => $owned, 'successors' => $successors])
+            <x-select
+                name="studios[{{ $owned->id }}]"
+                :label="'You’re the only owner of '.$owned->name.'. What happens to it?'"
+                placeholder="Choose…"
+                :options="$successors->mapWithKeys(fn ($s) => [$s->user_id => 'Make '.$s->user->name.' the owner ('.$s->role.')'])->put('close', 'Close '.$owned->name.' and delete it')->all()"
+                hint="Closing deletes the studio’s classes, plans, members’ bookings, passes and waivers, and cancels members’ renewing memberships. Members keep their accounts, and your Stripe account stays yours."
+                required
+            />
+        @endforeach
+        <x-field name="delete_password" label="Your password" type="password" autocomplete="current-password" required />
+        <div class="actions"><button class="btn btn-danger">Delete my account</button></div>
+    </form>
 </section>
 @endsection
