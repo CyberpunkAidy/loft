@@ -1,66 +1,35 @@
-# Loft Studio (v0.1.1)
+# Loft
 
-Class scheduling, memberships, family accounts, waivers and Stripe billing for studios — as a WordPress plugin.
-Built by Goldseam Tech. No Composer, no build step, no external SDKs. Stripe handles all money.
+Studio software for dance, aerial and fitness studios. It covers class schedules and waitlists, memberships and class packs, family accounts, digital waivers, check-in, and payments that go straight into each studio's own Stripe account.
 
-> **The hosted web app lives in [`web/`](web/README.md).** It's the same product for many studios at once
-> (Laravel, Postgres, Stripe Connect), with the same booking, billing and waiver rules. This plugin
-> is unchanged and still releases from the repository root; `web/` is left out of plugin zips.
+**Live at [loftstudio.app](https://loftstudio.app).**
 
-## Install (staging first)
+## What's here
 
-1. Upload the `loft-studio` folder to `wp-content/plugins/` and activate.
-2. **Settings → General**: confirm the site timezone (e.g. America/Denver). All class times use it.
-3. **Loft Studio → Settings**: studio name, accent color, policies, email from-address, Stripe keys.
-4. Create four pages and drop in the shortcodes, then select them in Settings → Pages:
-   - Schedule: `[loft_schedule]`
-   - My Account: `[loft_account]`
-   - Plans: `[loft_plans]`
-   - Waiver: `[loft_waiver]`
-   - Optional: Join: `[loft_register]` (or use your existing registration form; new users need role `loft_member`)
-   - Staff check-in (tablet): `[loft_checkin]` on a page only staff know about (it's capability-gated anyway)
-5. **Loft Studio → Waivers**: add the waiver text, tick *This is the active waiver*, publish.
-6. **Loft Studio → Seasons**: add e.g. "2026–27 Season", Sept 1 → May 31, current.
-7. **Loft Studio → Programs**: add each class. Set weekday, start time, duration, capacity, season, Age Group, Level, and **Plan Tags** (e.g. `recreational`, `competitive`). Save, then **Generate sessions**.
-   - For a one-off workshop: Type = *One-off event*, set *Event date* and *Drop-in / event price*, tag it `events`.
-8. **Loft Studio → Plans & Pricing**: create plans, then **Create in Stripe** for each.
-   - Monthly membership: kind *subscription*, $90, scope `recreational`, weekly limit blank (unlimited) or 1–2.
-   - Competitive: kind *subscription*, $115, scope `competitive`.
-   - Seasonal tuition: kind *season*, pick the season, optional registration fee. Stripe auto-cancels at season end.
-   - Drop-in: kind *dropin*, $25, scope `events` (or all).
-   - 5-class pack: kind *pack*, credits 5, validity 90 days.
+| Folder | What's in it |
+|---|---|
+| [`web/`](web/README.md) | The Loft web app: Laravel 13, PHP 8.3, PostgreSQL 16, server-rendered Blade. Deployed on Render. |
+| [`docs/wiki/`](docs/wiki) | Source of the [project wiki](https://github.com/CyberpunkAidy/loft-studio/wiki), published on every merge to `main` |
+| [`render.yaml`](render.yaml) | Render Blueprint: the web service, queue worker, hourly cron job and Postgres database |
+| [`.github/workflows/`](.github/workflows) | CI for the web app, and the wiki publisher |
+| [`plugin/`](plugin/README.md) | The original WordPress plugin (v0.1.1) the web app was ported from. Kept for reference; releases are paused. |
 
-## Stripe setup
+## Getting started
 
-- Dashboard → Developers → API keys: paste test keys into Settings (switch to live keys at launch).
-- Developers → Webhooks → Add endpoint: the URL shown in Settings. Events:
-  `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`.
-  Paste the signing secret into Settings.
-- Settings → Billing → Customer portal: enable, allow cancelling and updating payment methods.
-- Test with card `4242 4242 4242 4242`. Use Stripe CLI (`stripe listen --forward-to https://staging.example.com/wp-json/loft/v1/stripe/webhook`) on local/staging if the site isn't publicly reachable.
+- **Run it locally:** [`web/README.md`](web/README.md#run-it-locally). `composer setup`, then `php artisan dev`, gives you a demo studio at http://localhost:8000/skyline.
+- **Deploy and operate:** [wiki → Deployment](https://github.com/CyberpunkAidy/loft-studio/wiki/Deployment) and [Stripe](https://github.com/CyberpunkAidy/loft-studio/wiki/Stripe).
+- **Contribute:** [wiki → Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development). Open a pull request into `main`; CI must pass; merges deploy automatically.
 
-## How it fits together
+## Documentation
 
-- **Programs** (CPT) → **Sessions** (table, generated per season) → **Bookings** (per attendee).
-- **Accounts** are WP users (`loft_member`); **Attendees** are the people in classes (kids or self).
-- **Plans** are what you sell; **Entitlements** are what an account holds (a live subscription or a credit balance). Webhooks create/update entitlements; booking checks entitlement scope (via Plan Tags) and weekly limits, or consumes a credit.
-- "Book" with no valid entitlement returns the eligible plans → member picks one → Stripe Checkout → webhook grants the entitlement and completes the original booking automatically.
-- Waitlist auto-promotes on cancellation/capacity increase. Late cancels (configurable hours) keep the credit by default.
-- Hourly cron: reminders, credit-expiry warnings, expiring credit packs.
+The [wiki](https://github.com/CyberpunkAidy/loft-studio/wiki) covers:
+- architecture, features, deployment, Stripe, email, payments, and accounts and data;
+- the design system and development;
+- the decisions behind the build, the roadmap and the changelog.
 
-## Theming
+## Status
 
-All UI uses CSS variables on `:root` (`--loft-accent`, `--loft-ink`, `--loft-card`, `--loft-radius`, …). Override in Elementor → Custom CSS or the theme. Elementor: drop a Shortcode widget.
-
-## Hooks for extension
-
-Actions: `loft_booking_created($booking, $waitlisted)`, `loft_booking_cancelled($booking, $late)`, `loft_waitlist_promoted`, `loft_session_cancelled_booking`, `loft_entitlement_granted($e, $plan, $user_id)`, `loft_payment_failed`, `loft_subscription_cancelled`, `loft_member_registered`, `loft_stripe_event($event)`, `loft_send_sms($user_id, $text, $key, $ctx)`.
-Filters: `loft_email_subject_{key}`, `loft_email_body_{key}`.
-
-## REST
-
-Base `/wp-json/loft/v1/` — see `ARCHITECTURE.md`. Member endpoints need the logged-in cookie + `X-WP-Nonce`.
-
-## Roadmap (v2)
-
-SMS adapter (Twilio), spectator tickets, makeup credits, sibling discounts via Stripe coupons, branded PWA, multi-location, licensing/update server.
+- **Web app:** live. Stripe Connect is being set up in test mode.
+- **Next on the [roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap):** waiver hardening, then rooms and apparatus capacity.
+- **Mobile app:** planned, built with React Native (Expo) against a Laravel API.
+- **WordPress plugin:** releases paused until the web app (and possibly the mobile app) is finished.

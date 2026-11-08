@@ -1,0 +1,70 @@
+name: Wiki
+
+# docs/wiki/ is the source of the GitHub wiki. Pull requests check its links; merges to main
+# publish it. GitHub only creates a wiki's repository once its first page exists, so create any
+# page in the Wiki tab once before the first publish.
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/wiki/**', '.github/workflows/wiki.yml']
+  pull_request:
+    paths: ['docs/wiki/**', '.github/workflows/wiki.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Links between wiki pages point at pages that exist
+        run: |
+          python3 - <<'EOF'
+          import pathlib, re, sys
+          wiki = pathlib.Path('docs/wiki')
+          pages = {p.stem for p in wiki.glob('*.md')}
+          broken = []
+          for page in sorted(wiki.glob('*.md')):
+              for target in re.findall(r'\]\(([^)\s]+)\)', page.read_text()):
+                  if re.match(r'^(https?:|mailto:|#)', target):
+                      continue
+                  if target.split('#')[0] not in pages:
+                      broken.append(f'{page.name}: {target}')
+          print('\n'.join(broken) or f'All links resolve ({len(pages)} pages).')
+          sys.exit(1 if broken else 0)
+          EOF
+
+  publish:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # pushing to the repository's own wiki
+    concurrency:
+      group: wiki
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish docs/wiki to the GitHub wiki
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki; then
+            echo "::error::The wiki doesn't exist yet. Open the repository's Wiki tab, create a first page (any text), then re-run this workflow."
+            exit 1
+          fi
+          rsync -a --delete --exclude .git docs/wiki/ wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki is already up to date."
+            exit 0
+          fi
+          git commit -m "Update the wiki from ${GITHUB_SHA::7}"
+          git push
