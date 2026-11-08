@@ -52,6 +52,9 @@ Route::prefix('{studio}')
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
         Route::post('/join', [Studio\JoinController::class, 'store'])->middleware('throttle:10,1')->name('join.store');
+        // Signed links from marketing emails; no sign-in needed. CSRF is off for these (see bootstrap/app.php).
+        Route::get('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'show'])->middleware('signed')->name('unsubscribe');
+        Route::post('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'store'])->middleware(['signed', 'throttle:20,1'])->name('unsubscribe.store');
 
         // Members
         Route::middleware(['auth', 'studio.role:member'])->group(function () {

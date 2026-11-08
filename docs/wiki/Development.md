@@ -30,9 +30,9 @@ vendor/bin/pint                       # code style
 DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=loft_test DB_USERNAME=postgres php vendor/bin/phpunit   # Postgres
 ```
 
-- **Size:** 118 tests (November 2026) in `tests/Feature`.
+- **Size:** 125 tests (November 2026) in `tests/Feature`.
 - **Stripe:** faked over HTTP; every Stripe call runs against fake responses.
-- **Coverage:** booking rules, rooms and apparatus (spots, item numbers, waitlist limits and promotion, admin screens), waiver rules (program waivers, versions, enforcement, overrides, download), session generation, the demo seeder, Stripe client and webhooks (including delayed payments), tenancy and roles, account deletion, payments recorded in person, branding colors, email designs, sending through Resend, and every member and admin page.
+- **Coverage:** booking rules, the event outbox and relay, email logging and consent, nightly snapshots, rooms and apparatus (spots, item numbers, waitlist limits and promotion, admin screens), waiver rules (program waivers, versions, enforcement, overrides, download), session generation, the demo seeder, Stripe client and webhooks (including delayed payments), tenancy and roles, account deletion, payments recorded in person, branding colors, email designs, sending through Resend, and every member and admin page.
 
 ## CI (`.github/workflows/web.yml`)
 
@@ -64,6 +64,8 @@ A separate **Wiki** workflow publishes `docs/wiki/` to the GitHub wiki.
 - **Money:** in cents, formatted with `App\Support\Money`.
 - **Rules and settings:**
   - Business rules live in `app/Services`. Controllers validate input, call a service and redirect.
+  - A change worth remembering records a domain event (`DomainEvents::record`, `forBooking`, `forEntitlement`) inside the same transaction as the change ([Architecture](Architecture#the-outbox-domain_events)).
+  - Studio email goes through `App\Services\Messages` with a dedupe key, never straight to `Mail`.
   - Studio settings are a JSON column with defaults in `Studio::DEFAULT_SETTINGS`.
 - **Routes:** every route is named (route caching requires it).
 - **Migrations:** run automatically before each deploy goes live. Keep them safe for the previous version of the code (add, don't drop or rename in the same release).

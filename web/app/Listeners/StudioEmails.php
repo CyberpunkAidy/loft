@@ -15,15 +15,17 @@ use App\Models\Booking;
 use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Models\User;
+use App\Services\Messages;
 use Illuminate\Events\Dispatcher;
-use Illuminate\Support\Facades\Mail;
 
 /**
  * The plugin's Emails class: one listener per event, same wording, studio-branded.
- * To add SMS later, listen to the same events.
+ * Each goes through App\Services\Messages under a dedupe key, so it's logged and sent once.
  */
 class StudioEmails
 {
+    public function __construct(private readonly Messages $messages) {}
+
     public function subscribe(Dispatcher $events): array
     {
         return [
@@ -45,21 +47,21 @@ class StudioEmails
         if ($event->waitlisted) {
             $this->send($b->user, new StudioMessage($studio, "You're on the waitlist",
                 ["That class is full, so we've added you to the waitlist (position #{$b->position}). We'll email you the moment a spot opens."],
-                $this->details($b), [], route('studio.account', $studio), 'View your classes', 'waitlisted'));
+                $this->details($b), [], route('studio.account', $studio), 'View your classes', 'waitlisted'), "waitlisted:booking:{$b->id}");
 
             return;
         }
         $hours = (int) $studio->setting('late_cancel_hours');
         $this->send($b->user, new StudioMessage($studio, "You're booked!", ['See you in class.'], $this->details($b),
             ["Need to cancel? Do it from your account at least {$hours} hours before class to keep your credit."],
-            route('studio.account', $studio), 'View your classes', 'booked'));
+            route('studio.account', $studio), 'View your classes', 'booked'), "booked:booking:{$b->id}");
     }
 
     public function bookingCancelled(BookingCancelled $event): void
     {
         $b = $event->booking;
         $line = $event->late ? 'Your booking was cancelled inside the late-cancellation window.' : 'Your booking has been cancelled.';
-        $this->send($b->user, new StudioMessage($b->studio, 'Booking cancelled', [$line], $this->details($b), [], null, null, 'cancelled'));
+        $this->send($b->user, new StudioMessage($b->studio, 'Booking cancelled', [$line], $this->details($b), [], null, null, 'cancelled'), "cancelled:booking:{$b->id}");
     }
 
     public function waitlistPromoted(WaitlistPromoted $event): void
@@ -68,7 +70,7 @@ class StudioEmails
         $this->send($b->user, new StudioMessage($b->studio, "A spot opened up — you're in!",
             ["Good news: a spot opened and you've been moved off the waitlist."], $this->details($b),
             ['If you can no longer make it, please cancel from your account so someone else can have the spot.'],
-            route('studio.account', $b->studio), 'View your classes', 'promoted'));
+            route('studio.account', $b->studio), 'View your classes', 'promoted'), "promoted:booking:{$b->id}");
     }
 
     public function sessionCancelled(SessionBookingCancelled $event): void
@@ -76,7 +78,7 @@ class StudioEmails
         $b = $event->booking;
         $this->send($b->user, new StudioMessage($b->studio, 'Class cancelled',
             ["We're sorry — this class has been cancelled by the studio. Any credit used has been returned to your account."],
-            $this->details($b), [], route('studio.schedule', $b->studio), 'Find another class', 'session_cancelled'));
+            $this->details($b), [], route('studio.schedule', $b->studio), 'Find another class', 'session_cancelled'), "session_cancelled:booking:{$b->id}");
     }
 
     public function entitlementGranted(EntitlementGranted $event): void
@@ -90,7 +92,7 @@ class StudioEmails
             : [];
         $this->send($e->user, new StudioMessage($e->studio, 'Thanks for your purchase',
             ["You now have {$what}. Head to the schedule to book your classes."], $receipt, [],
-            route('studio.schedule', $e->studio), 'Book a class', 'purchase'));
+            route('studio.schedule', $e->studio), 'Book a class', 'purchase'), "purchase:entitlement:{$e->id}");
     }
 
     public function paymentFailed(PaymentFailed $event): void
@@ -98,7 +100,7 @@ class StudioEmails
         $e = $event->entitlement;
         $this->send($e->user, new StudioMessage($e->studio, 'Payment failed — action needed',
             ["We couldn't process your latest membership payment. Please update your card from the billing page of your account. Bookings are paused until payment goes through."],
-            [], [], route('studio.account.billing', $e->studio), 'Update your card', 'payment_failed'));
+            [], [], route('studio.account.billing', $e->studio), 'Update your card', 'payment_failed'), "payment_failed:entitlement:{$e->id}:".now()->format('Y-m-d'));
     }
 
     public function checkoutPaymentFailed(CheckoutPaymentFailed $event): void
@@ -119,7 +121,7 @@ class StudioEmails
             "1. Add family members who'll be attending (or yourself).",
             '2. Sign the waiver for each attendee.',
             '3. Pick a plan and book your first class.',
-        ], [], [], route('studio.account.family', $event->studio), 'Set up your family', 'welcome'));
+        ], [], [], route('studio.account.family', $event->studio), 'Set up your family', 'welcome'), "welcome:studio:{$event->studio->id}:user:{$event->user->id}");
     }
 
     /** Reminder (sent by the hourly housekeeping command). */
@@ -153,10 +155,8 @@ class StudioEmails
         ];
     }
 
-    private function send(?User $user, StudioMessage $message): void
+    private function send(?User $user, StudioMessage $message, ?string $dedupeKey = null): void
     {
-        if ($user) {
-            Mail::to($user->email, $user->name)->send($message);
-        }
+        $this->messages->email($user, $message, $dedupeKey);
     }
 }

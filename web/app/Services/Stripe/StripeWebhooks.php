@@ -12,10 +12,12 @@ use App\Models\StripeEvent;
 use App\Models\Studio;
 use App\Models\User;
 use App\Services\Bookings;
+use App\Services\DomainEvents;
 use App\Services\Entitlements;
 use App\Support\BookingException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -40,6 +42,7 @@ class StripeWebhooks
         private readonly StripeClient $stripe,
         private readonly Entitlements $entitlements,
         private readonly Bookings $bookings,
+        private readonly DomainEvents $events,
     ) {}
 
     /**
@@ -188,6 +191,7 @@ class StripeWebhooks
         $meta = $cs['metadata'] ?? [];
         [$plan, $user] = $this->planAndUser($studio, $meta);
         if ($user) {
+            $this->events->record('checkout.failed', $studio, ['plan_id' => $plan?->id, 'plan_name' => $plan?->name, 'checkout_session_id' => $cs['id'] ?? null], $user->id);
             CheckoutPaymentFailed::dispatch($studio, $user, $plan, (int) ($meta['session_id'] ?? 0) > 0);
         }
     }
@@ -235,7 +239,10 @@ class StripeWebhooks
             ? $studio->entitlements()->where('stripe_subscription_id', $invoice['subscription'])->first()
             : null;
         if ($entitlement && $entitlement->status === 'active') {
-            $entitlement->update(['status' => 'past_due']);
+            DB::transaction(function () use ($entitlement, $invoice) {
+                $entitlement->update(['status' => 'past_due']);
+                $this->events->forEntitlement('payment.failed', $entitlement, ['invoice_id' => $invoice['id'] ?? null]);
+            });
             PaymentFailed::dispatch($entitlement); // once per lapse, not once per Stripe retry
         }
     }
@@ -253,20 +260,39 @@ class StripeWebhooks
             ! empty($subscription['cancel_at_period_end']) => $periodEnd,
             default => null,
         };
-        $entitlement->update([
-            'status' => self::SUBSCRIPTION_STATUS[$subscription['status'] ?? ''] ?? $entitlement->status,
-            'current_period_end' => $periodEnd ?? $entitlement->current_period_end,
-            'expires_at' => $expiresAt,
-        ]);
+        $wasEnded = $entitlement->hasEnded();
+        $wasEnding = $entitlement->expires_at !== null;
+        DB::transaction(function () use ($entitlement, $subscription, $periodEnd, $expiresAt, $wasEnded, $wasEnding) {
+            $entitlement->update([
+                'status' => self::SUBSCRIPTION_STATUS[$subscription['status'] ?? ''] ?? $entitlement->status,
+                'current_period_end' => $periodEnd ?? $entitlement->current_period_end,
+                'expires_at' => $expiresAt,
+            ]);
+            // History for churn: a member choosing to leave (or changing their mind) matters as much as the end.
+            match (true) {
+                ! $wasEnded && $entitlement->hasEnded() => $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'cancelled']),
+                $entitlement->plan?->kind === 'season' => null, // a season plan's end date is the season's, not a choice
+                ! $wasEnding && $expiresAt !== null => $this->events->forEntitlement('entitlement.cancel_scheduled', $entitlement, ['ends_at' => $expiresAt->toIso8601String()]),
+                $wasEnding && $expiresAt === null && ! $entitlement->hasEnded() => $this->events->forEntitlement('entitlement.cancel_unscheduled', $entitlement),
+                default => null,
+            };
+        });
     }
 
     /** @param array<string, mixed> $subscription */
     private function subscriptionDeleted(Studio $studio, array $subscription): void
     {
-        $studio->entitlements()
-            ->where('stripe_subscription_id', $subscription['id'] ?? '')
-            ->first()
-            ?->update(['status' => 'cancelled', 'expires_at' => now()]);
+        $entitlement = $studio->entitlements()->where('stripe_subscription_id', $subscription['id'] ?? '')->first();
+        if (! $entitlement) {
+            return;
+        }
+        $wasEnded = $entitlement->hasEnded();
+        DB::transaction(function () use ($entitlement, $wasEnded) {
+            $entitlement->update(['status' => 'cancelled', 'expires_at' => $wasEnded ? $entitlement->expires_at : now()]);
+            if (! $wasEnded) {
+                $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'cancelled']);
+            }
+        });
     }
 
     /* ------------------------------------------------------------------ Helpers */

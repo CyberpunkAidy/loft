@@ -87,6 +87,29 @@
                 </div>
             @endif
         </section>
+
+        <section>
+            <h2>Activity</h2>
+            @if ($activity->isEmpty())
+                <div class="card empty">Nothing recorded yet.</div>
+            @else
+                <div class="card card-flush table-wrap">
+                    <table class="table">
+                        <tbody>
+                        @foreach ($activity as $event)
+                            <tr>
+                                <td class="nowrap small muted">{{ $studio->local($event->occurred_at)->format('M j, g:i A') }}</td>
+                                <td>
+                                    {{ $event->label() }}@if ($event->attendee && ! $event->attendee->is_self) <span class="muted">· {{ $event->attendee->first_name }}</span>@endif
+                                    @if ($class = $event->classLabel($studio))<div class="small muted">{{ $class }}</div>@endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
     </div>
 
     <aside class="stack">
@@ -110,6 +133,28 @@
                 </div>
             @empty
                 <p class="muted small">None.</p>
+            @endforelse
+        </div>
+        <div class="card">
+            <h3>Emails</h3>
+            <p class="small" style="margin:0 0 .5rem">
+                Marketing:
+                @if ($membership->allowsMarketingEmail())
+                    <strong>opted in</strong> <span class="muted">{{ $studio->local($membership->email_marketing_consent_at)->format('M j, Y') }}{{ $membership->email_marketing_consent_source ? ' ('.str_replace('_', ' ', $membership->email_marketing_consent_source).')' : '' }}</span>
+                @elseif ($membership->email_unsubscribed_at)
+                    <strong>unsubscribed</strong> <span class="muted">{{ $studio->local($membership->email_unsubscribed_at)->format('M j, Y') }}</span>
+                @else
+                    <strong>not opted in</strong>
+                @endif
+            </p>
+            <p class="small muted" style="margin:0 0 .5rem">Members choose this themselves, on joining or in their profile.</p>
+            @forelse ($deliveries as $d)
+                <div class="item small" style="padding:.35rem 0;border-top:1px solid var(--line)">
+                    <div>{{ $d->kindLabel() }} <span class="muted">· {{ $studio->local($d->created_at)->format('M j, g:i A') }}</span></div>
+                    <span @class(['badge', 'badge-full' => $d->status === 'failed', 'badge-muted' => in_array($d->status, ['queued', 'suppressed'])])>{{ $d->statusLabel() }}</span>
+                </div>
+            @empty
+                <p class="muted small" style="margin:0">No emails yet.</p>
             @endforelse
         </div>
         <div class="card">

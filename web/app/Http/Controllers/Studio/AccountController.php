@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Studio;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Studio;
+use App\Models\StudioUser;
 use App\Services\AccountDeletion;
 use App\Services\Bookings;
+use App\Services\Consent;
 use App\Services\Stripe\StripeException;
 use App\Services\Waivers;
 use Illuminate\Http\RedirectResponse;
@@ -97,13 +99,14 @@ class AccountController extends Controller
 
         return view('studio.account.profile', [
             'user' => $user,
+            'marketingEmail' => (bool) StudioUser::where('studio_id', $request->route('studio')->id)->where('user_id', $user->id)->first()?->allowsMarketingEmail(),
             // Studios they're the only owner of, each with the staff who could take it over.
             'ownedStudios' => $deletion->soleOwnerOf($user)
                 ->map(fn (Studio $owned) => ['studio' => $owned, 'successors' => $deletion->successorsFor($owned, $user)]),
         ]);
     }
 
-    public function updateProfile(Request $request): RedirectResponse
+    public function updateProfile(Request $request, Studio $studio, Consent $consent): RedirectResponse
     {
         $user = $request->user();
         $data = $request->validate([
@@ -124,6 +127,9 @@ class AccountController extends Controller
             $user->password = Hash::make($data['password']);
         }
         $user->save();
+        if ($membership = StudioUser::where('studio_id', $studio->id)->where('user_id', $user->id)->first()) {
+            $consent->setMarketingEmail($membership, $request->boolean('marketing_email'), 'profile');
+        }
 
         return back()->with('success', 'Profile saved.');
     }

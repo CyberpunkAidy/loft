@@ -15,6 +15,7 @@ Members delete their own account under **My account → Profile → Delete accou
 3. **Waiver signatures stay** with each studio, unlinked from the account: the names, the version and hash of the exact text, and the drawing ([decision 20](Decisions)).
 4. **They're signed out** on every device, and their password-reset tokens are removed.
 5. **Seats they held** in upcoming classes go to the waitlist.
+6. **Their nightly activity snapshots are deleted.** Their activity history (`domain_events`) and email log (`message_deliveries`) are unlinked: they hold IDs and facts, no names or addresses, so what's left is anonymous.
 
 What stays:
 - **Classes they taught** stay, with no instructor.
@@ -38,6 +39,9 @@ A studio must always have an owner.
 | Name, email, phone, password hash | `users` |
 | Children's names, dates of birth, medical notes, emergency contacts | `attendees` (per studio) |
 | Waiver signatures: typed name, IP, browser, drawing | `waiver_signatures`; drawings on the private disk |
+| Marketing email consent: when, where, unsubscribed | `studio_users` (per studio) |
+| Activity history and the email log | `domain_events`, `message_deliveries`: IDs and facts, no names or addresses |
+| Nightly activity snapshots | `member_snapshots` (deleted with the account) |
 | Card details | Never in Loft; only in Stripe |
 | Studio customer records, charges, invoices | The studio's own Stripe account |
 

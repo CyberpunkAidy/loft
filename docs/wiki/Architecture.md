@@ -16,10 +16,11 @@
 
 | Path | What's there |
 |---|---|
-| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `SentNotification` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
-| `app/Events`, `app/Listeners` | Domain events and the `StudioEmails` listener that sends member emails |
+| `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
+| `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox) and the `RelayDomainEvents` job |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
 | `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException`, `ApparatusSlot` (one apparatus's spots in a session), `ApparatusAllocation` (the apparatus fields on the program and session forms) |
 | `app/Console/Commands` | `loft:housekeeping`, run hourly |
@@ -54,7 +55,7 @@ Elsewhere in the repository:
 | Table | Holds |
 |---|---|
 | `studios` | Name, slug, time zone, currency, brand color, contact email, settings (JSON), Stripe account state |
-| `studio_users` | A user's role at a studio, and their Stripe customer ID on that studio's account |
+| `studio_users` | A user's role at a studio, their Stripe customer ID on that studio's account, and marketing email consent (when, where, and when they unsubscribed) |
 | `seasons` | Date ranges that weekly classes run across |
 | `categories` | Age groups, levels and plan tags |
 | `rooms` | A studio's rooms, each with a capacity limit (`max_capacity`) |
@@ -71,7 +72,10 @@ Elsewhere in the repository:
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
 | `payments` | Payments staff recorded by hand, and comps ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
-| `sent_notifications` | Makes reminder and expiry emails send once |
+| `domain_events` | The outbox and history: every booking, check-in, plan, payment failure, waiver signature and consent change, with IDs and facts only ([below](#events-and-email)) |
+| `message_deliveries` | Every studio email: its kind, transactional or marketing, status (queued, sent, failed, suppressed), and a unique dedupe key |
+| `member_snapshots` | Each member's activity as of each night, for churn scoring later |
+| `sent_notifications` | Replaced by `message_deliveries`, which it was copied into. No longer written; to be dropped in a later release |
 
 All datetimes are stored in UTC and shown in the studio's time zone. Money is stored in cents.
 
@@ -87,6 +91,10 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`StripeWebhooks`:** verifies, deduplicates and processes Stripe events, and fulfils checkouts.
 - **`AccountDeletion`:** deletes a user everywhere, and hands over or closes studios they solely own.
 - **`OfflinePayments`:** records and voids payments taken in person.
+- **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
+- **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
+- **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
+- **`MemberSnapshots`:** each night's member snapshot.
 
 Controllers stay thin and call these services. The planned mobile API will call the same services ([Roadmap](Roadmap)).
 
@@ -105,9 +113,37 @@ Services dispatch Laravel events. The `StudioEmails` listener turns them into qu
 | `CheckoutPaymentFailed` | "Your payment didn't go through" |
 | `MemberJoined` | "Welcome!" |
 
-The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, and expires plans past their end date. `sent_notifications` makes sure each of those sends once.
+Every email goes through `App\Services\Messages`, which logs it in `message_deliveries` under a dedupe key (such as `reminder:booking:42`), so it goes out once however often the code that sends it runs. The delivery is marked `sent` when the mailer sends it (with Resend's message ID) and `failed` if the queue gives up.
 
-These events are in-memory only, and nothing keeps a history of them. The [Roadmap](Roadmap) replaces that with a durable event log (an outbox), which marketing automations and churn scoring will build on.
+The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, and relays any domain events still waiting.
+
+### The outbox (`domain_events`)
+
+The Laravel events above are in-process: they trigger emails, and nothing remembers them. Alongside them, each change records a **domain event** in the **same database transaction** as the change itself, so the event exists exactly when the change does.
+
+| Type | Recorded when |
+|---|---|
+| `member.joined` | Someone joins a studio |
+| `booking.booked`, `booking.waitlisted`, `booking.promoted` | A booking is made, waitlisted, or moved in from the waitlist |
+| `booking.cancelled` | A booking is cancelled: `by` member, staff, studio (class cancelled) or waitlist (no plan covered it), with `late` |
+| `booking.attended`, `booking.no_show`, `booking.check_in_undone` | Check-in. `attended` carries `first_visit`: the attendee's first class at the studio |
+| `session.cancelled` | The studio cancels a class |
+| `entitlement.granted` | A plan is bought or given: `source` stripe, cash, check, card, transfer, app, other, comp or staff |
+| `entitlement.cancel_scheduled`, `entitlement.cancel_unscheduled` | A member sets their membership to end, or changes their mind |
+| `entitlement.ended` | A plan ends: `reason` cancelled, expired or voided |
+| `payment.failed`, `checkout.failed` | A renewal fails (once per lapse), or a delayed checkout payment fails |
+| `waiver.signed` | A waiver is signed (the waiver, version and relationship) |
+| `consent.email_marketing_granted`, `consent.email_marketing_withdrawn` | Marketing consent changes (`source`: join, profile or unsubscribe_link) |
+
+- **What's in an event:** the studio, the account and attendee it's about, the type, when, and a payload of IDs and facts: never names or email addresses. Deleting an account unlinks its events, which stay as anonymous history.
+- **Relaying:** after the transaction commits, the `RelayDomainEvents` job hands new events to each handler in `config('loft.event_handlers')` (classes implementing `App\Contracts\DomainEventHandler`). Each event is relayed in its own transaction, with its row locked (`FOR UPDATE SKIP LOCKED` on Postgres). A handler that throws is retried by later relays, up to 5 times, and the error is kept on the event (`relay_attempts`, `relay_error`). Housekeeping sweeps up anything left.
+- **Handlers:** delivery is at least once and not strictly ordered, so handlers must be idempotent. None are registered yet; automations ([Roadmap](Roadmap) step 4) are the first. Until then, events are kept as history and marked relayed.
+- **Reading it:** each member's page in the admin shows their recent activity from these events.
+- **Adding a type:** add it to `DomainEvent::TYPES` (unknown types are refused), and record it inside the transaction that makes the change.
+
+### Member snapshots
+
+Each night, after 2 AM in the studio's time zone, housekeeping saves every member's activity into `member_snapshots` (`App\Services\MemberSnapshots`). The counts cover classes before that night's midnight: days since the last visit, visits in the last 28 days and the 28 before that, no-shows and late cancels, upcoming bookings, whether they hold a membership, credits left, failed payments in the last 90 days, family size and how long they've been a member. Staff aren't included. Snapshots are kept so churn scoring can later look at what was known on each date; they're deleted with the account.
 
 ## Security notes
 

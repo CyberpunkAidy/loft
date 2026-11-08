@@ -27,6 +27,8 @@ use Illuminate\Support\Str;
  */
 class Waivers
 {
+    public function __construct(private readonly DomainEvents $events) {}
+
     /**
      * The waivers someone must have signed to attend $program, or, with no program, any class.
      *
@@ -151,7 +153,7 @@ class Waivers
     {
         $version = $this->currentVersion($waiver);
 
-        return WaiverSignature::create([
+        return DB::transaction(fn () => tap(WaiverSignature::create([
             'studio_id' => $studio->id,
             'waiver_id' => $waiver->id,
             'waiver_version' => $waiver->version,
@@ -170,7 +172,13 @@ class Waivers
             'ip' => $ip,
             'user_agent' => $userAgent ? Str::limit($userAgent, 250, '') : null,
             'signed_at' => now(),
-        ]);
+        ]), fn (WaiverSignature $signature) => $this->events->record('waiver.signed', $studio, [
+            'signature_id' => $signature->id,
+            'waiver_id' => $waiver->id,
+            'waiver_title' => $version->title,
+            'version' => $version->version,
+            'relationship' => $signature->signer_relationship,
+        ], $signer->id, $attendee->id)));
     }
 
     /**

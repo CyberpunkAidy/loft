@@ -19,6 +19,12 @@ return [
     ],
 
     /*
+    | Consumers of the domain event outbox (App\Contracts\DomainEventHandler). Each new event is
+    | relayed to every handler here; with none, events are simply kept as history.
+    */
+    'event_handlers' => [],
+
+    /*
     | Studio URLs are /{slug}. These can't be slugs because the platform uses them.
     */
     'reserved_slugs' => [

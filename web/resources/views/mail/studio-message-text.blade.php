@@ -24,3 +24,7 @@ Manage your classes and billing: {!! route('studio.account', $studio) !!}
 Questions? Just reply to this email.
 @endif
 {!! $studio->name !!}
+@if ($unsubscribeUrl)
+
+You're getting this because you asked for news from {!! $studio->name !!}. Unsubscribe: {!! $unsubscribeUrl !!}
+@endif

@@ -24,7 +24,8 @@
   - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
   - **Plans & billing:** memberships and credits, a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
   - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
-  - **Profile:** name, email, phone, password, and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
+  - **Profile:** name, email, phone, password, news and offers from the studio (marketing email, opt-in), and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
+- **Joining:** an optional, unticked box to get the studio's news and offers. Every marketing email has a one-click **Unsubscribe** link ([Email](Email#marketing-email-and-consent)).
 - **Plans page:** every plan a studio sells, with checkout.
 
 ## Staff (`/{studio}/admin`)
@@ -37,7 +38,7 @@
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus and waitlist limit for new sessions, and **Apply to upcoming sessions** to update existing ones | admin |
 | Seasons | Date ranges for weekly classes | admin |
 | Rooms | Each room's capacity limit (such as its fire-code limit) and the apparatus rigged in it: how many, and the most people on each | admin |
-| Members | Search; family, waivers, plans, upcoming and past classes; **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
+| Members | Search; family, waivers, plans, upcoming and past classes; **Activity** (bookings, check-ins, plans, payment problems, waivers, consent, newest first); **Emails** (each email and whether it was sent, and marketing consent); **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
 | Payments | Connect Stripe; payments recorded in person and this month's total | admin |
 | Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |

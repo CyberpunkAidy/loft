@@ -19,8 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'studio' => ResolveStudio::class,
             'studio.role' => RequireStudioRole::class,
         ]);
-        // Stripe signs webhooks instead.
-        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+        // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
+        // for one-click unsubscribe (RFC 8058) without a session.
+        $middleware->validateCsrfTokens(except: ['stripe/webhook', '*/unsubscribe/*']);
         // Behind a load balancer that terminates HTTPS (Render, Fly, Cloudflare…), trust its
         // X-Forwarded-* headers so URLs are https and client IPs are real. Off unless set:
         // TRUSTED_PROXIES=* or a comma-separated list of proxy IPs/CIDRs.

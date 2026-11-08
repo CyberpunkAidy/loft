@@ -5,33 +5,41 @@ namespace App\Console\Commands;
 use App\Listeners\StudioEmails;
 use App\Models\Booking;
 use App\Models\Entitlement;
-use App\Models\SentNotification;
 use App\Models\Studio;
+use App\Services\DomainEvents;
+use App\Services\MemberSnapshots;
+use App\Services\Messages;
 use Illuminate\Console\Attributes\AsCommand;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Hourly: class reminders, credit-expiry warnings, and expiring entitlements. Port of the plugin's Cron.
- * Scheduled in routes/console.php; each email is recorded in sent_notifications so it goes out once.
+ * Hourly: class reminders, credit-expiry warnings, expiring entitlements, each studio's nightly member
+ * snapshots (once its local time passes 2 AM), and relaying any domain events still waiting. Port of
+ * the plugin's Cron, plus the event backbone's chores.
+ * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
+ * so it goes out once however often this runs.
  */
-#[AsCommand(name: 'loft:housekeeping', description: 'Send class reminders and credit warnings; expire credits')]
+#[AsCommand(name: 'loft:housekeeping', description: 'Send class reminders and credit warnings; expire credits; take member snapshots; relay events')]
 class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots): int
     {
         $reminders = 0;
-        Studio::query()->chunkById(100, function ($studios) use (&$reminders) {
+        $snapshotted = 0;
+        Studio::query()->chunkById(100, function ($studios) use (&$reminders, &$snapshotted, $snapshots) {
             foreach ($studios as $studio) {
                 $reminders += $this->reminders($studio);
+                $snapshotted += $snapshots->takeIfDue($studio);
             }
         });
-        $expired = $this->expire();
+        $expired = $this->expire($events);
         $warnings = $this->creditWarnings();
+        $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Events relayed: {$relayed}.");
 
         return self::SUCCESS;
     }
@@ -52,8 +60,7 @@ class Housekeeping extends Command
             ->whereHas('classSession', fn ($q) => $q->where('status', 'scheduled')->where('starts_at', '>=', $from)->where('starts_at', '<', $to))
             ->with(['classSession.program', 'attendee', 'user', 'studio'])
             ->each(function (Booking $b) use (&$sent) {
-                if (SentNotification::once('reminder', $b->id)) {
-                    Mail::to($b->user->email, $b->user->name)->send(StudioEmails::reminder($b));
+                if (app(Messages::class)->email($b->user, StudioEmails::reminder($b), "reminder:booking:{$b->id}")) {
                     $sent++;
                 }
             });
@@ -65,14 +72,26 @@ class Housekeeping extends Command
      * Credits past their expiry, and comped memberships past their end date (Stripe-billed
      * memberships end when Stripe says so, via customer.subscription.deleted).
      */
-    private function expire(): int
+    private function expire(DomainEvents $events): int
     {
-        return Entitlement::query()
+        $expired = 0;
+        Entitlement::query()
             ->where('status', 'active')
             ->whereNotNull('expires_at')
             ->where('expires_at', '<', now())
             ->where(fn ($q) => $q->where('kind', 'credits')->orWhereNull('stripe_subscription_id'))
-            ->update(['status' => 'expired', 'updated_at' => now()]);
+            ->with('plan')
+            ->chunkById(200, function ($entitlements) use ($events, &$expired) {
+                foreach ($entitlements as $entitlement) {
+                    DB::transaction(function () use ($entitlement, $events) {
+                        $entitlement->update(['status' => 'expired']);
+                        $events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'expired']);
+                    });
+                    $expired++;
+                }
+            });
+
+        return $expired;
     }
 
     private function creditWarnings(): int
@@ -85,8 +104,7 @@ class Housekeeping extends Command
             ->whereBetween('expires_at', [now(), now()->addDays(7)])
             ->with(['studio', 'user'])
             ->each(function (Entitlement $e) use (&$sent) {
-                if (SentNotification::once('credits_expiring', $e->id)) {
-                    Mail::to($e->user->email, $e->user->name)->send(StudioEmails::creditsExpiring($e));
+                if (app(Messages::class)->email($e->user, StudioEmails::creditsExpiring($e), "credits_expiring:entitlement:{$e->id}")) {
                     $sent++;
                 }
             });

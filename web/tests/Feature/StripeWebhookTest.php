@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Events\EntitlementGranted;
 use App\Events\PaymentFailed;
 use App\Mail\StudioMessage;
+use App\Models\DomainEvent;
 use App\Models\Entitlement;
 use App\Models\StripeEvent;
 use Illuminate\Http\Client\Request;
@@ -80,6 +81,8 @@ class StripeWebhookTest extends TestCase
         $this->assertSame('booked', $session->bookings()->sole()->status);
         $this->assertNotNull(StripeEvent::sole()->processed_at);
         Event::assertDispatchedTimes(EntitlementGranted::class, 1);
+        $this->assertSame(['entitlement.granted', 'booking.booked'], DomainEvent::orderBy('id')->pluck('type')->all(), 'recorded once, despite the retry');
+        $this->assertSame(['stripe', $plan->id, $user->id], [DomainEvent::first()->payload['source'], DomainEvent::first()->payload['plan_id'], DomainEvent::first()->user_id]);
     }
 
     public function test_the_booking_after_checkout_takes_the_chosen_apparatus(): void
@@ -151,6 +154,7 @@ class StripeWebhookTest extends TestCase
             && $m->headline === "Your payment didn't go through"
             && str_contains($m->lines[0], 'for 5-Class Pack')
             && $m->lines[1] === "The class you were booking wasn't booked either.");
+        $this->assertSame([$user->id, 'cs_bank'], [DomainEvent::where('type', 'checkout.failed')->sole()->user_id, DomainEvent::where('type', 'checkout.failed')->sole()->payload['checkout_session_id']]);
     }
 
     public function test_season_subscription_sets_cancel_at_and_invoice_paid_first_does_not_duplicate(): void
@@ -198,6 +202,7 @@ class StripeWebhookTest extends TestCase
         $this->postWebhook($this->event('invoice.payment_failed', ['id' => 'in_f2'], 'acct_A', 'evt_f2'))->assertOk();
         $this->assertSame('past_due', $e->fresh()->status);
         Event::assertDispatchedTimes(PaymentFailed::class, 1);
+        $this->assertSame('in_f1', DomainEvent::where('type', 'payment.failed')->sole()->payload['invoice_id']);
 
         $this->postWebhook($this->event('invoice.paid', ['id' => 'in_p'], 'acct_A', 'evt_p'))->assertOk();
         $this->assertSame('active', $e->fresh()->status);
@@ -225,6 +230,14 @@ class StripeWebhookTest extends TestCase
 
         $this->postWebhook($this->event('customer.subscription.deleted', ['id' => 'sub_3'], 'acct_A', 'evt_d'))->assertOk();
         $this->assertSame('cancelled', $e->fresh()->status);
+        $this->postWebhook($this->event('customer.subscription.deleted', ['id' => 'sub_3'], 'acct_A', 'evt_d2'))->assertOk();
+
+        // The history for churn: choosing to leave, changing their mind, and the end (once).
+        $this->assertSame(
+            ['entitlement.cancel_scheduled', 'entitlement.cancel_unscheduled', 'entitlement.ended'],
+            DomainEvent::where('studio_id', $studio->id)->orderBy('id')->pluck('type')->all(),
+        );
+        $this->assertSame('cancelled', DomainEvent::where('type', 'entitlement.ended')->sole()->payload['reason']);
     }
 
     public function test_newer_api_version_payloads_work(): void
