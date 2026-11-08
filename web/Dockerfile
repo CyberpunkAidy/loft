@@ -20,7 +20,7 @@ RUN apt-get update \
  && apt-get purge -y --auto-remove \
  && rm -rf /var/lib/apt/lists/* \
  && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
- && a2enmod rewrite
+ && a2enmod rewrite headers
 
 COPY docker/php.ini "$PHP_INI_DIR/conf.d/zz-loft.ini"
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf

@@ -1,0 +1,1 @@
+<h1 class="h1" style="margin:0 0 14px;font-family:'Bricolage Grotesque Variable','Inter Variable',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:27px;line-height:1.15;font-weight:700;letter-spacing:-0.025em;color:#17141f;">{{ $slot }}</h1>
