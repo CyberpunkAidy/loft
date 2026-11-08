@@ -3,7 +3,7 @@
 @section('title', 'Sign in')
 
 @section('content')
-<div class="narrow card" style="margin: 0 auto">
+<div class="card auth-card auth">
     <h1>Sign in</h1>
     <p class="muted">{{ $studio ? 'Your classes, family, waivers and billing at '.$studio->name.'.' : 'One account for every studio you belong to.' }}</p>
     <form method="post" action="{{ route('login') }}" class="form">

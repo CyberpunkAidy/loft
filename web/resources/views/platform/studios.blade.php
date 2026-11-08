@@ -14,9 +14,12 @@
 
     @forelse ($memberships as $membership)
         <div class="card item">
-            <div>
-                <strong>{{ $membership->studio->name }}</strong>
-                <div class="muted small">{{ \App\Models\StudioUser::ROLES[$membership->role] ?? $membership->role }}</div>
+            <div class="row">
+                <span class="brand-mark" style="--accent: {{ $membership->studio->accent() }}; --accent-ink: {{ $membership->studio->accentInk() }}" aria-hidden="true">{{ $membership->studio->initial() }}</span>
+                <div>
+                    <strong>{{ $membership->studio->name }}</strong>
+                    <div class="muted small">{{ \App\Models\StudioUser::ROLES[$membership->role] ?? $membership->role }}</div>
+                </div>
             </div>
             <div class="item-actions">
                 @if ($membership->isStaff())

@@ -42,6 +42,14 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, members, plans, payments, waivers, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
 
+### Look and feel
+
+- **One stylesheet, no build step:** `public/css/app.css`. It's built on CSS custom properties (colors, radii, shadows) and keeps the same class names the views use.
+- **Studio colors:** studio pages take the studio's brand color as `--accent`. `App\Support\Color` works out a readable label color for buttons (white or near-black) and a darkened version for links when the brand color is too light to read on white (4.5:1).
+- **Logo:** `public/images/loft-logo.svg` (dark text), `loft-logo-light.svg` (white text) and `loft-mark.svg`. Pages render it with `<x-logo />`, where the wordmark takes the text color. Favicons are `public/favicon.svg`, `favicon.ico` and `apple-touch-icon.png`. Each studio gets a favicon of its initial in its own color.
+- **Fonts:** Inter (text) and Bricolage Grotesque (headings), self-hosted in `public/fonts` under the SIL Open Font License. No requests go to font CDNs.
+- **Icons:** a subset of [Lucide](https://lucide.dev) (ISC license) in `resources/icons`, rendered inline with `<x-icon name="calendar-days" />`.
+
 ### Tenancy
 
 - A **studio** is a tenant, and every row it owns carries `studio_id`.
@@ -176,7 +184,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 87 tests. They cover:
+There are 90 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
@@ -185,6 +193,7 @@ There are 87 tests. They cover:
 - proxy trust
 - sending through Resend
 - every member and admin page
+- readable studio colors and the logo
 
 They run on SQLite by default. To run them against Postgres:
 

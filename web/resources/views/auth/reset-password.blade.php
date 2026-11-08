@@ -3,7 +3,7 @@
 @section('title', 'Choose a new password')
 
 @section('content')
-<div class="narrow card" style="margin: 0 auto">
+<div class="card auth-card auth">
     <h1>Choose a new password</h1>
     <form method="post" action="{{ route('password.update') }}" class="form">
         @csrf

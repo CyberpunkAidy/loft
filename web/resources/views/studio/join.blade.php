@@ -3,7 +3,7 @@
 @section('title', 'Join')
 
 @section('content')
-<div class="narrow card" style="margin: 0 auto">
+<div class="card auth-card auth">
     @auth
         <h1>Join {{ $studio->name }}</h1>
         <p>You’re signed in as <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}). Join to book classes, add your family and buy plans.</p>

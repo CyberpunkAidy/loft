@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Color;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -95,6 +96,24 @@ class Studio extends Model
     public function accent(): string
     {
         return preg_match('/^#[0-9a-fA-F]{6}$/', (string) $this->accent_color) ? $this->accent_color : '#c2410c';
+    }
+
+    /** Text color for labels on the brand color. */
+    public function accentInk(): string
+    {
+        return Color::inkOn($this->accent());
+    }
+
+    /** The brand color as text on white, darkened if it's too light to read. */
+    public function accentText(): string
+    {
+        return Color::textOnWhite($this->accent());
+    }
+
+    /** The first letter of the name, for the studio's badge and favicon. */
+    public function initial(): string
+    {
+        return mb_strtoupper(mb_substr(trim($this->name), 0, 1)) ?: '?';
     }
 
     public function stripeReady(): bool

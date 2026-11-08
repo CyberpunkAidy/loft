@@ -3,7 +3,7 @@
 @section('title', 'Reset your password')
 
 @section('content')
-<div class="narrow card" style="margin: 0 auto">
+<div class="card auth-card auth">
     <h1>Reset your password</h1>
     <p class="muted">Enter your email and we’ll send a link to choose a new password.</p>
     <form method="post" action="{{ route('password.email') }}" class="form">
