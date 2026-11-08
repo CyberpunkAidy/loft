@@ -104,6 +104,8 @@ form.inline { display: inline; }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; margin: 0; background: var(--card); }
 .fieldset legend { font-weight: 700; padding: 0 .35rem; }
+.delete-account { margin-top: 2rem; border-color: #fecaca; }
+.delete-account h2, .delete-account p { margin: 0; }
 .checks { display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
 .actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
 .prefix { display: flex; align-items: center; border: 1px solid #d6d3d1; border-radius: 10px; background: #fff; overflow: hidden; }

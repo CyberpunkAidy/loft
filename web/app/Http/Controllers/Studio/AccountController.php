@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Studio;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Studio;
+use App\Services\AccountDeletion;
 use App\Services\Bookings;
+use App\Services\Stripe\StripeException;
 use App\Services\Waivers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -85,9 +88,12 @@ class AccountController extends Controller
         ]);
     }
 
-    public function profile(Request $request): View
+    public function profile(Request $request, AccountDeletion $deletion): View
     {
-        return view('studio.account.profile', ['user' => $request->user()]);
+        return view('studio.account.profile', [
+            'user' => $request->user(),
+            'soleOwnerOf' => $deletion->soleOwnerOf($request->user()),
+        ]);
     }
 
     public function updateProfile(Request $request): RedirectResponse
@@ -113,6 +119,31 @@ class AccountController extends Controller
         $user->save();
 
         return back()->with('success', 'Profile saved.');
+    }
+
+    /** Delete the account at every studio, after the user confirms their password. */
+    public function destroy(Request $request, Studio $studio, AccountDeletion $deletion): RedirectResponse
+    {
+        $request->validate(['delete_password' => ['required', 'current_password']], [], ['delete_password' => 'password']);
+        $user = $request->user();
+        if ($names = $deletion->soleOwnerOf($user)->pluck('name')->join(', ', ' and ')) {
+            return back()->with('error', "You’re the only owner of {$names}. Make another staff member an owner first.");
+        }
+
+        try {
+            // A fresh copy, so logging out below doesn't save the deleted user back.
+            $deletion->delete($user->fresh());
+        } catch (StripeException $e) {
+            report($e);
+
+            return back()->with('error', 'We couldn’t cancel your membership in Stripe, so your account wasn’t deleted. Try again in a few minutes.');
+        }
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('studio.schedule')->with('success', 'Your account has been deleted.');
     }
 
     private function attendees(Request $request, Studio $studio)

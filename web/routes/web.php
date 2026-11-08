@@ -62,6 +62,7 @@ Route::prefix('{studio}')
             Route::get('/account/waivers', [Studio\AccountController::class, 'waivers'])->name('account.waivers');
             Route::get('/account/profile', [Studio\AccountController::class, 'profile'])->name('account.profile');
             Route::put('/account/profile', [Studio\AccountController::class, 'updateProfile'])->name('account.profile.update');
+            Route::delete('/account', [Studio\AccountController::class, 'destroy'])->name('account.destroy');
 
             Route::get('/account/family/new', [Studio\AttendeeController::class, 'create'])->name('attendees.create');
             Route::post('/account/family', [Studio\AttendeeController::class, 'store'])->name('attendees.store');
