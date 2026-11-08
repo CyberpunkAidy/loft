@@ -50,7 +50,11 @@ class StripeClient
         $url = self::API.ltrim($path, '/');
         $params = self::normalize($params);
 
-        return $this->decode(strtoupper($method) === 'GET' ? $http->get($url, $params) : $http->post($url, $params));
+        return $this->decode(match (strtoupper($method)) {
+            'GET' => $http->get($url, $params),
+            'DELETE' => $http->delete($url, $params),
+            default => $http->post($url, $params),
+        });
     }
 
     /**
@@ -290,6 +294,18 @@ class StripeClient
     public function retrieveInvoice(Studio $studio, string $id): array
     {
         return $this->get('invoices/'.$id, [], $this->account($studio));
+    }
+
+    /** Cancel a subscription now, without proration. One that's gone or already cancelled counts as cancelled. */
+    public function cancelSubscription(Studio $studio, string $id): void
+    {
+        try {
+            $this->request('DELETE', 'subscriptions/'.$id, [], $this->account($studio));
+        } catch (StripeException $e) {
+            if ($e->httpStatus !== 404 && ($this->retrieveSubscription($studio, $id)['status'] ?? null) !== 'canceled') {
+                throw $e;
+            }
+        }
     }
 
     /** Season tuition: stop billing when the season ends. */

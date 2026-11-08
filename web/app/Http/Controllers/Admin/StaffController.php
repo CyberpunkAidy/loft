@@ -13,7 +13,10 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Who can run the studio. Instructors get check-in; admins get everything; owners can't be removed. */
+/**
+ * Who can run the studio. Instructors get check-in; admins get everything; owners can't be removed,
+ * and only an owner can make someone else an owner (so the studio can change hands).
+ */
 class StaffController extends Controller
 {
     public function index(Studio $studio): View
@@ -62,9 +65,15 @@ class StaffController extends Controller
 
     public function update(Request $request, Studio $studio, StudioUser $studioUser): RedirectResponse
     {
-        $data = $request->validate(['role' => ['required', Rule::in(['instructor', 'admin'])]]);
+        $data = $request->validate(['role' => ['required', Rule::in(['instructor', 'admin', 'owner'])]]);
         if ($studioUser->role === 'owner') {
             return back()->with('error', 'Owners keep full access.');
+        }
+        if ($data['role'] === 'owner') {
+            abort_unless($request->user()->hasRoleIn($studio, 'owner'), 403);
+            $studioUser->update(['role' => 'owner']);
+
+            return back()->with('success', "{$studioUser->user->name} is now an owner.");
         }
         $studioUser->update(['role' => $data['role']]);
 

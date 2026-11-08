@@ -6,7 +6,7 @@
 <div class="page-head">
     <div>
         <h1>Staff</h1>
-        <p>Instructors can use check-in. Admins can manage everything.</p>
+        <p>Instructors can use check-in. Admins can manage everything. Owners can also make other owners, and can’t be removed.</p>
     </div>
 </div>
 <div class="split">
@@ -31,13 +31,22 @@
                             </form>
                         @endif
                     </td>
-                    <td class="right">
-                        @if ($s->role !== 'owner' && $s->user_id !== auth()->id())
-                            <form method="post" action="{{ route('studio.admin.staff.destroy', ['studioUser' => $s]) }}" class="inline" data-confirm="Remove {{ $s->user->first_name }}’s staff access? They stay a member.">
-                                @csrf @method('delete')
-                                <button class="link link-danger">Remove</button>
-                            </form>
-                        @endif
+                    <td>
+                        <div class="actions">
+                            @if ($s->role !== 'owner' && auth()->user()->hasRoleIn($studio, 'owner'))
+                                <form method="post" action="{{ route('studio.admin.staff.update', ['studioUser' => $s]) }}" class="inline" data-confirm="Make {{ $s->user->first_name }} an owner? Owners have full access and can’t be removed.">
+                                    @csrf @method('patch')
+                                    <input type="hidden" name="role" value="owner">
+                                    <button class="link">Make owner</button>
+                                </form>
+                            @endif
+                            @if ($s->role !== 'owner' && $s->user_id !== auth()->id())
+                                <form method="post" action="{{ route('studio.admin.staff.destroy', ['studioUser' => $s]) }}" class="inline" data-confirm="Remove {{ $s->user->first_name }}’s staff access? They stay a member.">
+                                    @csrf @method('delete')
+                                    <button class="link link-danger">Remove</button>
+                                </form>
+                            @endif
+                        </div>
                     </td>
                 </tr>
             @endforeach

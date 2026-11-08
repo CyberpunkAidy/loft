@@ -37,7 +37,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 |---|---|
 | `/` | Marketing page, `/signup` (start a studio), `/login`, `/studios` (my studios) |
 | `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/join`, `/login` |
-| `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile |
+| `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile, deleting the account |
 | `/{studio}/book/{session}` | Booking: choose who's coming → waiver → membership/credit check → checkout if needed |
 | `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, members, plans, payments, waivers, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
@@ -47,6 +47,12 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 - A **studio** is a tenant, and every row it owns carries `studio_id`.
 - Routes resolve children through the studio (`Route::scopeBindings()` plus an explicit `{studio}` binding in `AppServiceProvider`). So `/a/admin/programs/{id}` can't load studio B's program; it returns 404.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
+- **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings, passes and signed waivers (`App\Services\AccountDeletion`):
+  - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
+  - Seats they held in upcoming classes go to the waitlist.
+  - Classes they taught stay, without an instructor.
+  - Payment history stays in each studio's Stripe account.
+  - A studio's only owner can't delete their account. They first make another staff member an owner under Admin → Staff; only owners can do that.
 
 ### Where the plugin's code went
 
@@ -169,11 +175,12 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 79 tests. They cover:
+There are 84 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles
+- deleting an account
 - proxy trust
 - sending through Resend
 - every member and admin page
