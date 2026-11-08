@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * What an account holds: a live subscription (optionally limited per week) or a credit balance.
- * Created by Stripe webhooks or by staff comping a plan; used up by bookings.
+ * Created by Stripe webhooks or by staff (a recorded payment or a comp); used up by bookings.
  */
 #[Fillable([
     'studio_id', 'user_id', 'plan_id', 'kind', 'status', 'stripe_subscription_id', 'stripe_customer_id',
@@ -56,6 +57,12 @@ class Entitlement extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /** The recorded payment (or comp) behind it, when staff granted it by hand. */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
     }
 
     public function bookings(): HasMany

@@ -192,6 +192,12 @@ class Studio extends Model
         return $this->hasMany(Entitlement::class);
     }
 
+    /** Payments staff recorded by hand (see OfflinePayments). */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);

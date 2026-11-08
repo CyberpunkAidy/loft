@@ -150,7 +150,7 @@ class AdminFlowTest extends TestCase
         $member = $this->userIn($studio);
         $this->actingAs($this->userIn($studio, 'owner'));
 
-        $this->post("/{$studio->slug}/admin/members/{$member->id}/comp", ['plan_id' => $plan->id])->assertSessionHas('success');
+        $this->post("/{$studio->slug}/admin/members/{$member->id}/plans", ['plan_id' => $plan->id, 'method' => 'comp'])->assertSessionHas('success');
         $this->assertSame(10, Entitlement::where('user_id', $member->id)->sole()->credits_remaining);
         $this->get("/{$studio->slug}/admin/members?q=".urlencode(strtoupper($member->last_name)))->assertOk()->assertSee($member->email);
 

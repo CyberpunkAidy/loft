@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Events\EntitlementGranted;
 use App\Events\PaymentFailed;
+use App\Mail\StudioMessage;
 use App\Models\Entitlement;
 use App\Models\StripeEvent;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -78,6 +80,56 @@ class StripeWebhookTest extends TestCase
         $this->assertSame('booked', $session->bookings()->sole()->status);
         $this->assertNotNull(StripeEvent::sole()->processed_at);
         Event::assertDispatchedTimes(EntitlementGranted::class, 1);
+    }
+
+    public function test_a_delayed_payment_is_granted_when_it_clears(): void
+    {
+        Event::fake([EntitlementGranted::class]);
+        $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
+        $user = $this->userIn($studio);
+        $plan = $this->plan($studio, ['kind' => 'pack', 'credits' => 5]);
+        $session = $this->classSession($this->program($studio));
+        $attendee = $this->attendee($studio, $user);
+        $cs = [
+            'id' => 'cs_bank', 'mode' => 'payment', 'status' => 'complete', 'payment_status' => 'unpaid', 'customer' => 'cus_1',
+            'metadata' => ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id, 'session_id' => $session->id, 'attendee_id' => $attendee->id],
+        ];
+        $this->serve('acct_A', 'checkout/sessions/cs_bank', $cs);
+
+        // Checkout completes while the bank debit is still processing: nothing is granted yet.
+        $this->postWebhook($this->event('checkout.session.completed', ['id' => 'cs_bank'], 'acct_A', 'evt_done'))->assertOk();
+        $this->assertSame(0, Entitlement::count());
+        $this->assertSame(0, $session->bookings()->count());
+
+        // Days later the payment clears.
+        $this->serve('acct_A', 'checkout/sessions/cs_bank', ['payment_status' => 'paid'] + $cs);
+        $this->postWebhook($this->event('checkout.session.async_payment_succeeded', ['id' => 'cs_bank'], 'acct_A', 'evt_paid'))->assertOk();
+
+        $this->assertSame(4, Entitlement::sole()->credits_remaining, 'one credit used by the booking');
+        $this->assertSame('booked', $session->bookings()->sole()->status);
+        Event::assertDispatchedTimes(EntitlementGranted::class, 1);
+    }
+
+    public function test_a_failed_delayed_payment_tells_the_member(): void
+    {
+        Mail::fake();
+        $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
+        $user = $this->userIn($studio, 'member', ['email' => 'pat@example.com']);
+        $plan = $this->plan($studio, ['kind' => 'pack', 'name' => '5-Class Pack']);
+        $meta = ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id, 'session_id' => 7, 'attendee_id' => 1];
+        $this->serve('acct_A', 'checkout/sessions/cs_bank', ['id' => 'cs_bank', 'mode' => 'payment', 'status' => 'complete', 'payment_status' => 'unpaid', 'metadata' => $meta]);
+        $this->serve('acct_A', 'checkout/sessions/cs_sub', ['id' => 'cs_sub', 'mode' => 'subscription', 'status' => 'complete', 'payment_status' => 'unpaid', 'metadata' => $meta]);
+
+        $this->postWebhook($this->event('checkout.session.async_payment_failed', ['id' => 'cs_bank'], 'acct_A', 'evt_1'))->assertOk();
+        // Subscriptions report failures through invoice.payment_failed, so this one sends nothing.
+        $this->postWebhook($this->event('checkout.session.async_payment_failed', ['id' => 'cs_sub'], 'acct_A', 'evt_2'))->assertOk();
+
+        $this->assertSame(0, Entitlement::count());
+        Mail::assertQueuedCount(1);
+        Mail::assertQueued(StudioMessage::class, fn (StudioMessage $m) => $m->hasTo('pat@example.com')
+            && $m->headline === "Your payment didn't go through"
+            && str_contains($m->lines[0], 'for 5-Class Pack')
+            && $m->lines[1] === "The class you were booking wasn't booked either.");
     }
 
     public function test_season_subscription_sets_cancel_at_and_invoice_paid_first_does_not_duplicate(): void

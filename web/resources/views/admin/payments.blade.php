@@ -32,4 +32,23 @@
         <form method="post" action="{{ route('studio.admin.payments.connect') }}">@csrf<button class="btn">Connect Stripe</button></form>
     @endif
 </div>
+
+<section class="mt">
+    <div class="page-head" style="margin-bottom:1rem">
+        <div>
+            <h2 style="margin:0">Payments recorded in person</h2>
+            <p>Cash, checks, card terminals, transfers and payment apps, plus comps. Record one from a member’s page.</p>
+        </div>
+    </div>
+    <div class="stats">
+        <div class="stat"><strong>{{ \App\Support\Money::format($monthTotal, $studio->currency) }}</strong><span>Taken in person this month</span></div>
+        <div class="stat"><strong>{{ $monthCount }}</strong><span>{{ \Illuminate\Support\Str::plural('Payment', $monthCount) }} this month</span></div>
+    </div>
+    @if ($payments->isEmpty())
+        <div class="card empty">No payments recorded yet. Open a member and use “Add a plan” to record one.</div>
+    @else
+        @include('admin.payments._table', ['payments' => $payments, 'showMember' => true])
+        {{ $payments->links() }}
+    @endif
+</section>
 @endsection

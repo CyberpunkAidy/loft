@@ -178,6 +178,22 @@ class MemberFlowTest extends TestCase
             && str_contains($r['success_url'], "/{$studio->slug}/checkout/complete?session_id={CHECKOUT_SESSION_ID}"));
     }
 
+    public function test_returning_from_a_processing_bank_payment(): void
+    {
+        $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
+        $user = $this->userIn($studio);
+        $plan = $this->plan($studio, ['kind' => 'pack']);
+        $this->fakeStripe(['api.stripe.com/v1/checkout/sessions/cs_bank' => Http::response([
+            'id' => 'cs_bank', 'mode' => 'payment', 'status' => 'complete', 'payment_status' => 'unpaid',
+            'metadata' => ['loft_studio_id' => $studio->id, 'loft_plan_id' => $plan->id, 'loft_user_id' => $user->id, 'session_id' => 0, 'attendee_id' => 0],
+        ])]);
+
+        $this->actingAs($user)->get("/{$studio->slug}/checkout/complete?session_id=cs_bank")
+            ->assertRedirect("/{$studio->slug}/account/billing")
+            ->assertSessionHas('success', 'Thanks! Your payment is processing. Bank payments can take a few business days; we’ll email you when it goes through.');
+        $this->assertSame(0, $user->studioUsers()->sole()->studio->entitlements()->count());
+    }
+
     public function test_returning_from_checkout_fulfils_immediately(): void
     {
         $studio = $this->studio(['stripe_account_id' => 'acct_A', 'stripe_charges_enabled' => true]);
