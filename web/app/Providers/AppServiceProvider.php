@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Listeners\StudioEmails;
 use App\Models\Studio;
 use App\Services\Stripe\StripeClient;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
@@ -30,5 +32,13 @@ class AppServiceProvider extends ServiceProvider
         // always resolve through the studio's relationships (scoped bindings), whatever the controller signature.
         Route::bind('studio', fn (string $slug) => Studio::where('slug', $slug)->firstOrFail());
         Paginator::defaultView('partials.pagination');
+
+        // Password resets and staff invitations: a Loft-branded email instead of Laravel's default.
+        ResetPassword::toMailUsing(fn (object $user, string $token) => (new MailMessage)
+            ->subject('Choose your '.config('app.name').' password')
+            ->view(['mail.password', 'mail.password-text'], [
+                'url' => route('password.reset', ['token' => $token, 'email' => $user->getEmailForPasswordReset()]),
+                'minutes' => (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire'),
+            ]));
     }
 }

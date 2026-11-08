@@ -48,6 +48,11 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 - **Studio colors:** studio pages take the studio's brand color as `--accent`. `App\Support\Color` works out a readable label color for buttons (white or near-black) and a darkened version for links when the brand color is too light to read on white (4.5:1).
 - **Logo:** `public/images/loft-logo.svg` (dark text), `loft-logo-light.svg` (white text) and `loft-mark.svg`. Pages render it with `<x-logo />`, where the wordmark takes the text color. Favicons are `public/favicon.svg`, `favicon.ico` and `apple-touch-icon.png`. Each studio gets a favicon of its initial in its own color.
 - **Fonts:** Inter (text) and Bricolage Grotesque (headings), self-hosted in `public/fonts` under the SIL Open Font License. No requests go to font CDNs.
+- **Emails:** every HTML email uses `resources/views/mail/layout.blade.php`, styled like the site. It's built from tables with inline styles so it renders the same in Gmail, Outlook and Apple Mail, and every email also has a plain-text version.
+  - **Studio emails** show the studio's badge and color, with "Powered by Loft" at the bottom.
+  - **Password resets and staff invitations** use a Loft-branded email (`mail/password`) instead of Laravel's default.
+  - **Logo:** emails show `public/images/loft-logo-email.png`, because email apps don't display SVG.
+  - **Fonts:** the web fonts load where the email app allows it, such as Apple Mail. For that, Apache sends `Access-Control-Allow-Origin: *` for `.woff2` files. Other apps use the system font.
 - **Icons:** a subset of [Lucide](https://lucide.dev) (ISC license) in `resources/icons`, rendered inline with `<x-icon name="calendar-days" />`.
 
 ### Tenancy
@@ -184,7 +189,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 90 tests. They cover:
+There are 92 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
@@ -193,7 +198,7 @@ There are 90 tests. They cover:
 - proxy trust
 - sending through Resend
 - every member and admin page
-- readable studio colors and the logo
+- readable studio colors, the logo and the email designs
 
 They run on SQLite by default. To run them against Postgres:
 

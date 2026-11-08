@@ -64,6 +64,10 @@ jobs:
             -e APP_ENV=production -e LOG_CHANNEL=stderr -e SESSION_DRIVER=array -e CACHE_STORE=array \
             loft-web
           curl --fail --silent --show-error --retry 15 --retry-delay 1 --retry-all-errors http://localhost:8080/up
+      - name: Fonts allow cross-origin use (email web fonts)
+        run: |
+          curl --fail --silent --show-error -o /dev/null -D - http://localhost:8080/fonts/inter-latin-wght-normal.woff2 \
+            | grep -i '^access-control-allow-origin: \*'
       - name: Container logs
         if: always()
         run: docker logs loft || true

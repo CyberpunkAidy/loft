@@ -1,3 +1,5 @@
+{!! $studio->name !!}
+
 {!! $headline !!}
 
 @foreach ($lines as $line)
@@ -8,12 +10,17 @@
 {!! $label !!}: {!! $value !!}
 @endforeach
 
+@if ($actionUrl)
+{!! $actionLabel !!}: {!! $actionUrl !!}
+
+@endif
 @foreach ($after as $line)
 {!! $line !!}
 
 @endforeach
-@if ($actionUrl)
-{!! $actionLabel !!}: {!! $actionUrl !!}
+—
+Manage your classes and billing: {!! route('studio.account', $studio) !!}
+@if ($studio->contact_email)
+Questions? Just reply to this email.
 @endif
-
-— {!! $studio->name !!}
+{!! $studio->name !!}
