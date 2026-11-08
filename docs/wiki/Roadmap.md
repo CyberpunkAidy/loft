@@ -47,7 +47,9 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
 - **Required set:** each class has a set of required waivers: studio-wide ones plus ones attached to programs (for example an aerial liability waiver).
 - **Enforced everywhere:** web booking (as today), waitlist promotion, staff booking (with a logged override), check-in and kiosks.
 - **Evidence:** store a hash of the exact text signed.
-- **Retention:** keep signatures when accounts are deleted, unlinked but named (see [Decisions](Decisions#open-questions)).
+- **Retention ([decision 20](Decisions)):**
+  - Keep signatures when accounts are deleted: unlinked from the account, with the signer's and attendee's names and the exact text signed.
+  - Let owners download every signed waiver, for example before closing the studio.
 
 ### Point of sale and one checkout
 
@@ -274,7 +276,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 
 ## Order
 
-1. [ ] **Waiver hardening:** program-level waivers, enforcement everywhere, overrides, text hash, retention.
+1. [ ] **Waiver hardening:** program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
 2. [ ] **Rooms, apparatus capacity and waitlist limits:** settle the booking model before anything depends on it.
 3. [ ] **Event backbone:** outbox, `booking.attended`, `message_deliveries`, consent. Start the nightly snapshots here too.
 4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
@@ -291,5 +293,5 @@ Steps 1 and 2 change rules members feel directly, so test them on one studio beh
 
 - **Stripe refunds:** a refund doesn't take back the credits or membership it paid for.
 - **Staff bookings:** they skip the waiver check (covered by step 1).
-- **Waiver signatures:** deleted with accounts and closed studios (step 1 and [Decisions](Decisions#open-questions)).
+- **Waiver signatures:** deleted with accounts today. Keeping them is decided (decision 20) and built in step 1.
 - **Merged branches:** they need deleting by hand on GitHub.

@@ -40,6 +40,10 @@ A studio must always have an owner.
 | Card details | Never in Loft; only in Stripe |
 | Studio customer records, charges, invoices | The studio's own Stripe account |
 
-## Open question: keeping signed waivers
+## Signed waivers are kept (decided, being built)
 
-Today, deleting an account (or closing a studio) also deletes the waivers that person signed. Studios may need to keep signed waivers for liability. The [Roadmap](Roadmap) proposes keeping signature records, unlinked from the account but with the signer's name and the exact text signed. That needs a decision ([Decisions](Decisions#open-questions)).
+[Decision 20](Decisions), 2026-11-08: signed waivers are kept as the studio's liability records.
+- **Deleted account:** its waiver signatures stay with the studio, unlinked from the account, with the signer's and attendee's names and the exact text signed.
+- **Closing a studio:** the owner can download every signed waiver first.
+
+**Until roadmap step 1 ships**, deleting an account still deletes its signatures, as described above.

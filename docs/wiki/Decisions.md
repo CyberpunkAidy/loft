@@ -23,6 +23,7 @@ Why things are built the way they are. Newest at the bottom. Open questions are 
 | 17 | 2026-11-08 | **Keep Laravel.** Build the mobile app with React Native (Expo) against a Laravel JSON API | The proposed move to Next.js and Node would be a rewrite of a live, tested product, for nothing the roadmap needs. See [the comparison](#tech-stack-nextjs-and-node) |
 | 18 | 2026-11-08 | **From the proposed Prisma schema, adopt rooms, apparatus owned by a room, and waitlist limits;** keep Loft's own schema for everything else (option A) | Rooms with a fire-code limit, and apparatus rigged in a room, model aerial studios better than the roadmap's first sketch. Loft already covers the rest more fully. See [the review](#a-proposed-prisma-schema) |
 | 19 | 2026-11-08 | **Pause WordPress plugin releases.** Move the plugin to `plugin/` for reference, and remove the release checklist and zip script | Work is focused on the web app and the mobile app. The repository's root is now about the web app. Tags `v0.1.0` and `v0.1.1` remain, and the release tooling can be restored from git history |
+| 20 | 2026-11-08 | **Keep signed waivers.** When an account is deleted, its waiver signatures stay with the studio, unlinked from the account, with the signer's and attendee's names and the exact text signed. A studio's owner can download every signed waiver, for example before closing the studio | Studios may need signed waivers as evidence of liability long after a member leaves; once a studio is deleted, nobody could reach records kept inside Loft, so the owner takes a copy instead. Built in roadmap step 1 |
 
 ## Considered alternatives
 
@@ -73,8 +74,4 @@ Problems found in the proposal, for the record:
 
 ## Open questions
 
-### Keeping signed waivers when accounts are deleted
-
-- **Today:** deleting an account, or closing a studio, deletes the waivers signed there.
-- **Proposed:** keep signature records, unlinked from the account but with the signer's name and a hash of the exact text signed. Studios may need them for liability. See [Roadmap](Roadmap), step 1.
-- **Status:** awaiting a decision.
+None at the moment. The last one, about keeping signed waivers, was settled by decision 20.
