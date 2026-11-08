@@ -87,11 +87,12 @@ These are fixed here; the plugin still has them.
 
 ## Payments (Stripe Connect)
 
-1. In the platform's Stripe account, enable **Connect** (Settings → Connect). Standard accounts are used, so each studio has its own Stripe dashboard.
-2. Set `STRIPE_SECRET` to the platform's secret key.
+1. In the platform's Stripe account, enable **Connect** (Settings → Connect). The app creates studio accounts with Stripe's Accounts v2 API, set up like Standard accounts: each studio has the full Stripe Dashboard, pays Stripe's fees itself, and Stripe covers losses. A new account is in the platform's country.
+2. Set `STRIPE_SECRET` to the platform's secret key (`sk_…`, not the publishable `pk_…` key).
 3. Under **Developers → Webhooks**, add an endpoint for **events on connected accounts**:
    - URL: `https://<your-domain>/stripe/webhook`
    - API version: any; the latest is fine. The app takes only the object's ID from each webhook and fetches the object from the API in the version it pins (`2024-06-20`).
+   - Payload style: snapshot. These are v1 events; Stripe sends them for Accounts v2 accounts too.
    - Events: `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
 
    Put its signing secret in `STRIPE_WEBHOOK_SECRET`.
@@ -168,7 +169,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 78 tests. They cover:
+There are 79 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP

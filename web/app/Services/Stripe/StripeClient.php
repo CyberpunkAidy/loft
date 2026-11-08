@@ -6,6 +6,8 @@ use App\Models\Plan;
 use App\Models\Studio;
 use App\Models\User;
 use App\Services\Entitlements;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -13,15 +15,22 @@ use Illuminate\Support\Facades\Http;
  * the platform holds one secret key, each studio connects its own Stripe account, and every
  * studio-level call carries that account in the Stripe-Account header. Money goes to the studio;
  * the platform can take an application fee (LOFT_PLATFORM_FEE_PERCENT).
+ *
+ * Studio accounts are created and onboarded with Accounts v2 (/v2/core), which Stripe requires for
+ * new Connect platforms. v2 accounts work with every v1 endpoint used here, so everything else,
+ * including reading an account's status, stays on v1.
  */
 class StripeClient
 {
     public const API = 'https://api.stripe.com/v1/';
 
+    public const API_V2 = 'https://api.stripe.com/v2/';
+
     public function __construct(
         private readonly ?string $secret,
         private readonly string $apiVersion,
         private readonly float $platformFeePercent = 0,
+        private readonly string $v2ApiVersion = '2026-10-28.endive',
     ) {}
 
     public function configured(): bool
@@ -37,21 +46,45 @@ class StripeClient
      */
     public function request(string $method, string $path, array $params = [], ?string $account = null, ?string $idempotencyKey = null): array
     {
+        $http = $this->http($this->apiVersion, $account, $idempotencyKey)->asForm();
+        $url = self::API.ltrim($path, '/');
+        $params = self::normalize($params);
+
+        return $this->decode(strtoupper($method) === 'GET' ? $http->get($url, $params) : $http->post($url, $params));
+    }
+
+    /**
+     * POST to an API v2 endpoint (/v2/core/…): a JSON body, in the v2 API version.
+     *
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     *
+     * @throws StripeException
+     */
+    public function postV2(string $path, array $body): array
+    {
+        return $this->decode($this->http($this->v2ApiVersion)->asJson()->post(self::API_V2.ltrim($path, '/'), $body));
+    }
+
+    private function http(string $version, ?string $account = null, ?string $idempotencyKey = null): PendingRequest
+    {
         if (! $this->configured()) {
             throw new StripeException('Stripe is not configured. Set STRIPE_SECRET.');
         }
-        $headers = ['Stripe-Version' => $this->apiVersion];
+        $headers = ['Stripe-Version' => $version];
         if ($account) {
             $headers['Stripe-Account'] = $account;
         }
         if ($idempotencyKey) {
             $headers['Idempotency-Key'] = $idempotencyKey;
         }
-        $http = Http::withToken((string) $this->secret)->withHeaders($headers)->timeout(30)->asForm();
-        $url = self::API.ltrim($path, '/');
-        $params = self::normalize($params);
 
-        $response = strtoupper($method) === 'GET' ? $http->get($url, $params) : $http->post($url, $params);
+        return Http::withToken((string) $this->secret)->withHeaders($headers)->timeout(30);
+    }
+
+    /** @return array<string, mixed> */
+    private function decode(Response $response): array
+    {
         $body = $response->json() ?? [];
         if ($response->failed()) {
             throw new StripeException(
@@ -76,28 +109,41 @@ class StripeClient
 
     /* ------------------------------------------------------------------ Connect onboarding */
 
-    /** Create the studio's connected account (Standard: the studio owns its Stripe dashboard). */
+    /**
+     * Create the studio's connected account. Set up like the v1 Standard accounts it replaces: the
+     * studio gets the full Stripe Dashboard, pays Stripe's fees itself and Stripe covers losses.
+     * The account is in the platform's country, as v1 accounts were by default.
+     */
     public function createAccount(Studio $studio, string $email): array
     {
-        return $this->post('accounts', [
-            'type' => 'standard',
-            'email' => $email,
-            'business_profile' => ['name' => $studio->name],
-            'metadata' => ['loft_studio_id' => $studio->id],
-        ]);
+        $body = [
+            'contact_email' => $email,
+            'display_name' => $studio->name,
+            'dashboard' => 'full',
+            'configuration' => ['merchant' => ['capabilities' => ['card_payments' => ['requested' => true]]]],
+            'defaults' => ['responsibilities' => ['fees_collector' => 'stripe', 'losses_collector' => 'stripe']],
+            'metadata' => ['loft_studio_id' => (string) $studio->id],
+        ];
+        if ($country = strtolower((string) ($this->get('account')['country'] ?? ''))) {
+            $body['identity'] = ['country' => $country];
+        }
+
+        return $this->postV2('core/accounts', $body);
     }
 
     /** A one-time URL that takes the studio through Stripe's onboarding. */
     public function accountLink(string $accountId, string $refreshUrl, string $returnUrl): string
     {
-        return $this->post('account_links', [
+        return $this->postV2('core/account_links', [
             'account' => $accountId,
-            'refresh_url' => $refreshUrl,
-            'return_url' => $returnUrl,
-            'type' => 'account_onboarding',
+            'use_case' => [
+                'type' => 'account_onboarding',
+                'account_onboarding' => ['refresh_url' => $refreshUrl, 'return_url' => $returnUrl],
+            ],
         ])['url'];
     }
 
+    /** v1 reads v2 accounts too, in the v1 shape (charges_enabled, details_submitted). */
     public function retrieveAccount(string $accountId): array
     {
         return $this->get('accounts/'.$accountId);

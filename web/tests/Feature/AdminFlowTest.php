@@ -205,8 +205,9 @@ class AdminFlowTest extends TestCase
     public function test_connecting_stripe(): void
     {
         $this->fakeStripe([
-            'api.stripe.com/v1/accounts' => Http::response(['id' => 'acct_new']),
-            'api.stripe.com/v1/account_links' => Http::response(['url' => 'https://connect.stripe.com/setup/s/abc']),
+            'api.stripe.com/v1/account' => Http::response(['id' => 'acct_platform', 'country' => 'US']),
+            'api.stripe.com/v2/core/accounts' => Http::response(['id' => 'acct_new', 'object' => 'v2.core.account']),
+            'api.stripe.com/v2/core/account_links' => Http::response(['object' => 'v2.core.account_link', 'url' => 'https://connect.stripe.com/setup/s/abc']),
             'api.stripe.com/v1/accounts/acct_new' => Http::response(['id' => 'acct_new', 'charges_enabled' => true, 'details_submitted' => true]),
         ]);
         $studio = $this->studio();
@@ -214,7 +215,28 @@ class AdminFlowTest extends TestCase
 
         $this->post("/{$studio->slug}/admin/payments/connect")->assertRedirect('https://connect.stripe.com/setup/s/abc');
         $this->assertSame('acct_new', $studio->fresh()->stripe_account_id);
-        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/account_links') && str_ends_with($r['return_url'], "/{$studio->slug}/admin/payments/return"));
+
+        // Accounts v2: a JSON body in the v2 API version, set up like a v1 Standard account.
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://api.stripe.com/v2/core/accounts'
+            && $r->isJson()
+            && $r->header('Stripe-Version') === ['2026-10-28.endive']
+            && $r->header('Stripe-Account') === []
+            && $r->data() === [
+                'contact_email' => $studio->contact_email,
+                'display_name' => $studio->name,
+                'dashboard' => 'full',
+                'configuration' => ['merchant' => ['capabilities' => ['card_payments' => ['requested' => true]]]],
+                'defaults' => ['responsibilities' => ['fees_collector' => 'stripe', 'losses_collector' => 'stripe']],
+                'metadata' => ['loft_studio_id' => (string) $studio->id],
+                'identity' => ['country' => 'us'],
+            ]);
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://api.stripe.com/v2/core/account_links'
+            && $r->isJson()
+            && $r['account'] === 'acct_new'
+            && $r['use_case']['type'] === 'account_onboarding'
+            && str_ends_with($r['use_case']['account_onboarding']['refresh_url'], "/{$studio->slug}/admin/payments")
+            && str_ends_with($r['use_case']['account_onboarding']['return_url'], "/{$studio->slug}/admin/payments/return"));
+        Http::assertNotSent(fn (Request $r) => str_starts_with($r->url(), 'https://api.stripe.com/v1/account_links') || $r->url() === 'https://api.stripe.com/v1/accounts');
 
         $this->get("/{$studio->slug}/admin/payments/return")->assertRedirect("/{$studio->slug}/admin/payments")->assertSessionHas('success');
         $this->assertTrue($studio->fresh()->stripeReady());
