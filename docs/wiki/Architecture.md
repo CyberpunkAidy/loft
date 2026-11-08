@@ -16,12 +16,12 @@
 
 | Path | What's there |
 |---|---|
-| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `SentNotification` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `SentNotification` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
 | `app/Events`, `app/Listeners` | Domain events and the `StudioEmails` listener that sends member emails |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
-| `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException` |
+| `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException`, `ApparatusSlot` (one apparatus's spots in a session), `ApparatusAllocation` (the apparatus fields on the program and session forms) |
 | `app/Console/Commands` | `loft:housekeeping`, run hourly |
 | `resources/views` | Blade templates: `layouts`, `platform`, `auth`, `studio`, `admin`, `mail`, `components` |
 | `resources/icons` | A subset of Lucide icons (ISC license) |
@@ -57,12 +57,15 @@ Elsewhere in the repository:
 | `studio_users` | A user's role at a studio, and their Stripe customer ID on that studio's account |
 | `seasons` | Date ranges that weekly classes run across |
 | `categories` | Age groups, levels and plan tags |
-| `programs` | A class or one-off event: weekday and time, duration, capacity, age limits, price, instructor |
-| `class_sessions` | Each dated occurrence of a program, with its own capacity, instructor and status |
+| `rooms` | A studio's rooms, each with a capacity limit (`max_capacity`) |
+| `apparatus` | What's rigged in a room: how many (`quantity`) and the most people on each (`max_per_item`) |
+| `programs` | A class or one-off event: weekday and time, duration, capacity, age limits, price, instructor, and the room and waitlist limit for new sessions |
+| `class_sessions` | Each dated occurrence of a program, with its own capacity, waitlist limit (`waitlist_capacity`, null = none), room, instructor and status |
+| `program_apparatus`, `session_apparatus` | The apparatus a class uses (`quantity`, `max_per_item`): a program's default, copied to each new session, which can change it |
 | `attendees` | The people who come to class: the account holder and their children, with date of birth, medical notes and emergency contact |
 | `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin` |
 | `entitlements` | What an account holds: a live membership or a credit balance, with scope and weekly limits |
-| `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended` |
+| `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended`. With apparatus: which one (`apparatus_id`; for a waitlist entry, the one asked for, or null for any) and which item (`apparatus_item`, "Silks 3") |
 | `waivers`, `waiver_versions`, `program_waiver` | Waivers (for every class or for attached programs, with optional validity), and the exact text of every published version |
 | `waiver_signatures` | Who signed which version for whom: names, relationship, a hash of the text, IP address, browser, optional drawing. Kept, unlinked, when accounts are deleted |
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
@@ -74,9 +77,10 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 
 ## Services
 
-- **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. Promotion re-checks the waiting person's plan before giving them the seat.
+- **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. A booking needs room in the class and, when the class uses apparatus, a spot on the apparatus; waitlists can be capped. Promotion re-checks the waiting person's plan, waiver and apparatus before giving them the seat. Staff can move a booking to another apparatus.
 - **`Entitlements`:** finds the plan that can pay for a class (scope, weekly limit, credits), uses and refunds credits, and grants plans.
-- **`SessionGenerator`:** creates a program's sessions across its season. It's daylight-saving safe.
+- **`SessionGenerator`:** creates a program's sessions across its season, with the program's room, apparatus and waitlist limit. It's daylight-saving safe. It can also copy those settings to upcoming sessions.
+- **`Rooms`:** room clashes for staff: other classes in the same room at the same time, and apparatus used by more classes at once than are rigged. A warning, not a booking rule.
 - **`Waivers`:** which waivers a class needs, whether an attendee has signed them, signing a version, overrides, and saving text without editing a signed version.
 - **`WaiverDownload`:** a studio's signed waivers as a ZIP.
 - **`StripeClient`:** the Stripe REST calls: v1 for most things, v2 for creating and onboarding studio accounts.

@@ -27,7 +27,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Next features: waivers, apparatus capacity, events and marketing, point of sale, mobile API, check-in kiosks, churn |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity. Next: events and marketing, point of sale, mobile API, check-in kiosks, churn |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -59,8 +59,8 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | `/` | Marketing page, `/signup` (start a studio), `/login`, `/studios` (my studios) |
 | `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/join`, `/login` |
 | `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile, deleting the account |
-| `/{studio}/book/{session}` | Booking: choose who's coming → waiver → membership/credit check → checkout if needed |
-| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, members, plans, payments, waivers, staff, settings |
+| `/{studio}/book/{session}` | Booking: choose who's coming (and the apparatus, if the class uses several) → waiver → membership/credit check → checkout if needed |
+| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, plans, payments, waivers, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
 
 ### Look and feel
@@ -86,6 +86,11 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - **Where it's enforced:** at member booking, waitlist promotion (someone whose waiver lapsed keeps their place until they sign), staff booking and check-in.
   - **Overrides:** staff can let someone in without a signature by giving a reason, and the reason is recorded (`waiver_overrides`).
   - **Download:** admins can download every signature, the text of each version and the drawn signatures as a ZIP (Admin → Waivers), using `App\Services\WaiverDownload`.
+- **Rooms and apparatus** (`App\Services\Bookings`, optional per studio):
+  - **Rooms** have a capacity limit (`rooms.max_capacity`); a class can't be bigger than its room.
+  - **Apparatus** is rigged in a room: how many, and the most people on each. A class uses some of it (`program_apparatus` is the default for new sessions; `session_apparatus` is what each session uses).
+  - **Booking:** each booking takes a numbered spot on one apparatus ("Silks 3"). It's confirmed only while the class has room and the apparatus has a spot; otherwise it joins the waitlist, which can be capped (`class_sessions.waitlist_capacity`). Waitlist entries wait for the apparatus they asked for.
+  - **Clashes:** classes sharing a room at the same time are flagged to staff (`App\Services\Rooms`), not blocked.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
 - **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
@@ -235,8 +240,9 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 107 tests. They cover:
+There are 118 tests. They cover:
 - the booking rules
+- rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles
@@ -247,6 +253,7 @@ There are 107 tests. They cover:
 - readable studio colors, the logo and the email designs
 - payments recorded in person, and delayed (bank) payments
 - waiver rules: program waivers, versions, enforcement, overrides and the download
+- the demo seeder
 
 They run on SQLite by default. To run them against Postgres:
 

@@ -37,11 +37,12 @@ class SessionGenerator
         }
 
         $created = 0;
+        $allocation = $this->allocation($program);
         foreach ($wanted as $key => $start) {
             if ($existing->has($key) || $start->isPast()) {
                 continue;
             }
-            ClassSession::create([
+            $session = ClassSession::create([
                 'studio_id' => $program->studio_id,
                 'program_id' => $program->id,
                 'season_id' => $program->isEvent() ? null : ($program->season_id ?? $program->studio->currentSeason()?->id),
@@ -51,11 +52,52 @@ class SessionGenerator
                 'status' => 'scheduled',
                 'instructor_id' => $program->instructor_id,
                 'price_cents' => $program->dropin_price_cents,
+                'room_id' => $program->room_id,
+                'waitlist_capacity' => $program->waitlist_capacity,
             ]);
+            if ($allocation) {
+                $session->apparatus()->sync($allocation);
+            }
             $created++;
         }
 
         return ['created' => $created, 'removed' => $removed];
+    }
+
+    /**
+     * Copy the program's capacity, room, waitlist limit and apparatus onto its upcoming sessions,
+     * replacing per-session edits. People already booked keep their spots; anyone a bigger class
+     * now has room for moves in from the waitlist.
+     *
+     * @return int sessions updated
+     */
+    public function applyToUpcoming(Program $program, Bookings $bookings): int
+    {
+        $allocation = $this->allocation($program);
+        $sessions = $program->sessions()->where('status', 'scheduled')->where('starts_at', '>', now())->get();
+        foreach ($sessions as $session) {
+            $session->update([
+                'capacity' => max(1, $program->capacity),
+                'room_id' => $program->room_id,
+                'waitlist_capacity' => $program->waitlist_capacity,
+            ]);
+            $session->apparatus()->sync($allocation);
+            $bookings->promoteWaitlist($session);
+        }
+
+        return $sessions->count();
+    }
+
+    /** @return array<int, array{quantity: int, max_per_item: int}> the program's apparatus, for a session */
+    private function allocation(Program $program): array
+    {
+        if (! $program->room_id) {
+            return [];
+        }
+
+        return $program->apparatus()->where('apparatus.room_id', $program->room_id)->get()
+            ->mapWithKeys(fn ($a) => [$a->id => ['quantity' => (int) $a->pivot->quantity, 'max_per_item' => (int) $a->pivot->max_per_item]])
+            ->all();
     }
 
     /** @return list<Carbon> UTC start times the schedule calls for */

@@ -99,6 +99,9 @@ Route::prefix('{studio}')
                 Route::delete('sessions/{session}', [Admin\SessionController::class, 'destroy'])->name('sessions.destroy');
                 Route::post('sessions/{session}/bookings', [Admin\SessionController::class, 'book'])->name('sessions.book');
                 Route::post('bookings/{booking}/cancel', [Admin\SessionController::class, 'cancelBooking'])->name('bookings.cancel');
+                Route::post('bookings/{booking}/apparatus', [Admin\SessionController::class, 'moveApparatus'])->name('bookings.apparatus');
+
+                Route::resource('rooms', Admin\RoomController::class)->except('show');
 
                 Route::resource('seasons', Admin\SeasonController::class)->except(['show', 'create']);
                 Route::resource('plans', Admin\PlanController::class)->except('show');

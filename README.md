@@ -30,6 +30,6 @@ The [wiki](https://github.com/CyberpunkAidy/loft-studio/wiki) covers:
 ## Status
 
 - **Web app:** live. Stripe Connect is being set up in test mode.
-- **Next on the [roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap):** waiver hardening, then rooms and apparatus capacity.
+- **Built from the [roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap):** waiver hardening, and rooms with apparatus capacity and waitlist limits. **Next:** the event backbone, then automated emails.
 - **Mobile app:** planned, built with React Native (Expo) against a Laravel API.
 - **WordPress plugin:** releases paused until the web app (and possibly the mobile app) is finished.

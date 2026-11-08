@@ -53,42 +53,51 @@ class DatabaseSeeder extends Seeder
             'is_current' => true,
         ]);
 
+        // Rooms, and the apparatus rigged in the main one.
+        $main = $studio->rooms()->create(['name' => 'Main studio', 'max_capacity' => 16]);
+        $flex = $studio->rooms()->create(['name' => 'Flex room', 'max_capacity' => 20]);
+        $silks = $main->apparatus()->create(['studio_id' => $studio->id, 'name' => 'Silks', 'quantity' => 8, 'max_per_item' => 1]);
+        $lyra = $main->apparatus()->create(['studio_id' => $studio->id, 'name' => 'Lyra', 'quantity' => 4, 'max_per_item' => 2]);
+        $use = fn (int $quantity, int $perItem) => ['quantity' => $quantity, 'max_per_item' => $perItem];
+
         $cat = fn (string $type, string $slug) => $studio->categories()->where('type', $type)->where('slug', $slug)->value('id');
-        $program = function (array $attrs, array $categories) use ($studio, $season, $coach, $generator) {
+        $program = function (array $attrs, array $categories, array $apparatus = []) use ($studio, $season, $coach, $generator) {
             $p = $studio->programs()->create($attrs + [
                 'type' => 'class', 'season_id' => $season->id, 'duration_min' => 60, 'capacity' => 10,
                 'instructor_id' => $coach->id, 'is_published' => true,
             ]);
             $p->categories()->sync(array_filter($categories));
+            $p->apparatus()->sync($apparatus);
             $generator->sync($p->fresh());
 
             return $p;
         };
 
         $kids = $program([
-            'title' => 'Kids Aerial Silks', 'weekday' => 2, 'start_time' => '16:30', 'capacity' => 8, 'min_age' => 6, 'max_age' => 11,
+            'title' => 'Kids Aerial Silks', 'weekday' => 2, 'start_time' => '16:30', 'capacity' => 8, 'min_age' => 6, 'max_age' => 11, 'room_id' => $main->id,
             'excerpt' => 'Climbs, wraps and drops for young aerialists.', 'dropin_price_cents' => 2500,
             'description' => "A playful introduction to aerial silks. We build grip strength, body awareness and confidence with climbs, foot locks and our first drops.\n\nWear fitted clothes that cover the backs of the knees.",
-        ], [$cat('age_group', 'kids'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')]);
+        ], [$cat('age_group', 'kids'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')], [$silks->id => $use(8, 1)]);
         $program([
-            'title' => 'Teen Lyra', 'weekday' => 3, 'start_time' => '17:30', 'capacity' => 8, 'min_age' => 12, 'max_age' => 17,
+            'title' => 'Teen Lyra', 'weekday' => 3, 'start_time' => '17:30', 'capacity' => 8, 'min_age' => 12, 'max_age' => 17, 'room_id' => $main->id,
             'excerpt' => 'Spins, poses and sequences on the aerial hoop.', 'dropin_price_cents' => 2500,
-        ], [$cat('age_group', 'teens'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')]);
+        ], [$cat('age_group', 'teens'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')], [$lyra->id => $use(4, 2)]);
         $adultSilks = $program([
             'title' => 'Adult Silks Basics', 'weekday' => 1, 'start_time' => '18:30', 'duration_min' => 75, 'capacity' => 2, 'min_age' => 16,
+            'room_id' => $main->id, 'waitlist_capacity' => 3,
             'excerpt' => 'No experience needed.', 'dropin_price_cents' => 2800,
-        ], [$cat('age_group', 'adults'), $cat('level', 'technique'), $cat('plan_tag', 'recreational')]);
+        ], [$cat('age_group', 'adults'), $cat('level', 'technique'), $cat('plan_tag', 'recreational')], [$silks->id => $use(2, 1)]);
         $program([
-            'title' => 'Competitive Team', 'weekday' => 4, 'start_time' => '16:00', 'duration_min' => 120, 'capacity' => 12, 'members_only' => true,
+            'title' => 'Competitive Team', 'weekday' => 4, 'start_time' => '16:00', 'duration_min' => 120, 'capacity' => 12, 'members_only' => true, 'room_id' => $main->id,
             'excerpt' => 'By invitation. Competition choreography and conditioning.',
         ], [$cat('age_group', 'teens'), $cat('level', 'competitive'), $cat('plan_tag', 'competitive')]);
         $program([
-            'title' => 'Open Practice', 'weekday' => 6, 'start_time' => '10:00', 'duration_min' => 90, 'capacity' => 14, 'min_age' => 16,
+            'title' => 'Open Practice', 'weekday' => 6, 'start_time' => '10:00', 'duration_min' => 90, 'capacity' => 12, 'min_age' => 16, 'room_id' => $main->id,
             'excerpt' => 'Supervised practice time for students with instructor sign-off.', 'dropin_price_cents' => 1500,
-        ], [$cat('age_group', 'adults'), $cat('level', 'open-gym'), $cat('plan_tag', 'recreational')]);
+        ], [$cat('age_group', 'adults'), $cat('level', 'open-gym'), $cat('plan_tag', 'recreational')], [$silks->id => $use(8, 1), $lyra->id => $use(4, 1)]);
         $program([
             'title' => 'Flexibility Intensive Workshop', 'type' => 'event', 'season_id' => null, 'event_date' => now()->addDays(10)->toDateString(),
-            'start_time' => '13:00', 'duration_min' => 180, 'capacity' => 16, 'dropin_price_cents' => 6000,
+            'start_time' => '13:00', 'duration_min' => 180, 'capacity' => 16, 'dropin_price_cents' => 6000, 'room_id' => $flex->id,
             'excerpt' => 'Three hours of active flexibility for splits and backbends.',
         ], [$cat('age_group', 'adults'), $cat('age_group', 'teens'), $cat('plan_tag', 'events')]);
 
@@ -100,7 +109,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Drop-in', 'kind' => 'dropin', 'price_cents' => 2800, 'currency' => 'usd', 'credits' => 1, 'program_scope' => ['recreational', 'events'], 'sort' => 5],
         ]);
 
-        $studio->waivers()->create([
+        $waiver = $studio->waivers()->create([
             'title' => 'Release of Liability and Assumption of Risk',
             'version' => 1,
             'is_active' => true,
@@ -115,7 +124,7 @@ class DatabaseSeeder extends Seeder
         $leo = $studio->attendees()->create(['user_id' => $parent->id, 'first_name' => 'Leo', 'last_name' => 'Shah', 'dob' => now()->subYears(7)->toDateString(), 'emergency_contact' => 'Dev Shah 303-555-0143']);
         $alex = $studio->attendees()->create(['user_id' => $adult->id, 'first_name' => 'Alex', 'last_name' => 'Kim', 'dob' => now()->subYears(29)->toDateString(), 'is_self' => true]);
         foreach ([[$maya, $parent, 'Priya Shah'], [$leo, $parent, 'Priya Shah'], [$alex, $adult, 'Alex Kim']] as [$attendee, $signer, $name]) {
-            $waivers->sign($studio, $attendee, $signer, $name, null, '127.0.0.1', 'seed');
+            $waivers->sign($studio, $attendee, $waiver, $signer, $name, null, '127.0.0.1', 'seed');
         }
 
         $plans = $studio->plans()->get()->keyBy('kind');
@@ -130,6 +139,7 @@ class DatabaseSeeder extends Seeder
         // Fill the small adult class so the next booking waitlists.
         $walkIn = $user('Jordan', 'Lee', 'jordan@example.com', 'member');
         $jordan = $studio->attendees()->create(['user_id' => $walkIn->id, 'first_name' => 'Jordan', 'last_name' => 'Lee', 'is_self' => true]);
+        $waivers->sign($studio, $jordan, $waiver, $walkIn, 'Jordan Lee', null, '127.0.0.1', 'seed');
         $bookings->book($next($adultSilks), $jordan, $walkIn->id, 'admin', null, skipEntitlement: true);
 
         $this->command?->info("Demo studio: /{$studio->slug} — sign in as owner@example.com / password");

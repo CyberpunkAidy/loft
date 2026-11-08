@@ -51,32 +51,42 @@ class BookingController extends Controller
         } catch (BookingException $e) {
             $closed = $e->getMessage();
         }
+        if (! $closed && $session->isFull() && $session->waitlistIsFull()) {
+            $closed = $session->waitlist_capacity === 0 ? 'This class is full.' : 'This class and its waitlist are full.';
+        }
 
-        return view('studio.book', compact('session', 'attendees', 'states', 'closed'));
+        $slots = $session->apparatusSlots();
+        $chosen = $slots->has($request->integer('apparatus')) ? $request->integer('apparatus') : null;
+
+        return view('studio.book', compact('session', 'attendees', 'states', 'closed', 'slots', 'chosen'));
     }
 
     public function store(Request $request, Studio $studio, ClassSession $session, Bookings $bookings): View|RedirectResponse
     {
-        $data = $request->validate(['attendee_id' => ['required', 'integer']]);
+        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'apparatus_id' => ['nullable', 'integer']]);
         $attendee = $studio->attendees()->where('user_id', $request->user()->id)->findOrFail($data['attendee_id']);
+        $apparatusId = ($data['apparatus_id'] ?? null) ? (int) $data['apparatus_id'] : null;
 
         try {
-            $booking = $bookings->book($session, $attendee, $request->user()->id);
+            $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: $apparatusId);
         } catch (BookingException $e) {
             return match ($e->reason) {
                 'waiver' => redirect()->route('studio.waiver', [
                     'attendee' => $attendee,
                     'waiver' => $e->context['waiver']->id,
-                    'return' => route('studio.book', ['session' => $session], false),
+                    'return' => route('studio.book', array_filter(['session' => $session, 'apparatus' => $apparatusId]), false),
                 ])->with('warning', $e->getMessage()),
-                'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans']]),
-                default => back()->with('error', $e->getMessage()),
+                'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans'], 'apparatusId' => $apparatusId]),
+                default => back()->withInput()->with('error', $e->getMessage()),
             };
         }
 
-        $message = $booking->status === 'waitlisted'
-            ? "That class is full, so {$attendee->first_name} is #{$booking->position} on the waitlist. We'll email you if a spot opens."
-            : "{$attendee->first_name} is booked for {$session->program->title}!";
+        $apparatus = $booking->apparatus;
+        $message = match (true) {
+            $booking->status === 'waitlisted' && $apparatus && $apparatusId => "Every {$apparatus->name} spot is taken, so {$attendee->first_name} is #{$booking->position} on the waitlist for one. We'll email you if a spot opens.",
+            $booking->status === 'waitlisted' => "That class is full, so {$attendee->first_name} is #{$booking->position} on the waitlist. We'll email you if a spot opens.",
+            default => "{$attendee->first_name} is booked for {$session->program->title}".($apparatus ? " ({$booking->apparatusLabel()})" : '').'!',
+        };
 
         return redirect()->route('studio.account')->with('success', $message);
     }

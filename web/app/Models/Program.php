@@ -16,6 +16,7 @@ use Illuminate\Support\Collection;
 #[Fillable([
     'studio_id', 'title', 'excerpt', 'description', 'type', 'season_id', 'weekday', 'start_time', 'duration_min',
     'event_date', 'capacity', 'dropin_price_cents', 'instructor_id', 'min_age', 'max_age', 'members_only', 'is_published',
+    'room_id', 'waitlist_capacity',
 ])]
 class Program extends Model
 {
@@ -38,6 +39,7 @@ class Program extends Model
             'min_age' => 'integer',
             'max_age' => 'integer',
             'dropin_price_cents' => 'integer',
+            'waitlist_capacity' => 'integer',
         ];
     }
 
@@ -70,6 +72,17 @@ class Program extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(ClassSession::class);
+    }
+
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
+    }
+
+    /** The apparatus new sessions use by default (pivot: quantity, max_per_item). */
+    public function apparatus(): BelongsToMany
+    {
+        return $this->belongsToMany(Apparatus::class, 'program_apparatus')->withPivot(['quantity', 'max_per_item'])->orderBy('apparatus.name');
     }
 
     public function isEvent(): bool

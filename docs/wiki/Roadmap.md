@@ -1,10 +1,14 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Nothing here is built yet. It's the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 and 2 are built; the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
-- **Booking engine (`Bookings`):** one capacity number per session. Every seat change locks the session row. Ordered waitlists promote automatically after re-checking the plan.
+- **Booking engine (`Bookings`):** every seat change locks the session row. Ordered waitlists promote automatically after re-checking the plan.
+- **Rooms and apparatus (step 2, done):**
+  - Rooms with a capacity limit, and apparatus rigged in them. Classes use some of their room's apparatus, and each booking takes a numbered spot on one.
+  - Waitlists can be capped, and entries wait for the apparatus they asked for.
+  - Staff see room clashes as warnings.
 - **Waivers (step 1, done):**
   - Several in force at once, for every class or for chosen programs, each with its own validity.
   - Every version's text is kept, and signatures are hashed.
@@ -32,7 +36,9 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
 
 ## Features
 
-### Rooms, apparatus capacity and waitlists
+### Rooms, apparatus capacity and waitlists (built)
+
+Built as sketched below, and the overlap check is in, as a warning on the session page and after saving a program. Choices made while building it are [decision 21](Decisions). See [Features](Features#booking-rules-studio-settings) for how it works.
 
 - **Rooms:** a studio has rooms, each with a fire-code `max_capacity`. Programs and sessions belong to a room, and a session's `capacity` can't exceed its room's limit (checked when saving).
 - **Apparatus:** what's rigged in a room, for example "Silks: 5, up to 2 people each".
@@ -142,7 +148,7 @@ POST /api/v1/devices/check-ins           Authorization: Bearer <device token>   
 
 ## Schema sketches
 
-These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns.
+These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns. The rooms and waiver sketches are built; their migrations are the source of truth, and the sketches stay for reference.
 
 **Rooms and apparatus:**
 ```php
@@ -280,8 +286,8 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 
 ## Order
 
-1. [x] **Waiver hardening** (built 2026-11-09): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
-2. [ ] **Rooms, apparatus capacity and waitlist limits:** settle the booking model before anything depends on it.
+1. [x] **Waiver hardening** (built 2026-11-08, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15)): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
+2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08): settles the booking model before anything depends on it.
 3. [ ] **Event backbone:** outbox, `booking.attended`, `message_deliveries`, consent. Start the nightly snapshots here too.
 4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
 5. [ ] **Orders ledger:** route plan checkouts and recorded payments through `orders`.
@@ -291,7 +297,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 9. [ ] **Churn scoring v1:** rules over the snapshots, feeding automations. A trained model after about six months of labelled history.
 10. [ ] **On-demand video and live virtual classes.**
 
-Steps 1 and 2 change rules members feel directly, so test them on one studio behind a flag first.
+Steps 1 and 2 change rules members feel directly. Rooms are opt-in: a studio without rooms books exactly as before.
 
 ## Known gaps (smaller)
 

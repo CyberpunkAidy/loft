@@ -21,7 +21,7 @@ class StripeClientTest extends TestCase
         $user = $this->userIn($studio);
         $plan = $this->plan($studio, ['kind' => 'pack', 'price_cents' => 10000, 'stripe_price_id' => 'price_1']);
 
-        $cs = app(StripeClient::class)->createCheckout($studio, $user, $plan, 'https://x.test/done?session_id={CHECKOUT_SESSION_ID}', 'https://x.test/back', ['session_id' => 7, 'attendee_id' => 9]);
+        $cs = app(StripeClient::class)->createCheckout($studio, $user, $plan, 'https://x.test/done?session_id={CHECKOUT_SESSION_ID}', 'https://x.test/back', ['session_id' => 7, 'attendee_id' => 9, 'apparatus_id' => 3]);
 
         $this->assertSame('cs_1', $cs['id']);
         $this->assertSame('cus_new', $user->fresh()->membershipIn($studio)->stripe_customer_id);
@@ -31,7 +31,7 @@ class StripeClientTest extends TestCase
             && $r['mode'] === 'payment'
             && $r['customer'] === 'cus_new'
             && $r['success_url'] === 'https://x.test/done?session_id={CHECKOUT_SESSION_ID}'
-            && $r['metadata']['session_id'] == 7 && $r['metadata']['attendee_id'] == 9 && $r['metadata']['loft_user_id'] == $user->id
+            && $r['metadata']['session_id'] == 7 && $r['metadata']['attendee_id'] == 9 && $r['metadata']['apparatus_id'] == 3 && $r['metadata']['loft_user_id'] == $user->id
             && $r['payment_intent_data']['application_fee_amount'] == 250
             && $r['allow_promotion_codes'] === 'true');
     }

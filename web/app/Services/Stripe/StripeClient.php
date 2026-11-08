@@ -236,7 +236,7 @@ class StripeClient
     /**
      * Start a hosted Checkout for a plan. $successUrl may contain {CHECKOUT_SESSION_ID}.
      *
-     * @param  array{session_id?: int, attendee_id?: int}  $context  a booking to complete after payment
+     * @param  array{session_id?: int, attendee_id?: int, apparatus_id?: int}  $context  a booking to complete after payment
      */
     public function createCheckout(Studio $studio, User $user, Plan $plan, string $successUrl, string $cancelUrl, array $context = []): array
     {
@@ -250,6 +250,9 @@ class StripeClient
             'session_id' => (int) ($context['session_id'] ?? 0),
             'attendee_id' => (int) ($context['attendee_id'] ?? 0),
         ];
+        if (! empty($context['apparatus_id'])) {
+            $metadata['apparatus_id'] = (int) $context['apparatus_id'];
+        }
         $params = [
             'customer' => $this->ensureCustomer($studio, $user),
             'mode' => $plan->isRecurring() ? 'subscription' : 'payment',

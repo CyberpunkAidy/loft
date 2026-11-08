@@ -25,7 +25,7 @@
             <div class="card item">
                 <div>
                     <strong>{{ $b->classSession->program->title }}</strong>
-                    <div class="muted small">{{ $start->format('D, M j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }} · {{ $b->attendee->name }}</div>
+                    <div class="muted small">{{ $start->format('D, M j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }} · {{ $b->attendee->name }}@if ($b->apparatusLabel()) · {{ $b->status === 'waitlisted' ? 'waiting for '.$b->apparatusLabel() : $b->apparatusLabel() }}@endif @if ($b->classSession->room) · {{ $b->classSession->room->name }}@endif</div>
                     @if ($b->classSession->isCancelled())<div class="error-text small">The studio cancelled this class.</div>@endif
                 </div>
                 <div class="item-actions">

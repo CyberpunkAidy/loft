@@ -315,7 +315,10 @@ class StripeWebhooks
             return [$existing, null];
         }
         try {
-            return [$this->bookings->book($session, $attendee, $user->id, 'web', $entitlement), null];
+            $apparatusId = (int) ($meta['apparatus_id'] ?? 0);
+            $apparatusId = $session->apparatusSlots()->has($apparatusId) ? $apparatusId : null; // else any
+
+            return [$this->bookings->book($session, $attendee, $user->id, 'web', $entitlement, apparatusId: $apparatusId), null];
         } catch (BookingException $e) {
             Log::info('Booking after checkout failed', ['session' => $session->id, 'attendee' => $attendee->id, 'reason' => $e->reason]);
 

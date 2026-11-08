@@ -36,6 +36,7 @@
                         <div>
                             <strong>{{ $b->attendee->name }}</strong>
                             @if ($b->attendee->age() !== null)<span class="muted"> · {{ $b->attendee->age() }}</span>@endif
+                            @if ($b->apparatusLabel())<span class="badge badge-info">{{ $b->apparatusLabel() }}</span>@endif
                             @unless ($waiverOk[$b->id])<span class="badge badge-full">No waiver</span>@endunless
                             @if (isset($overrides[$b->id]))<span class="badge badge-warn" title="Let in without a signed waiver">Waiver override</span>@endif
                             <div class="muted small">{{ collect([$b->user->name, $b->user->phone])->filter()->join(' · ') }}</div>

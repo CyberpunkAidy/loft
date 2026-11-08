@@ -12,6 +12,7 @@ use App\Models\ClassSession;
 use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Models\User;
+use App\Support\ApparatusSlot;
 use App\Support\BookingException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -36,6 +37,8 @@ class Bookings
      * $skipEntitlement books without using a membership or credit (staff comp).
      * $waiverOverride (staff only: ['staff' => User, 'reason' => string]) books someone who hasn't
      * signed every waiver the class needs, and records who decided that and why.
+     * $apparatusId picks the apparatus when the class uses some; null takes whichever has the most
+     * spots free. A waitlist entry remembers it, and is promoted only when that apparatus has a spot.
      *
      * @param  array{staff: User, reason: string}|null  $waiverOverride
      *
@@ -49,6 +52,7 @@ class Bookings
         ?Entitlement $preferred = null,
         bool $skipEntitlement = false,
         ?array $waiverOverride = null,
+        ?int $apparatusId = null,
     ): Booking {
         $studio = $session->studio;
 
@@ -64,6 +68,9 @@ class Bookings
             throw new BookingException('waiver', "{$attendee->first_name} needs to sign “{$unsigned->title}” before booking.", ['attendee' => $attendee, 'waiver' => $unsigned]);
         }
         $this->assertAge($session, $attendee);
+        if ($apparatusId !== null && ! $session->apparatusSlots()->has($apparatusId)) {
+            throw new BookingException('apparatus', 'Choose apparatus this class uses.');
+        }
 
         $entitlement = null;
         if (! $skipEntitlement) {
@@ -73,13 +80,20 @@ class Bookings
             }
         }
 
-        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride) {
+        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride, $apparatusId) {
             $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($this->existing($locked, $attendee)) {
                 throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
             }
 
-            $full = $this->seatsTaken($locked) >= $locked->capacity;
+            $slots = $locked->apparatusSlots(refresh: true);
+            $slot = $this->pickSlot($slots, $apparatusId);
+            $full = $this->seatsTaken($locked) >= $locked->capacity || ($slots->isNotEmpty() && (! $slot || $slot->isFull()));
+            if ($full && $locked->waitlist_capacity !== null && $this->waitlistTaken($locked) >= $locked->waitlist_capacity) {
+                throw new BookingException('waitlist_full', $locked->waitlist_capacity === 0
+                    ? 'This class is full.'
+                    : 'This class and its waitlist are full.');
+            }
             $creditConsumed = false;
             if (! $full && $entitlement?->isCredits() && ! ($creditConsumed = $this->entitlements->consumeCredit($entitlement))) {
                 // The last credit went to another booking a moment ago; look again.
@@ -99,6 +113,9 @@ class Bookings
                 'credit_consumed' => $creditConsumed,
                 'source' => $source,
                 'booked_at' => now(),
+                // Booked: the spot taken. Waitlisted: the apparatus asked for (null = any).
+                'apparatus_id' => $full ? ($apparatusId ?? ($slots->count() === 1 ? $slot->apparatus->id : null)) : $slot?->apparatus->id,
+                'apparatus_item' => $slot && ! $full ? $this->nextFreeItem($locked, $slot) : null,
             ]);
             if ($unsigned && $waiverOverride) {
                 $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
@@ -161,6 +178,8 @@ class Bookings
     /**
      * Fill open seats from the waitlist, in order. Each promoted booking is re-checked: if its
      * membership lapsed or its credits ran out, another usable entitlement is tried, else it's dropped.
+     * When the class uses apparatus, an entry moves up only when its apparatus has a spot (entries
+     * without one take whichever has the most free); the rest keep their place.
      *
      * @return Collection<int, Booking> the promoted bookings
      */
@@ -180,6 +199,14 @@ class Bookings
             foreach ($waiting as $next) {
                 if ($this->seatsTaken($locked) >= $locked->capacity) {
                     break;
+                }
+                $slots = $locked->apparatusSlots(refresh: true);
+                if ($slots->isNotEmpty() && $slots->every(fn (ApparatusSlot $s) => $s->isFull())) {
+                    break;
+                }
+                $slot = $this->pickSlot($slots, $next->apparatus_id);
+                if ($slots->isNotEmpty() && $slot->isFull()) {
+                    continue; // waits for a spot on the apparatus they chose
                 }
                 if (! $this->waivers->clears($next)) {
                     continue; // keeps their place until the waiver is signed
@@ -207,6 +234,8 @@ class Bookings
                     'source' => 'waitlist_promote',
                     'entitlement_id' => $entitlement?->id,
                     'credit_consumed' => $creditConsumed,
+                    'apparatus_id' => $slot?->apparatus->id,
+                    'apparatus_item' => $slot ? $this->nextFreeItem($locked, $slot) : null,
                 ]);
                 $promoted->push($next);
             }
@@ -217,6 +246,46 @@ class Bookings
         $promoted->each(fn (Booking $b) => WaitlistPromoted::dispatch($b));
 
         return $promoted;
+    }
+
+    /**
+     * Staff move a booking to another apparatus (or a waitlist entry to wait for another one).
+     * A booked spot needs room on the new apparatus; the spot it leaves goes to the waitlist.
+     *
+     * @throws BookingException when the apparatus isn't used in the class or has no spot free
+     */
+    public function moveApparatus(Booking $booking, int $apparatusId): void
+    {
+        $session = $booking->classSession;
+        if (! in_array($booking->status, [...Booking::SEAT_STATUSES, 'waitlisted'], true)) {
+            throw new BookingException('invalid', 'This booking is no longer in the class.');
+        }
+        if ((int) $booking->apparatus_id === $apparatusId) {
+            return;
+        }
+
+        $freed = DB::transaction(function () use ($booking, $session, $apparatusId) {
+            $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
+            $slot = $locked->apparatusSlots(refresh: true)->get($apparatusId);
+            if (! $slot) {
+                throw new BookingException('apparatus', 'That apparatus isn’t used in this class.');
+            }
+            if ($booking->status === 'waitlisted') {
+                $booking->update(['apparatus_id' => $apparatusId, 'apparatus_item' => null]);
+
+                return false;
+            }
+            if ($slot->isFull()) {
+                throw new BookingException('apparatus_full', "Every spot on {$slot->apparatus->name} is taken.");
+            }
+            $booking->update(['apparatus_id' => $apparatusId, 'apparatus_item' => $this->nextFreeItem($locked, $slot)]);
+
+            return true;
+        });
+
+        if ($freed) {
+            $this->promoteWaitlist($session);
+        }
     }
 
     /** After a waiver is signed: try to move the attendee off waitlists where a seat is free. */
@@ -370,6 +439,41 @@ class Bookings
     private function seatsTaken(ClassSession $session): int
     {
         return $session->bookings()->whereIn('status', Booking::SEAT_STATUSES)->count();
+    }
+
+    private function waitlistTaken(ClassSession $session): int
+    {
+        return $session->bookings()->where('status', 'waitlisted')->count();
+    }
+
+    /**
+     * The apparatus a booking goes on: the one asked for, or (null, or no longer used in the class)
+     * the one with the most spots free. Null when the class uses no apparatus.
+     *
+     * @param  Collection<int, ApparatusSlot>  $slots
+     */
+    private function pickSlot(Collection $slots, ?int $apparatusId): ?ApparatusSlot
+    {
+        if ($apparatusId !== null && $slots->has($apparatusId)) {
+            return $slots->get($apparatusId);
+        }
+
+        return $slots->sortByDesc(fn (ApparatusSlot $s) => $s->left())->first();
+    }
+
+    /** The lowest-numbered item ("Silks 3") with room for one more, or null if none is clear. */
+    private function nextFreeItem(ClassSession $session, ApparatusSlot $slot): ?int
+    {
+        $used = $session->bookings()->whereIn('status', Booking::SEAT_STATUSES)
+            ->where('apparatus_id', $slot->apparatus->id)->whereNotNull('apparatus_item')
+            ->selectRaw('apparatus_item, count(*) as n')->groupBy('apparatus_item')->pluck('n', 'apparatus_item');
+        for ($item = 1; $item <= $slot->quantity; $item++) {
+            if ((int) ($used[$item] ?? 0) < $slot->perItem) {
+                return $item;
+            }
+        }
+
+        return null;
     }
 
     private function nextWaitlistPosition(ClassSession $session): int
