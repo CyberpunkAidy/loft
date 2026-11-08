@@ -9,7 +9,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * A user's role in one studio, plus their Stripe customer on that studio's connected account.
  */
-#[Fillable(['studio_id', 'user_id', 'role', 'stripe_customer_id'])]
+#[Fillable([
+    'studio_id', 'user_id', 'role', 'stripe_customer_id',
+    'email_marketing_consent_at', 'email_marketing_consent_source', 'email_unsubscribed_at',
+])]
 class StudioUser extends Model
 {
     /** Column defaults, so new instances match what the database would store. */
@@ -24,6 +27,20 @@ class StudioUser extends Model
     ];
 
     public const STAFF_ROLES = ['instructor', 'admin', 'owner'];
+
+    protected function casts(): array
+    {
+        return [
+            'email_marketing_consent_at' => 'datetime',
+            'email_unsubscribed_at' => 'datetime',
+        ];
+    }
+
+    /** Opted in to this studio's marketing emails, and hasn't unsubscribed since. */
+    public function allowsMarketingEmail(): bool
+    {
+        return $this->email_marketing_consent_at !== null && $this->email_unsubscribed_at === null;
+    }
 
     public function studio(): BelongsTo
     {

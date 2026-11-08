@@ -7,8 +7,9 @@
     @auth
         <h1>Join {{ $studio->name }}</h1>
         <p>You’re signed in as <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->email }}). Join to book classes, add your family and buy plans.</p>
-        <form method="post" action="{{ route('studio.join') }}">
+        <form method="post" action="{{ route('studio.join') }}" class="form">
             @csrf
+            <x-checkbox name="marketing_email" :label="'Email me news and offers from '.$studio->name" hint="Optional. Emails about your bookings and payments come either way." />
             <button class="btn btn-block">Join {{ $studio->name }}</button>
         </form>
     @else
@@ -24,6 +25,7 @@
             <x-field name="phone" label="Mobile phone" type="tel" autocomplete="tel" />
             <x-field name="password" label="Password" type="password" autocomplete="new-password" minlength="8" required hint="At least 8 characters." />
             <x-checkbox name="is_student" label="I’ll be taking classes myself" hint="Leave unticked if you’re only booking for children." />
+            <x-checkbox name="marketing_email" :label="'Email me news and offers from '.$studio->name" hint="Optional. Emails about your bookings and payments come either way." />
             <div class="hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
             <button class="btn btn-block">Create account</button>
         </form>

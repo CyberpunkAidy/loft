@@ -27,6 +27,7 @@ class Bookings
     public function __construct(
         private readonly Entitlements $entitlements,
         private readonly Waivers $waivers,
+        private readonly DomainEvents $events,
     ) {}
 
     /**
@@ -120,6 +121,15 @@ class Bookings
             if ($unsigned && $waiverOverride) {
                 $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
             }
+            $booking->setRelation('classSession', $locked->setRelation('program', $session->program));
+            $this->events->forBooking($full ? 'booking.waitlisted' : 'booking.booked', $booking, array_filter([
+                'source' => $source,
+                'position' => $booking->position,
+                'entitlement_id' => $booking->entitlement_id,
+                'credit_consumed' => $creditConsumed,
+                'apparatus_id' => $booking->apparatus_id,
+                'waiver_override' => $unsigned && $waiverOverride ? true : null,
+            ], fn ($v) => $v !== null));
 
             return [$booking, $full];
         }, 3);
@@ -154,7 +164,7 @@ class Bookings
         $studioKeepsCredit = $late && ! $session->studio->setting('late_cancel_keeps_credit');
         $refund = $booking->credit_consumed && $booking->entitlement_id && ! $studioKeepsCredit;
 
-        DB::transaction(function () use ($booking, $late, $refund) {
+        DB::transaction(function () use ($booking, $late, $refund, $byAdmin, $wasBooked) {
             $booking->update([
                 'status' => $late ? 'late_cancelled' : 'cancelled',
                 'cancelled_at' => now(),
@@ -164,6 +174,12 @@ class Bookings
             if ($refund && $booking->entitlement) {
                 $this->entitlements->refundCredit($booking->entitlement);
             }
+            $this->events->forBooking('booking.cancelled', $booking, [
+                'by' => $byAdmin ? 'staff' : 'member',
+                'late' => $late,
+                'from' => $wasBooked ? 'booked' : 'waitlisted',
+                'credit_refunded' => (bool) $refund,
+            ]);
         });
 
         BookingCancelled::dispatch($booking, $late);
@@ -223,6 +239,7 @@ class Bookings
                     }
                     if (! $entitlement) {
                         $next->update(['status' => 'cancelled', 'cancelled_at' => now(), 'position' => null]);
+                        $this->events->forBooking('booking.cancelled', $next, ['by' => 'waitlist', 'late' => false, 'from' => 'waitlisted', 'credit_refunded' => false]);
 
                         continue;
                     }
@@ -237,6 +254,11 @@ class Bookings
                     'apparatus_id' => $slot?->apparatus->id,
                     'apparatus_item' => $slot ? $this->nextFreeItem($locked, $slot) : null,
                 ]);
+                $this->events->forBooking('booking.promoted', $next, array_filter([
+                    'entitlement_id' => $next->entitlement_id,
+                    'credit_consumed' => $creditConsumed,
+                    'apparatus_id' => $next->apparatus_id,
+                ], fn ($v) => $v !== null));
                 $promoted->push($next);
             }
 
@@ -315,25 +337,43 @@ class Bookings
         if (! in_array($status, ['attended', 'no_show', 'booked'], true) || ! in_array($booking->status, Booking::SEAT_STATUSES, true)) {
             return false;
         }
-        if ($status === 'attended' && ! $this->waivers->clears($booking)) {
-            if ($waiverOverride === null) {
-                $name = $booking->attendee->first_name;
-                throw new BookingException('waiver', "{$name} hasn’t signed the waiver this class needs. Have them sign it, or check them in with a reason.", ['attendee' => $booking->attendee]);
-            }
-            $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
+        if ($status === $booking->status) {
+            return true;
         }
-        $update = ['status' => $status, 'attended_at' => $status === 'attended' ? now() : null];
+        $needsOverride = $status === 'attended' && ! $this->waivers->clears($booking);
+        if ($needsOverride && $waiverOverride === null) {
+            $name = $booking->attendee->first_name;
+            throw new BookingException('waiver', "{$name} hasn’t signed the waiver this class needs. Have them sign it, or check them in with a reason.", ['attendee' => $booking->attendee]);
+        }
 
-        $entitlement = $booking->entitlement;
-        if (! $booking->studio->setting('no_show_consumes_credit') && $entitlement?->isCredits()) {
-            if ($status === 'no_show' && $booking->credit_consumed) {
-                $this->entitlements->refundCredit($entitlement);
-                $update['credit_consumed'] = false;
-            } elseif ($status !== 'no_show' && $booking->status === 'no_show' && ! $booking->credit_consumed) {
-                $update['credit_consumed'] = $this->entitlements->consumeCredit($entitlement);
+        DB::transaction(function () use ($booking, $status, $needsOverride, $waiverOverride) {
+            if ($needsOverride) {
+                $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
             }
-        }
-        $booking->update($update);
+            $update = ['status' => $status, 'attended_at' => $status === 'attended' ? now() : null];
+
+            $entitlement = $booking->entitlement;
+            if (! $booking->studio->setting('no_show_consumes_credit') && $entitlement?->isCredits()) {
+                if ($status === 'no_show' && $booking->credit_consumed) {
+                    $this->entitlements->refundCredit($entitlement);
+                    $update['credit_consumed'] = false;
+                } elseif ($status !== 'no_show' && $booking->status === 'no_show' && ! $booking->credit_consumed) {
+                    $update['credit_consumed'] = $this->entitlements->consumeCredit($entitlement);
+                }
+            }
+            $booking->update($update);
+
+            match ($status) {
+                // first_visit: this attendee's first class at the studio (the "first class" milestone).
+                'attended' => $this->events->forBooking('booking.attended', $booking, [
+                    'first_visit' => ! Booking::where('studio_id', $booking->studio_id)->where('attendee_id', $booking->attendee_id)
+                        ->where('status', 'attended')->whereKeyNot($booking->id)->exists(),
+                    'waiver_override' => $needsOverride,
+                ]),
+                'no_show' => $this->events->forBooking('booking.no_show', $booking),
+                default => $this->events->forBooking('booking.check_in_undone', $booking),
+            };
+        });
 
         return true;
     }
@@ -345,11 +385,22 @@ class Bookings
             $session->update(['status' => 'cancelled']);
             $bookings = $session->bookings()->whereIn('status', Booking::ACTIVE_STATUSES)->get();
             foreach ($bookings as $booking) {
-                if ($booking->credit_consumed && $booking->entitlement) {
+                $refund = $booking->credit_consumed && $booking->entitlement;
+                if ($refund) {
                     $this->entitlements->refundCredit($booking->entitlement);
                 }
+                $from = $booking->status;
                 $booking->update(['status' => 'cancelled', 'cancelled_at' => now(), 'position' => null, 'credit_consumed' => false]);
+                $booking->setRelation('classSession', $session);
+                $this->events->forBooking('booking.cancelled', $booking, ['by' => 'studio', 'late' => false, 'from' => $from, 'credit_refunded' => (bool) $refund]);
             }
+            $this->events->record('session.cancelled', $session->studio_id, [
+                'session_id' => $session->id,
+                'program_id' => $session->program_id,
+                'program_title' => $session->program?->title,
+                'starts_at' => $session->starts_at->toIso8601String(),
+                'bookings' => $bookings->count(),
+            ]);
 
             return $bookings;
         });

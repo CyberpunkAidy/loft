@@ -8,7 +8,7 @@ Loft runs on [Render](https://render.com), defined by the Blueprint in `render.y
 |---|---|---|
 | `loft-web` | Web service (Docker) | The site, behind Apache. Health check `/up`. Runs database migrations before each deploy goes live (`start migrate`). Custom domain `loftstudio.app`. |
 | `loft-worker` | Background worker (Docker) | `queue:work` (3 tries, 30-second backoff, restarts hourly). Sends the queued emails. |
-| `loft-housekeeping` | Cron job (Docker), `0 * * * *` | `loft:housekeeping`: reminders, credit-expiry warnings, expiring plans |
+| `loft-housekeeping` | Cron job (Docker), `0 * * * *` | `loft:housekeeping`: reminders, credit-expiry warnings, expiring plans, nightly member snapshots (after 2 AM studio time), relaying domain events |
 | `loft-db` | PostgreSQL 16 | The database. Only Render services can connect (`ipAllowList: []`). |
 
 - **Shared image and settings:** all three app services build the same image from `web/Dockerfile` (`rootDir: web`) and share the `loft-shared` environment group.

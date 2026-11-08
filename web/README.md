@@ -27,7 +27,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity. Next: events and marketing, point of sale, mobile API, check-in kiosks, churn |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone. Next: automations, point of sale, mobile API, check-in kiosks, churn |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -91,6 +91,11 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - **Apparatus** is rigged in a room: how many, and the most people on each. A class uses some of it (`program_apparatus` is the default for new sessions; `session_apparatus` is what each session uses).
   - **Booking:** each booking takes a numbered spot on one apparatus ("Silks 3"). It's confirmed only while the class has room and the apparatus has a spot; otherwise it joins the waitlist, which can be capped (`class_sessions.waitlist_capacity`). Waitlist entries wait for the apparatus they asked for.
   - **Clashes:** classes sharing a room at the same time are flagged to staff (`App\Services\Rooms`), not blocked.
+- **Events and email** (`App\Services\DomainEvents`, `App\Services\Messages`):
+  - **Outbox:** every change worth remembering records a row in `domain_events` in the same transaction (bookings, check-ins with a first-visit flag, plans, payment failures, waivers, consent). The `RelayDomainEvents` job hands them to the handlers in `config('loft.event_handlers')`. It's also the member history shown to staff.
+  - **Email log:** every studio email is logged in `message_deliveries` under a dedupe key, so it sends once; it's marked sent or failed.
+  - **Consent:** marketing email needs opt-in per studio (join form or profile), with a signed one-click unsubscribe link.
+  - **Snapshots:** housekeeping saves each member's activity nightly (`member_snapshots`), for churn scoring later.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
 - **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
@@ -240,9 +245,10 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 118 tests. They cover:
+There are 125 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
+- the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles

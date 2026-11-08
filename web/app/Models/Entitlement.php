@@ -85,6 +85,12 @@ class Entitlement extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    /** Cancelled or expired: it no longer covers classes and won't again. */
+    public function hasEnded(): bool
+    {
+        return in_array($this->status, ['cancelled', 'expired'], true);
+    }
+
     public function statusLabel(): string
     {
         return self::STATUS_LABELS[$this->status] ?? $this->status;

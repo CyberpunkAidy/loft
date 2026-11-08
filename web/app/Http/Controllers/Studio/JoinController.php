@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Studio;
 use App\Events\MemberJoined;
 use App\Http\Controllers\Controller;
 use App\Models\Studio;
+use App\Models\StudioUser;
 use App\Models\User;
+use App\Services\Consent;
+use App\Services\DomainEvents;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,11 +28,11 @@ class JoinController extends Controller
         return view('studio.join');
     }
 
-    public function store(Request $request, Studio $studio): RedirectResponse
+    public function store(Request $request, Studio $studio, DomainEvents $events, Consent $consent): RedirectResponse
     {
         if ($user = $request->user()) {
             if (! $user->hasRoleIn($studio)) {
-                $studio->studioUsers()->firstOrCreate(['user_id' => $user->id], ['role' => 'member']);
+                DB::transaction(fn () => $this->join($studio, $user, $request->boolean('marketing_email'), $events, $consent));
                 $user->forgetMemberships();
                 MemberJoined::dispatch($studio, $user);
             }
@@ -49,7 +52,7 @@ class JoinController extends Controller
             'is_student' => ['nullable', 'boolean'],
         ], ['email.unique' => 'An account with that email already exists. Sign in to join.']);
 
-        $user = DB::transaction(function () use ($studio, $data) {
+        $user = DB::transaction(function () use ($studio, $data, $request, $events, $consent) {
             $user = User::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -57,7 +60,7 @@ class JoinController extends Controller
                 'phone' => $data['phone'] ?? null,
                 'password' => $data['password'],
             ]);
-            $studio->studioUsers()->create(['user_id' => $user->id, 'role' => 'member']);
+            $this->join($studio, $user, $request->boolean('marketing_email'), $events, $consent);
             if (! empty($data['is_student'])) {
                 $studio->attendees()->create([
                     'user_id' => $user->id,
@@ -75,5 +78,17 @@ class JoinController extends Controller
         MemberJoined::dispatch($studio, $user);
 
         return redirect()->intended(route('studio.account.family'))->with('success', 'Your account is ready. Add everyone who’ll be taking classes.');
+    }
+
+    /** The membership row, its "joined" event, and marketing consent if they ticked the box. */
+    private function join(Studio $studio, User $user, bool $marketing, DomainEvents $events, Consent $consent): StudioUser
+    {
+        $membership = $studio->studioUsers()->firstOrCreate(['user_id' => $user->id], ['role' => 'member']);
+        $events->record('member.joined', $studio, [], $user->id);
+        if ($marketing) {
+            $consent->setMarketingEmail($membership, true, 'join');
+        }
+
+        return $membership;
     }
 }

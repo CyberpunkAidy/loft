@@ -15,6 +15,10 @@
     <x-field name="email" label="Email" type="email" :value="$user->email" required />
     <x-field name="phone" label="Mobile phone" type="tel" :value="$user->phone" />
     <fieldset class="fieldset form">
+        <legend>Emails from {{ $studio->name }}</legend>
+        <x-checkbox name="marketing_email" :label="'News and offers from '.$studio->name" :checked="$marketingEmail" hint="Emails about your bookings and payments come either way." />
+    </fieldset>
+    <fieldset class="fieldset form">
         <legend>Change password</legend>
         <x-field name="current_password" label="Current password" type="password" autocomplete="current-password" />
         <div class="grid-2">

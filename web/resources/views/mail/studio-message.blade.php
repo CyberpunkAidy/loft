@@ -47,6 +47,9 @@
 @section('footer')
     <p style="margin:0 0 6px;">Manage your classes and billing in <a href="{{ route('studio.account', $studio) }}" style="color:{{ $link }};">your account</a>.@if ($studio->contact_email) Questions? Just reply to this email.@endif</p>
     <p style="margin:0 0 14px;">{{ $studio->name }}@if ($studio->contact_email) · <a href="mailto:{{ $studio->contact_email }}" style="color:#6c6776;">{{ $studio->contact_email }}</a>@endif</p>
+    @if ($unsubscribeUrl)
+        <p style="margin:0 0 14px;">You’re getting this because you asked for news from {{ $studio->name }}. <a href="{{ $unsubscribeUrl }}" style="color:{{ $link }};">Unsubscribe</a></p>
+    @endif
     <a href="{{ route('home') }}" style="display:inline-block;color:#9c97a5;text-decoration:none;font-size:12px;">
         <span style="vertical-align:middle;">Powered by</span>
         <img src="{{ asset('images/loft-logo-email.png') }}" width="44" height="18" alt="{{ config('app.name') }}" style="vertical-align:middle;border:0;margin-left:3px;">

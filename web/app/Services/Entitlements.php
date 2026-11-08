@@ -10,12 +10,15 @@ use App\Models\Program;
 use App\Models\Studio;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * What an account may book with. Port of the plugin's Repos\Entitlements + Repos\Plans scope rules.
  */
 class Entitlements
 {
+    public function __construct(private readonly DomainEvents $events) {}
+
     /**
      * The best entitlement for booking this session, or null.
      * Preference: an active membership in scope (under its weekly limit), then credits in scope
@@ -98,7 +101,11 @@ class Entitlements
      *
      * @param  array{customer_id?: ?string, subscription_id?: ?string, checkout_session_id?: ?string, current_period_end?: ?Carbon}  $stripe
      */
-    public function grantFromPlan(Plan $plan, int $userId, array $stripe = []): Entitlement
+    /**
+     * @param  array{source?: string, amount_cents?: int}  $event  for the entitlement.granted event:
+     *                                                             how it was paid (stripe, cash, comp…)
+     */
+    public function grantFromPlan(Plan $plan, int $userId, array $stripe = [], array $event = []): Entitlement
     {
         $studio = $plan->studio;
         $data = [
@@ -127,7 +134,16 @@ class Entitlements
             $data['expires_at'] = $validity > 0 ? now()->addDays($validity) : null;
         }
 
-        return Entitlement::create($data);
+        return DB::transaction(function () use ($data, $plan, $stripe, $event) {
+            $entitlement = Entitlement::create($data);
+            $entitlement->setRelation('plan', $plan);
+            $this->events->forEntitlement('entitlement.granted', $entitlement, [
+                'source' => $event['source'] ?? ($stripe ? 'stripe' : 'staff'),
+                'amount_cents' => $event['amount_cents'] ?? null,
+            ]);
+
+            return $entitlement;
+        });
     }
 
     /** End of the season's last day in studio time, as UTC. */

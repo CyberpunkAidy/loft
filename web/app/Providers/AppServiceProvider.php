@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Listeners\StudioEmails;
 use App\Models\Studio;
+use App\Services\Messages;
 use App\Services\Stripe\StripeClient;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::subscribe(StudioEmails::class);
+        Event::listen(MessageSent::class, fn (MessageSent $event) => app(Messages::class)->markSent($event));
 
         // Explicit binding runs before implicit ones, so {program}, {booking}, … under {studio}
         // always resolve through the studio's relationships (scoped bindings), whatever the controller signature.

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  */
 class OfflinePayments
 {
-    public function __construct(private readonly Entitlements $entitlements) {}
+    public function __construct(private readonly Entitlements $entitlements, private readonly DomainEvents $events) {}
 
     /**
      * Grant $plan to $member and record how it was paid. paid_on and ends_on are studio-local dates
@@ -30,7 +30,10 @@ class OfflinePayments
         $comp = $data['method'] === 'comp';
 
         $payment = DB::transaction(function () use ($plan, $member, $staff, $data, $studio, $comp) {
-            $entitlement = $this->entitlements->grantFromPlan($plan, $member->id);
+            $entitlement = $this->entitlements->grantFromPlan($plan, $member->id, [], [
+                'source' => $data['method'],
+                'amount_cents' => $comp ? 0 : ($data['amount_cents'] ?? $plan->price_cents),
+            ]);
             $endsOn = $data['ends_on'] ?? null;
             if ($endsOn) {
                 $entitlement->update(['expires_at' => $studio->parseLocal("{$endsOn} 23:59:59")]);
@@ -68,6 +71,7 @@ class OfflinePayments
             $entitlement = $payment->entitlement;
             if ($entitlement instanceof Entitlement && in_array($entitlement->status, ['active', 'past_due'], true)) {
                 $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
+                $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'voided']);
             }
         });
     }

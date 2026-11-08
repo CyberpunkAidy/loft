@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\DomainEvent;
+use App\Models\MessageDelivery;
 use App\Models\Payment;
 use App\Models\Studio;
+use App\Models\StudioUser;
 use App\Models\User;
 use App\Services\OfflinePayments;
 use App\Services\Waivers;
@@ -56,6 +59,10 @@ class MemberController extends Controller
                 ->whereHas('classSession', fn ($q) => $q->where('starts_at', '<=', now()))
                 ->latest('booked_at')->limit(20)->get(),
             'plans' => $studio->plans()->orderBy('sort')->orderBy('name')->get(),
+            'membership' => StudioUser::where('studio_id', $studio->id)->where('user_id', $member->id)->firstOrFail(),
+            'activity' => DomainEvent::with('attendee')->where('studio_id', $studio->id)->where('user_id', $member->id)
+                ->latest('occurred_at')->latest('id')->limit(40)->get(),
+            'deliveries' => MessageDelivery::where('studio_id', $studio->id)->where('user_id', $member->id)->latest('id')->limit(15)->get(),
         ]);
     }
 

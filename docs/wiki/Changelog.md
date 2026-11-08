@@ -4,7 +4,17 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Rooms, apparatus capacity and waitlist limits** (roadmap step 2)
+- **Event backbone** (roadmap step 3)
+  - **Outbox and history:** every booking, check-in, plan, payment failure, waiver signature and consent change records a domain event in the same transaction as the change. A check-in records `booking.attended`, flagged when it's the attendee's first class. A relay hands events to handlers (none yet; automations come next).
+  - **Member activity:** each member's admin page shows their recent activity and the emails sent to them.
+  - **Email log:** every studio email is logged in `message_deliveries` with a dedupe key, so it goes out once, and is marked sent (with Resend's ID) or failed. Replaces `sent_notifications`, whose rows are copied over.
+  - **Consent:** members opt in to a studio's news and offers when joining or in their profile. Marketing email carries a signed one-click unsubscribe link and `List-Unsubscribe` headers, and isn't sent without consent.
+  - **Snapshots:** each night after 2 AM studio time, every member's activity is saved to `member_snapshots` for churn scoring later.
+  - **Database:** new tables `domain_events`, `message_deliveries` and `member_snapshots`; consent columns on `studio_users`. `sent_notifications` is no longer written (dropped in a later release).
+
+## 2026-11-08
+
+- **Rooms, apparatus capacity and waitlist limits** (roadmap step 2, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16))
   - **Rooms:** Admin → Rooms. Each room has a capacity limit, and classes in it can't be bigger.
   - **Apparatus:** what's rigged in each room (how many, and the most people on each). A program chooses the apparatus its sessions use, and each session can change it.
   - **Booking:** each booking takes a numbered spot ("Silks 3"). Members choose the apparatus, with spots left on each, or "No preference"; the choice survives signing a waiver and paying at checkout. Staff add people on a chosen apparatus and move them between apparatus.
@@ -13,9 +23,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Room clashes:** the session page warns when another class is in the room at the same time, or apparatus is over-used.
   - **Fixed:** the demo seeder (`composer setup`, `migrate:fresh --seed`) failed after waiver hardening; a test now runs it.
   - **Database:** new tables `rooms`, `apparatus`, `program_apparatus` and `session_apparatus`; room and waitlist columns on `programs` and `class_sessions`; apparatus columns on `bookings`.
-
-## 2026-11-08
-
 - **Waiver hardening** (roadmap step 1, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15))
   - **Waivers:** several can be in force at once, for every class or for chosen classes only (such as an aerial liability waiver), each with its own validity.
   - **Versions:** every published version's text is kept. Signatures record the version, a hash of the exact text, the attendee's and signer's names, and how they're related. Once anyone has signed, changing the text publishes a new version.

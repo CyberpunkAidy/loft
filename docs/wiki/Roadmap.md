@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 and 2 are built; the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 3 are built; the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -15,7 +15,12 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - Enforced at booking, waitlist promotion, staff booking and check-in, with staff overrides recorded.
   - Signatures are kept when accounts are deleted, and can be downloaded.
 - **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. No products, orders or cart.
-- **Events:** in-memory Laravel events feed the email listener. They aren't durable, nothing keeps a history, and there's no attendance event.
+- **Event backbone (step 3, done):**
+  - Every change records a domain event in the same transaction (the outbox), including `booking.attended` with a first-visit flag; a relay hands them to handlers. None are registered yet.
+  - Every studio email is logged in `message_deliveries` with a dedupe key.
+  - Marketing email consent per studio, with one-click unsubscribe.
+  - Nightly member snapshots.
+  - See [Architecture](Architecture#the-outbox-domain_events).
 - **API:** none. Server-rendered pages with session logins only.
 
 ## Principles
@@ -148,7 +153,7 @@ POST /api/v1/devices/check-ins           Authorization: Bearer <device token>   
 
 ## Schema sketches
 
-These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns. The rooms and waiver sketches are built; their migrations are the source of truth, and the sketches stay for reference.
+These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns. The rooms, waiver and event sketches are built; their migrations are the source of truth, and the sketches stay for reference. As built, the events schema differs a little: `message_deliveries` gains `automation_id` with automations (step 4), and SMS consent columns come with SMS.
 
 **Rooms and apparatus:**
 ```php
@@ -287,8 +292,8 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 ## Order
 
 1. [x] **Waiver hardening** (built 2026-11-08, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15)): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
-2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08): settles the booking model before anything depends on it.
-3. [ ] **Event backbone:** outbox, `booking.attended`, `message_deliveries`, consent. Start the nightly snapshots here too.
+2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16)): settles the booking model before anything depends on it.
+3. [x] **Event backbone** (built 2026-11-08): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
 4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
 5. [ ] **Orders ledger:** route plan checkouts and recorded payments through `orders`.
 6. [ ] **Merchandise and point of sale:** products, a shared cart, Stripe Terminal at the front desk.
@@ -302,4 +307,5 @@ Steps 1 and 2 change rules members feel directly. Rooms are opt-in: a studio wit
 ## Known gaps (smaller)
 
 - **Stripe refunds:** a refund doesn't take back the credits or membership it paid for.
+- **An old table:** `sent_notifications` is no longer written (replaced by `message_deliveries`). Drop it in a release after the event backbone is live.
 - **Merged branches:** they need deleting by hand on GitHub.
