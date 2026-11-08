@@ -90,7 +90,7 @@ class BookingRulesTest extends TestCase
         $this->expectReason('forbidden', fn () => $this->bookings()->book($this->classSession($this->program($studio)), $this->attendee($studio, $other), $user->id));
     }
 
-    public function test_members_need_a_signed_waiver_but_staff_bookings_do_not(): void
+    public function test_members_need_a_signed_waiver_and_staff_need_a_reason(): void
     {
         $studio = $this->studio();
         $this->waiver($studio);
@@ -102,7 +102,12 @@ class BookingRulesTest extends TestCase
         $e = $this->expectReason('waiver', fn () => $this->bookings()->book($session, $attendee, $user->id));
         $this->assertTrue($e->context['attendee']->is($attendee));
 
-        $this->assertSame('booked', $this->bookings()->book($session, $attendee, $user->id, 'admin')->status);
+        // Staff need a reason to book someone who hasn't signed, and the reason is kept.
+        $this->expectReason('waiver', fn () => $this->bookings()->book($session, $attendee, $user->id, 'admin'));
+        $staff = $this->userIn($studio, 'admin');
+        $booking = $this->bookings()->book($session, $attendee, $user->id, 'admin', null, false, ['staff' => $staff, 'reason' => 'Signed on paper']);
+        $this->assertSame('booked', $booking->status);
+        $this->assertDatabaseHas('waiver_overrides', ['booking_id' => $booking->id, 'staff_user_id' => $staff->id, 'reason' => 'Signed on paper']);
     }
 
     public function test_needs_plan_lists_only_plans_that_cover_the_program(): void

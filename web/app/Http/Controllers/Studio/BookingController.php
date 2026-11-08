@@ -41,7 +41,7 @@ class BookingController extends Controller
             $states[$attendee->id] = [
                 'booking' => $existing,
                 'age_error' => $ageError,
-                'needs_waiver' => ! $waivers->isSigned($studio, $attendee),
+                'needs_waiver' => ! $waivers->isSigned($studio, $attendee, $session->program),
             ];
         }
 
@@ -64,8 +64,11 @@ class BookingController extends Controller
             $booking = $bookings->book($session, $attendee, $request->user()->id);
         } catch (BookingException $e) {
             return match ($e->reason) {
-                'waiver' => redirect()->route('studio.waiver', ['attendee' => $attendee, 'return' => route('studio.book', ['session' => $session], false)])
-                    ->with('warning', $e->getMessage()),
+                'waiver' => redirect()->route('studio.waiver', [
+                    'attendee' => $attendee,
+                    'waiver' => $e->context['waiver']->id,
+                    'return' => route('studio.book', ['session' => $session], false),
+                ])->with('warning', $e->getMessage()),
                 'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans']]),
                 default => back()->with('error', $e->getMessage()),
             };

@@ -22,7 +22,7 @@
   - **Upcoming** and **History:** classes booked and attended.
   - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
   - **Plans & billing:** memberships and credits, a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
-  - **Waivers:** status per attendee, and signing with a drawn signature.
+  - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
   - **Profile:** name, email, phone, password, and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
 - **Plans page:** every plan a studio sells, with checkout.
 
@@ -38,7 +38,7 @@
 | Members | Search; family, waivers, plans, upcoming and past classes; **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
 | Payments | Connect Stripe; payments recorded in person and this month's total | admin |
-| Waivers | Write and version the waiver; publish a new version and everyone re-signs | admin |
+| Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |
 | Staff | Add instructors and admins (new people get an email to set a password); owners can make other owners | admin |
 | Settings | Name, brand color, time zone, currency, email sender name and reply-to, booking policies | admin |
 
@@ -62,7 +62,10 @@ Other rules:
 - **Members only:** a program can be "members only", in which case only memberships and seasonal tuition can book it, not packs or drop-ins.
 - **Age limits:** a program's age limits are checked against each attendee's date of birth.
 - **Plan scope:** a plan's scope (its plan tags) decides which programs it covers.
-- **Staff bookings:** they skip the booking window and the waiver check. Staff see waiver status on the roster.
+- **Waivers are needed everywhere:** member booking, waitlist promotion, staff booking and check-in all need every waiver the class requires. That means the waivers for every class plus any attached to its program.
+  - **Staff overrides:** staff can add or check in someone who hasn't signed by giving a reason, which is recorded.
+  - **Waitlist:** someone whose waiver has lapsed keeps their waitlist place, and moves in when they sign if a seat is free.
+- **Staff bookings:** they skip the booking window.
 
 ## Emails
 

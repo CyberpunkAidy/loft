@@ -60,7 +60,7 @@ class SessionController extends Controller
         return view('admin.sessions.show', [
             'session' => $session->load(['program', 'instructor']),
             'roster' => $roster,
-            'waiverOk' => $roster->mapWithKeys(fn (Booking $b) => [$b->id => $waivers->isSigned($studio, $b->attendee)]),
+            'waiverOk' => $roster->mapWithKeys(fn (Booking $b) => [$b->id => $waivers->clears($b)]),
             'candidates' => $candidates,
             'q' => $q,
             'instructors' => $studio->members()->wherePivotIn('role', StudioUser::STAFF_ROLES)->orderBy('first_name')->get(),
@@ -105,15 +105,22 @@ class SessionController extends Controller
     /** Staff add someone to a class. "Comp" books without using a membership or credit. */
     public function book(Request $request, Studio $studio, ClassSession $session, Bookings $bookings): RedirectResponse
     {
-        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'comp' => ['nullable', 'boolean']]);
+        $data = $request->validate([
+            'attendee_id' => ['required', 'integer'],
+            'comp' => ['nullable', 'boolean'],
+            'waiver_override' => ['nullable', 'string', 'max:190'],
+        ]);
         $attendee = $studio->attendees()->where('status', 'active')->findOrFail($data['attendee_id']);
+        $override = filled($data['waiver_override'] ?? null) ? ['staff' => $request->user(), 'reason' => trim($data['waiver_override'])] : null;
 
         try {
-            $booking = $bookings->book($session, $attendee, (int) $attendee->user_id, 'admin', null, $request->boolean('comp'));
+            $booking = $bookings->book($session, $attendee, (int) $attendee->user_id, 'admin', null, $request->boolean('comp'), $override);
         } catch (BookingException $e) {
-            $message = $e->reason === 'needs_plan'
-                ? "{$attendee->name} has no membership or credits that cover this class. Tick “Comp” to add them free."
-                : $e->getMessage();
+            $message = match ($e->reason) {
+                'needs_plan' => "{$attendee->name} has no membership or credits that cover this class. Tick “Comp” to add them free.",
+                'waiver' => "{$attendee->name} hasn’t signed “{$e->context['waiver']->title}”. To add them anyway, give a reason under “No signed waiver?”.",
+                default => $e->getMessage(),
+            };
 
             return back()->with('error', $message);
         }

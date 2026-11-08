@@ -108,6 +108,7 @@ Route::prefix('{studio}')
                 Route::get('members/{member}', [Admin\MemberController::class, 'show'])->name('members.show');
                 Route::post('members/{member}/plans', [Admin\MemberController::class, 'grant'])->name('members.grant');
 
+                Route::get('waivers/download', [Admin\WaiverController::class, 'download'])->name('waivers.download');
                 Route::resource('waivers', Admin\WaiverController::class)->except(['show', 'destroy']);
                 Route::post('waivers/{waiver}/activate', [Admin\WaiverController::class, 'activate'])->name('waivers.activate');
 

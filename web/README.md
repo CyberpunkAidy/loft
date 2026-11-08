@@ -80,8 +80,14 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 
 - A **studio** is a tenant, and every row it owns carries `studio_id`.
 - Routes resolve children through the studio (`Route::scopeBindings()` plus an explicit `{studio}` binding in `AppServiceProvider`). So `/a/admin/programs/{id}` can't load studio B's program; it returns 404.
+- **Waivers** (`App\Services\Waivers`):
+  - **Who signs what:** several can be in force at once. Each applies to every class or only to the programs it's attached to, such as an aerial liability waiver, and can set its own validity.
+  - **Versions:** every published version's text is kept (`waiver_versions`). Each signature records the version, a SHA-256 hash of the exact text, the attendee's and signer's names, and how they're related. Once anyone has signed, changing the text publishes a new version, and everyone signs again.
+  - **Where it's enforced:** at member booking, waitlist promotion (someone whose waiver lapsed keeps their place until they sign), staff booking and check-in.
+  - **Overrides:** staff can let someone in without a signature by giving a reason, and the reason is recorded (`waiver_overrides`).
+  - **Download:** admins can download every signature, the text of each version and the drawn signatures as a ZIP (Admin → Waivers), using `App\Services\WaiverDownload`.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
-- **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings, passes and signed waivers (`App\Services\AccountDeletion`):
+- **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
   - Seats they held in upcoming classes go to the waitlist.
   - Classes they taught stay, without an instructor.
@@ -229,7 +235,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 99 tests. They cover:
+There are 107 tests. They cover:
 - the booking rules
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
@@ -240,6 +246,7 @@ There are 99 tests. They cover:
 - every member and admin page
 - readable studio colors, the logo and the email designs
 - payments recorded in person, and delayed (bank) payments
+- waiver rules: program waivers, versions, enforcement, overrides and the download
 
 They run on SQLite by default. To run them against Postgres:
 

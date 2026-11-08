@@ -16,8 +16,8 @@ This wiki covers the web app. The plugin is documented in `plugin/README.md` and
 - **Hosting and email:** live on Render at loftstudio.app. Email goes out through Resend from `hello@mail.loftstudio.app`.
 - **Payments:** Stripe Connect is built (studios connect their own Stripe accounts, created through Accounts v2), as are payments recorded in person. Setup in Stripe test mode is under way; [Stripe](Stripe) lists the remaining steps.
 - **Design:** the Loft logo and design system cover the site and the emails.
-- **Tests:** 99 automated tests run on every change, on SQLite and Postgres, plus a check that the production Docker image builds and starts.
-- **Direction (decided 2026-11-08):** Loft stays on Laravel, and a mobile app (React Native with Expo) will use a Laravel API. Next up: waiver hardening, then rooms and apparatus capacity ([Roadmap](Roadmap)).
+- **Tests:** 107 automated tests run on every change, on SQLite and Postgres, plus a check that the production Docker image builds and starts.
+- **Direction (decided 2026-11-08):** Loft stays on Laravel, and a mobile app (React Native with Expo) will use a Laravel API. Waiver hardening (roadmap step 1) is built; next up are rooms and apparatus capacity ([Roadmap](Roadmap)).
 
 ## Pages
 

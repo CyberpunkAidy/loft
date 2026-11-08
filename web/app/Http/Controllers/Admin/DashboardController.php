@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $hasPlans = $studio->plans()->exists();
         $checklist = [
             ['done' => $studio->stripeReady(), 'label' => 'Connect Stripe so members can pay', 'url' => route('studio.admin.payments')],
-            ['done' => $studio->activeWaiver() !== null, 'label' => 'Publish your waiver', 'url' => route('studio.admin.waivers.index')],
+            ['done' => $studio->activeWaivers()->isNotEmpty(), 'label' => 'Publish your waiver', 'url' => route('studio.admin.waivers.index')],
             ['done' => $studio->seasons()->exists(), 'label' => 'Add a season (e.g. Sept → May)', 'url' => route('studio.admin.seasons.index')],
             ['done' => $studio->programs()->exists(), 'label' => 'Add your classes', 'url' => route('studio.admin.programs.index')],
             ['done' => $hasPlans && ! $studio->plans()->where('active', true)->whereNull('stripe_price_id')->exists(), 'label' => 'Create plans and connect them to Stripe', 'url' => route('studio.admin.plans.index')],

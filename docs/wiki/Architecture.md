@@ -16,8 +16,8 @@
 
 | Path | What's there |
 |---|---|
-| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverSignature`, `Payment`, `StripeEvent`, `SentNotification` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Waivers`, `AccountDeletion`, `OfflinePayments`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `SentNotification` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
 | `app/Events`, `app/Listeners` | Domain events and the `StudioEmails` listener that sends member emails |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
@@ -63,7 +63,9 @@ Elsewhere in the repository:
 | `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin` |
 | `entitlements` | What an account holds: a live membership or a credit balance, with scope and weekly limits |
 | `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended` |
-| `waivers`, `waiver_signatures` | Versioned waiver text, and who signed which version for whom (with an optional drawn signature) |
+| `waivers`, `waiver_versions`, `program_waiver` | Waivers (for every class or for attached programs, with optional validity), and the exact text of every published version |
+| `waiver_signatures` | Who signed which version for whom: names, relationship, a hash of the text, IP address, browser, optional drawing. Kept, unlinked, when accounts are deleted |
+| `waiver_overrides` | Staff letting someone into a class without a signature, and why |
 | `payments` | Payments staff recorded by hand, and comps ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
 | `sent_notifications` | Makes reminder and expiry emails send once |
@@ -75,7 +77,8 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. Promotion re-checks the waiting person's plan before giving them the seat.
 - **`Entitlements`:** finds the plan that can pay for a class (scope, weekly limit, credits), uses and refunds credits, and grants plans.
 - **`SessionGenerator`:** creates a program's sessions across its season. It's daylight-saving safe.
-- **`Waivers`:** whether an attendee's waiver is signed and still valid, and signing.
+- **`Waivers`:** which waivers a class needs, whether an attendee has signed them, signing a version, overrides, and saving text without editing a signed version.
+- **`WaiverDownload`:** a studio's signed waivers as a ZIP.
 - **`StripeClient`:** the Stripe REST calls: v1 for most things, v2 for creating and onboarding studio accounts.
 - **`StripeWebhooks`:** verifies, deduplicates and processes Stripe events, and fulfils checkouts.
 - **`AccountDeletion`:** deletes a user everywhere, and hands over or closes studios they solely own.

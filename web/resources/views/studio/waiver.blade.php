@@ -7,7 +7,7 @@
     <p class="small"><a href="{{ $return ?? route('studio.account.waivers') }}">‹ Back</a></p>
     <div class="card stack">
         <h1>{{ $waiver->title }}</h1>
-        <p class="muted" style="margin:0">Signing for <strong>{{ $attendee->name }}</strong> · version {{ $waiver->version }}</p>
+        <p class="muted" style="margin:0">Signing for <strong>{{ $attendee->name }}</strong> · version {{ $waiver->version }}@unless ($waiver->appliesToEveryClass()) · needed for {{ $waiver->programs->pluck('title')->join(', ', ' and ') }}@endunless</p>
         @if ($status['signed'])
             <div class="alert alert-success" style="margin:0">Already signed on {{ $studio->local($status['signed_at'])->format('M j, Y') }}. You can sign again if anything has changed.</div>
         @endif
@@ -18,6 +18,7 @@
         </div>
         <form method="post" action="{{ route('studio.waiver', ['attendee' => $attendee]) }}" class="form">
             @csrf
+            <input type="hidden" name="waiver_id" value="{{ $waiver->id }}">
             @if ($return)<input type="hidden" name="return" value="{{ $return }}">@endif
             <x-field name="signed_name" :label="$isMinor ? 'Parent or guardian’s full legal name' : 'Your full legal name'" autocomplete="name" required minlength="3" />
             <div class="field">
