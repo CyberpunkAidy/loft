@@ -2,9 +2,9 @@
 
 Loft Studio as a hosted, multi-studio web app: any studio signs up, gets its own schedule at
 `https://<your-domain>/<studio>`, connects its own Stripe account, and runs classes, memberships,
-family accounts, waivers and check-in from a browser. It's a port of the WordPress plugin in the
-repository root. The booking, billing and waiver rules are the same, rebuilt on Laravel and Postgres
-for many studios at once.
+family accounts, waivers and check-in from a browser. It's a port of the WordPress plugin in
+[`plugin/`](../plugin/README.md), whose releases are paused while the web app is built. The booking, billing and
+waiver rules are the same, rebuilt on Laravel and Postgres for many studios at once.
 
 - **Stack:** PHP 8.3+, Laravel 13, PostgreSQL 16 (SQLite works for local development), server-rendered Blade.
   There is no JavaScript build step. `public/css/app.css` and `public/js/app.js` are hand-written, and every page works without JS.
@@ -104,7 +104,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | wp-admin pages, CPT meta boxes | `app/Http/Controllers/Admin`, `resources/views/admin` |
 | `Settings` option | `studios` columns + `studios.settings` JSON (defaults in `Studio::DEFAULT_SETTINGS`) |
 
-The data model is the plugin's (`ARCHITECTURE.md` in the repo root), with `studio_id` added. Some names changed:
+The data model is the plugin's (`plugin/ARCHITECTURE.md`), with `studio_id` added. Some names changed:
 - `sessions` became `class_sessions`, because Laravel uses `sessions` for logins.
 - Programs and waivers are tables instead of WordPress posts.
 - The three taxonomies are `categories` (`age_group`, `level`, `plan_tag`).
@@ -254,6 +254,6 @@ CI (`.github/workflows/web.yml`) runs both, and builds and starts the Docker ima
 - **Studio subdomains and custom domains.** URLs are path-based today; a host-based resolver can go in front of the same routes.
 - **Billing studios for the platform itself.** A subscription per studio, or the existing application fee.
 - **Importing an existing WordPress plugin install.** Its tables map almost one-to-one.
-- **A JSON API,** so the WordPress plugin or a mobile app can embed the schedule.
+- **A JSON API** for the planned mobile app (React Native with Expo). See the wiki's [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap).
 - **SMS reminders.** Listen to the same events the emails do.
 - **Email verification, and a platform-operator admin.**

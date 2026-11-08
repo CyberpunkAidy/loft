@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code. Nothing here is built yet. It's the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Nothing here is built yet. It's the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -15,7 +15,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
 1. **Stay a modular monolith:** the same Laravel app and Postgres database, with the same tenancy rules. New modules are services, models and tests, not separate systems.
 2. **One service layer, two front doors.** Web controllers and the API both call the same services. Move the orchestration left in `BookingController` and `CheckoutController` into services before building the API.
 3. **Durable events.** A transactional outbox: write a `domain_events` row in the same database transaction as the change, then relay it to marketing, analytics, outgoing webhooks and churn scoring. The same table is the history.
-4. **Resources, not more capacity numbers.** Apparatus limits and online seats are both sub-capacities of a session, and one model covers both.
+4. **Resources, not more capacity numbers.** A room's fire-code limit, apparatus limits and online seats are all limits on one session's bookings, and one model covers them.
 5. **One money ledger.** `orders` and `order_items` record every sale, however it was paid.
 6. **Rules first, AI later.** Collect point-in-time snapshots now; score with rules; train a model once there's labelled history.
 7. **Integrate, don't build:**
@@ -28,13 +28,19 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
 
 ## Features
 
-### Apparatus-level capacity and waitlists
+### Rooms, apparatus capacity and waitlists
 
-- **Capacity:** a session keeps its room `capacity`, and can add apparatus rows: for example 5 silks with up to 2 people each.
-- **Booking:** a booking picks an apparatus type (automatically when there's only one).
-- **The check:** inside the existing session lock, a booking is full when either the room total or that apparatus type is full.
-- **Waitlist entries** remember their type. Promotion takes the first waiting entry whose type has a free spot.
-- **Optional:** check that overlapping sessions don't need more units than the studio owns.
+- **Rooms:** a studio has rooms, each with a fire-code `max_capacity`. Programs and sessions belong to a room, and a session's `capacity` can't exceed its room's limit (checked when saving).
+- **Apparatus:** what's rigged in a room, for example "Silks: 5, up to 2 people each".
+  - **Per class:** a session uses some of its room's apparatus, at most what the room has. A program carries the default, and each session can change it (a rig down for repair, say).
+  - **Booking:** a booking picks the apparatus (automatically when the class uses only one). It can record which item, such as "Silk 3", for the roster.
+- **The check:** inside the existing session lock, a booking is confirmed only while:
+  - the session has room: fewer booked than its capacity;
+  - the chosen apparatus has room: fewer booked on it than quantity × people per item.
+- **Waitlists:**
+  - A session can cap its waitlist (`waitlist_capacity`; empty means no limit).
+  - Waitlist entries remember their apparatus, and promotion takes the first waiting entry whose apparatus has a free spot.
+- **Optional:** check that overlapping sessions in the same room don't use more apparatus than is rigged.
 
 ### Waivers
 
@@ -111,7 +117,7 @@ Route::prefix('v1')->group(function () {
 - **On-demand video:** a `videos` table pointing at the video provider's assets. Access comes from plans.
 - **Live classes:** `class_sessions.delivery` set to in-person, virtual or hybrid. Online seats are another resource in the apparatus model.
 - **Apple's rules:** digital content sold inside an iOS app falls under Apple's in-app purchase rules, which changed for US apps in 2025. Check the current terms before deciding how the app sells video.
-- **The app itself:** a React Native (Expo) app against this API is the recommended route ([Decisions](Decisions#tech-stack-a-proposal-to-move-to-nextjs-and-node)).
+- **The app itself:** React Native (Expo) against this API ([decision 17](Decisions#tech-stack-nextjs-and-node)).
 
 ### Contactless check-in
 
@@ -132,39 +138,52 @@ POST /api/v1/devices/check-ins           Authorization: Bearer <device token>   
 
 These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns.
 
-**Apparatus:**
+**Rooms and apparatus:**
 ```php
-Schema::create('apparatus_types', function (Blueprint $t) {
+Schema::create('rooms', function (Blueprint $t) {          // fire-code limit
     $t->id();
     $t->foreignId('studio_id')->constrained()->cascadeOnDelete();
-    $t->string('name', 60);                                   // Silks, Lyra, Trapeze
-    $t->unsignedSmallInteger('units_owned');                  // 5
-    $t->unsignedTinyInteger('default_per_unit')->default(1);  // 2 people per silk
+    $t->string('name', 60);
+    $t->unsignedSmallInteger('max_capacity');
     $t->timestamps();
     $t->unique(['studio_id', 'name']);
 });
-Schema::create('program_apparatus', function (Blueprint $t) {        // the template a program's sessions copy
+Schema::create('apparatus', function (Blueprint $t) {      // what's rigged in a room
     $t->id();
     $t->foreignId('studio_id')->constrained()->cascadeOnDelete();
-    $t->foreignId('program_id')->constrained()->cascadeOnDelete();
-    $t->foreignId('apparatus_type_id')->constrained('apparatus_types')->cascadeOnDelete();
-    $t->unsignedSmallInteger('units');
-    $t->unsignedTinyInteger('per_unit');
-    $t->unique(['program_id', 'apparatus_type_id']);
+    $t->foreignId('room_id')->constrained()->cascadeOnDelete();
+    $t->string('name', 60);                                // Silks, Lyra, Trapeze, Pole
+    $t->unsignedSmallInteger('quantity');                  // 5
+    $t->unsignedTinyInteger('max_per_item');               // 2
+    $t->timestamps();
 });
-Schema::create('session_apparatus', function (Blueprint $t) {        // per session, editable
+Schema::create('program_apparatus', function (Blueprint $t) {   // a program's default allocation
     $t->id();
-    $t->foreignId('studio_id')->constrained()->cascadeOnDelete();
+    $t->foreignId('program_id')->constrained()->cascadeOnDelete();
+    $t->foreignId('apparatus_id')->constrained('apparatus')->cascadeOnDelete();
+    $t->unsignedSmallInteger('quantity');                  // at most the room's
+    $t->unsignedTinyInteger('max_per_item');
+    $t->unique(['program_id', 'apparatus_id']);
+});
+Schema::create('session_apparatus', function (Blueprint $t) {   // what this session uses, editable
+    $t->id();
     $t->foreignId('class_session_id')->constrained()->cascadeOnDelete();
-    $t->foreignId('apparatus_type_id')->constrained('apparatus_types')->cascadeOnDelete();
-    $t->unsignedSmallInteger('units');
-    $t->unsignedTinyInteger('per_unit');
-    $t->unique(['class_session_id', 'apparatus_type_id']);
+    $t->foreignId('apparatus_id')->constrained('apparatus')->cascadeOnDelete();
+    $t->unsignedSmallInteger('quantity');
+    $t->unsignedTinyInteger('max_per_item');
+    $t->unique(['class_session_id', 'apparatus_id']);
+});
+Schema::table('programs', function (Blueprint $t) {
+    $t->foreignId('room_id')->nullable()->constrained()->nullOnDelete();
+});
+Schema::table('class_sessions', function (Blueprint $t) {
+    $t->foreignId('room_id')->nullable()->constrained()->nullOnDelete();
+    $t->unsignedSmallInteger('waitlist_capacity')->nullable();   // null = no limit
 });
 Schema::table('bookings', function (Blueprint $t) {
-    $t->foreignId('apparatus_type_id')->nullable()->after('attendee_id')->constrained('apparatus_types')->nullOnDelete();
-    $t->unsignedSmallInteger('apparatus_unit')->nullable();   // optional rig assignment ("Silk 3")
-    $t->index(['class_session_id', 'apparatus_type_id', 'status']);
+    $t->foreignId('apparatus_id')->nullable()->after('attendee_id')->constrained('apparatus')->nullOnDelete();
+    $t->unsignedSmallInteger('apparatus_item')->nullable();       // "Silk 3", for the roster
+    $t->index(['class_session_id', 'apparatus_id', 'status']);
 });
 ```
 
@@ -256,7 +275,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 ## Order
 
 1. [ ] **Waiver hardening:** program-level waivers, enforcement everywhere, overrides, text hash, retention.
-2. [ ] **Apparatus capacity and smarter waitlists:** settle the booking model before anything depends on it.
+2. [ ] **Rooms, apparatus capacity and waitlist limits:** settle the booking model before anything depends on it.
 3. [ ] **Event backbone:** outbox, `booking.attended`, `message_deliveries`, consent. Start the nightly snapshots here too.
 4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
 5. [ ] **Orders ledger:** route plan checkouts and recorded payments through `orders`.

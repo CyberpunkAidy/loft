@@ -29,7 +29,11 @@
 | `docker/` | Apache config, PHP config and `start.sh` (the container's entry point) |
 | `tests/Feature` | The test suite |
 
-The repository root also holds `render.yaml` (the Render Blueprint) and `.github/workflows/web.yml` (CI).
+Elsewhere in the repository:
+- `render.yaml`: the Render Blueprint.
+- `.github/workflows/`: CI (`web.yml`) and the wiki publisher (`wiki.yml`).
+- `docs/wiki/`: this wiki.
+- `plugin/`: the original WordPress plugin, kept for reference; releases are paused.
 
 ## Tenancy
 

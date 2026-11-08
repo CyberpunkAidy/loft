@@ -2,6 +2,13 @@
 
 Every change to the web app, newest first. Each links to its pull request. All were merged into `main` and deployed to Render automatically. Dates are UTC.
 
+## In review
+
+- **Documentation and repository layout**
+  - The project wiki (`docs/wiki/`, published by the Wiki workflow), and READMEs updated to match.
+  - The WordPress plugin moved to `plugin/`. Its releases are paused, and the release checklist, zip script and `.gitattributes` zip rules are removed.
+  - Decisions recorded: keep Laravel, build the mobile app with React Native against a Laravel API, and fold rooms and room-based apparatus into the roadmap (option A).
+
 ## 2026-11-08
 
 - **Delayed payments and payments taken in person** ([#13](https://github.com/CyberpunkAidy/loft-studio/pull/13))

@@ -7,9 +7,9 @@ The repository holds two products:
 | | What it is | Where |
 |---|---|---|
 | **Loft web app** | The hosted service for many studios at once. Live at **https://loftstudio.app**. | `web/` |
-| **Loft Studio plugin** | The original WordPress plugin (v0.1.1) for a single studio. It's unchanged and still releases from the repository root. | repository root |
+| **Loft Studio plugin** | The original WordPress plugin (v0.1.1) for a single studio, which the web app was ported from. Kept for reference; **releases are paused** until the web app (and possibly the mobile app) is finished. | `plugin/` |
 
-This wiki covers the web app. The plugin is documented in the repository's root `README.md` and `ARCHITECTURE.md`.
+This wiki covers the web app. The plugin is documented in `plugin/README.md` and `plugin/ARCHITECTURE.md`.
 
 ## Status (November 2026)
 
@@ -17,6 +17,7 @@ This wiki covers the web app. The plugin is documented in the repository's root 
 - **Payments:** Stripe Connect is built (studios connect their own Stripe accounts, created through Accounts v2), as are payments recorded in person. Setup in Stripe test mode is under way; [Stripe](Stripe) lists the remaining steps.
 - **Design:** the Loft logo and design system cover the site and the emails.
 - **Tests:** 99 automated tests run on every change, on SQLite and Postgres, plus a check that the production Docker image builds and starts.
+- **Direction (decided 2026-11-08):** Loft stays on Laravel, and a mobile app (React Native with Expo) will use a Laravel API. Next up: waiver hardening, then rooms and apparatus capacity ([Roadmap](Roadmap)).
 
 ## Pages
 

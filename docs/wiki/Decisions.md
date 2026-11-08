@@ -20,6 +20,56 @@ Why things are built the way they are. Newest at the bottom. Open questions are 
 | 14 | 2026-11-08 | **Payment options:** use the methods each studio turns on in Stripe, and record in-person payments in Loft; **no** PayPal or Square integration, and no platform-held funds ([#13](https://github.com/CyberpunkAidy/loft-studio/pull/13)) | Covers how studios are actually paid without a second processor; holding funds would make Loft liable for refunds, disputes and losses |
 | 15 | 2026-11-08 | **Comps are recorded** like payments, with an amount of 0, and can be voided | An audit trail of who gave what, and a way to undo mistakes |
 | 16 | 2026-11-08 | **Docs live in `docs/wiki/`** and are published to the GitHub wiki by a workflow | Docs are reviewed in pull requests with the code; Claude Code sessions can't push to the wiki directly |
+| 17 | 2026-11-08 | **Keep Laravel.** Build the mobile app with React Native (Expo) against a Laravel JSON API | The proposed move to Next.js and Node would be a rewrite of a live, tested product, for nothing the roadmap needs. See [the comparison](#tech-stack-nextjs-and-node) |
+| 18 | 2026-11-08 | **From the proposed Prisma schema, adopt rooms, apparatus owned by a room, and waitlist limits;** keep Loft's own schema for everything else (option A) | Rooms with a fire-code limit, and apparatus rigged in a room, model aerial studios better than the roadmap's first sketch. Loft already covers the rest more fully. See [the review](#a-proposed-prisma-schema) |
+| 19 | 2026-11-08 | **Pause WordPress plugin releases.** Move the plugin to `plugin/` for reference, and remove the release checklist and zip script | Work is focused on the web app and the mobile app. The repository's root is now about the web app. Tags `v0.1.0` and `v0.1.1` remain, and the release tooling can be restored from git history |
+
+## Considered alternatives
+
+### Tech stack: Next.js and Node
+
+A stack was proposed on 2026-11-08: Next.js (React, TypeScript, Tailwind) for web, React Native (Expo) for mobile, a Node.js API (Next.js routes or NestJS), PostgreSQL with Prisma or Drizzle, Stripe Connect, Twilio and SendGrid.
+
+**Decided: keep Laravel** (decision 17). Here's how it compared:
+
+| Proposed | In Loft | Outcome |
+|---|---|---|
+| Next.js + TypeScript + Tailwind for web | Laravel Blade and a hand-written design system | Kept Blade. Public pages are already server-rendered and SEO-friendly. Revisit a React front end only if the dashboard needs heavy in-browser interactivity. |
+| React Native (Expo) for mobile | No app or API yet | **Adopted** for the app, talking to a Laravel JSON API (`/api/v1`, Sanctum tokens). Share TypeScript types generated from an OpenAPI description of the API, rather than sharing server code. |
+| Node.js API (Next.js routes, NestJS, Express) | Laravel 13 (PHP 8.3) | Kept Laravel. Booking, payment and waiver rules run on the server either way. |
+| PostgreSQL with JSONB | PostgreSQL 16 | Same. JSONB is planned for event payloads, automation rules and churn features. |
+| Prisma or Drizzle | Eloquent and Laravel migrations | Kept Eloquent |
+| Stripe Connect, including Terminal | Stripe Connect (Accounts v2, direct charges) | Same. Stripe Terminal is planned for the point of sale. |
+| Twilio for SMS | Not yet | **Adopted** for SMS. Start US A2P 10DLC registration early; it takes weeks. |
+| SendGrid for marketing email | Resend for all email | Kept Resend. It already sends everything, and it offers broadcasts for marketing email. |
+
+### A proposed Prisma schema
+
+A Prisma schema was proposed on 2026-11-08, with `Studio`, `User` (one studio, one role), `Waiver` and `UserWaiver`, `Membership`, `Room`, `Apparatus`, `Class` and `Booking`.
+
+**Decided: option A** (decision 18). Its rooms and room-based apparatus are folded into Loft's Laravel schema (see [Roadmap](Roadmap)); Loft's own model covers the rest.
+
+| Proposed model | Loft | What differs |
+|---|---|---|
+| `Studio` | `studios` | Loft also stores the slug, currency, brand color, settings and Stripe account |
+| `User` (one studio, one role) | `users` (one login everywhere) + `studio_users` (a role per studio) | Loft supports several studios per person, and an admin role |
+| *(none)* | `attendees` | Family members; the proposal couldn't book a child |
+| `Waiver`, `UserWaiver` | `waivers` (versioned), `waiver_signatures` | Loft records the version signed, the guardian who signed, the typed name, the drawing, the IP address and the expiry |
+| `Membership` | `plans` (what's sold) + `entitlements` (what's held) | Loft has status, weekly limits, class scope, Stripe IDs and seasonal tuition |
+| `Room` | none | **Adopted** |
+| `Apparatus` (in a room) | none | **Adopted**, plus a per-class allocation and an optional item number |
+| `Class` | `programs` + `class_sessions` | Loft separates the recurring class from its dated sessions; `waitlistCapacity` **adopted** |
+| `Booking` | `bookings` | Loft records the attendee, late-cancel and no-show statuses, waitlist position, the plan that paid, the credit used, and timestamps |
+| `User.churnRiskScore` | planned `member_risk_scores` | A separate table keeps history, the model version and the reasons |
+
+Problems found in the proposal, for the record:
+- **It wouldn't validate.** Most relations are declared on one side only, and the enums are missing.
+- **Studio separation:** `studioId` is missing from `Membership` and `Booking`, and emails aren't unique per studio.
+- **One user, one studio:** no admin role.
+- **Waivers:** no versioning, so editing a waiver changes what people appear to have signed.
+- **Bookings:** don't record what paid for them, which breaks credit refunds and late-cancel and no-show policies.
+- **Overbooking:** there's no locking, and a booking can't point at one particular silk.
+- **Money:** there's no money model for a point of sale or checkout.
 
 ## Open questions
 
@@ -28,22 +78,3 @@ Why things are built the way they are. Newest at the bottom. Open questions are 
 - **Today:** deleting an account, or closing a studio, deletes the waivers signed there.
 - **Proposed:** keep signature records, unlinked from the account but with the signer's name and a hash of the exact text signed. Studios may need them for liability. See [Roadmap](Roadmap), step 1.
 - **Status:** awaiting a decision.
-
-### Tech stack: a proposal to move to Next.js and Node
-
-A stack was proposed on 2026-11-08: Next.js (React, TypeScript, Tailwind) for web, React Native (Expo) for mobile, a Node.js API (Next.js routes or NestJS), PostgreSQL with Prisma or Drizzle, Stripe Connect, Twilio and SendGrid.
-
-The product is already built, live and tested on Laravel. Here's how the proposal compares:
-
-| Proposed | In Loft today | Recommendation |
-|---|---|---|
-| Next.js + TypeScript + Tailwind for web | Laravel Blade and a hand-written design system | **Keep.** Public pages are already server-rendered and SEO-friendly. Revisit a React front end only if the dashboard needs heavy in-browser interactivity. |
-| React Native (Expo) for mobile | No app or API yet | **Adopt for the app**, talking to a Laravel JSON API (`/api/v1`, Sanctum tokens). Share TypeScript types generated from an OpenAPI description of the API, rather than sharing server code. |
-| Node.js API (Next.js routes, NestJS, Express) | Laravel 13 (PHP 8.3) | **Keep Laravel.** A rewrite would take months and add nothing the roadmap needs. Booking, payment and waiver rules must run on the server either way. |
-| PostgreSQL with JSONB | PostgreSQL 16 | Same. JSONB is planned for event payloads, automation rules and churn features. |
-| Prisma or Drizzle | Eloquent and Laravel migrations | **Keep Eloquent.** |
-| Stripe Connect, including Terminal | Stripe Connect (Accounts v2, direct charges) | Same. Add Stripe Terminal for the point of sale. |
-| Twilio for SMS | Not yet | **Adopt** when SMS is built. Start US A2P 10DLC registration early; it takes weeks. |
-| SendGrid for marketing email | Resend for all email | **Keep Resend.** It already sends everything, and it also offers broadcasts for marketing email. |
-
-**Status:** awaiting a decision. The recommendation is to keep Laravel and build the mobile app against a Laravel API.

@@ -53,6 +53,10 @@ A separate **Wiki** workflow publishes `docs/wiki/` to the GitHub wiki.
 4. Check the deploy, then delete the branch. Claude Code sessions can't delete branches, so use the **Delete branch** button on the merged pull request.
 5. Update this wiki (`docs/wiki/`) and `web/README.md` when behavior changes.
 
+## The WordPress plugin
+
+`plugin/` holds the original WordPress plugin. It isn't released, deployed or tested in CI while releases are paused ([decision 19](Decisions)). Leave it unchanged unless releases resume. The release checklist and zip script are in git history (`RELEASING.md`, `bin/build-zip.sh`).
+
 ## Conventions
 
 - **Tenancy:** every studio-owned table has `studio_id`. Child routes are scoped to the studio.
