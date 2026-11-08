@@ -25,7 +25,7 @@ class Messages
      * Queue $message to $user. Returns the delivery, or null if there was no one to send to or the
      * dedupe key was already used. $dedupeKey null means "never a duplicate".
      */
-    public function email(?User $user, StudioMessage $message, ?string $dedupeKey = null, string $category = 'transactional', ?int $domainEventId = null): ?MessageDelivery
+    public function email(?User $user, StudioMessage $message, ?string $dedupeKey = null, string $category = 'transactional', ?int $domainEventId = null, ?int $automationId = null): ?MessageDelivery
     {
         if (! $user) {
             return null;
@@ -40,6 +40,7 @@ class Messages
             'studio_id' => $studio->id,
             'user_id' => $user->id,
             'domain_event_id' => $domainEventId,
+            'automation_id' => $automationId,
             'channel' => 'email',
             'category' => $category,
             'kind' => $message->kind,

@@ -17,6 +17,7 @@ class DemoSeederTest extends TestCase
         $this->assertSame(['Flex room', 'Main studio'], $studio->rooms()->orderBy('name')->pluck('name')->all());
         $this->assertSame(['Silks 1', 'Silks 2'], Booking::with('apparatus')->whereHas('classSession.program', fn ($q) => $q->where('title', 'Adult Silks Basics'))
             ->where('status', 'booked')->orderBy('apparatus_item')->get()->map->apparatusLabel()->all());
+        $this->assertSame(['first_class'], $studio->automations()->where('active', true)->pluck('trigger')->all());
         $this->get('/skyline')->assertOk();
     }
 }

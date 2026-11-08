@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\StudioSignupController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Studio;
+use App\Models\Automation;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -109,6 +110,12 @@ Route::prefix('{studio}')
                 Route::resource('seasons', Admin\SeasonController::class)->except(['show', 'create']);
                 Route::resource('plans', Admin\PlanController::class)->except('show');
                 Route::post('plans/{plan}/stripe', [Admin\PlanController::class, 'sync'])->name('plans.sync');
+
+                $triggers = array_keys(Automation::TRIGGERS);
+                Route::get('automations', [Admin\AutomationController::class, 'index'])->name('automations.index');
+                Route::get('automations/{trigger}', [Admin\AutomationController::class, 'edit'])->whereIn('trigger', $triggers)->name('automations.edit');
+                Route::put('automations/{trigger}', [Admin\AutomationController::class, 'update'])->whereIn('trigger', $triggers)->name('automations.update');
+                Route::post('automations/{trigger}/test', [Admin\AutomationController::class, 'test'])->whereIn('trigger', $triggers)->middleware('throttle:10,1')->name('automations.test');
 
                 Route::get('members', [Admin\MemberController::class, 'index'])->name('members.index');
                 Route::get('members/{member}', [Admin\MemberController::class, 'show'])->name('members.show');

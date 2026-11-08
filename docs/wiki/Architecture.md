@@ -16,11 +16,11 @@
 
 | Path | What's there |
 |---|---|
-| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
 | `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
-| `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox) and the `RelayDomainEvents` job |
+| `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox), and the `RelayDomainEvents` and `SendAutomatedMessage` jobs |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
 | `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException`, `ApparatusSlot` (one apparatus's spots in a session), `ApparatusAllocation` (the apparatus fields on the program and session forms) |
 | `app/Console/Commands` | `loft:housekeeping`, run hourly |
@@ -73,8 +73,9 @@ Elsewhere in the repository:
 | `payments` | Payments staff recorded by hand, and comps ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
 | `domain_events` | The outbox and history: every booking, check-in, plan, payment failure, waiver signature and consent change, with IDs and facts only ([below](#events-and-email)) |
-| `message_deliveries` | Every studio email: its kind, transactional or marketing, status (queued, sent, failed, suppressed), and a unique dedupe key |
+| `message_deliveries` | Every studio email: its kind, transactional or marketing, status (queued, sent, failed, suppressed), the automation that sent it (if any), and a unique dedupe key |
 | `member_snapshots` | Each member's activity as of each night, for churn scoring later |
+| `automations` | Each studio's automated emails (one per trigger: first class, birthday, we miss you): text, timing, on or off |
 | `sent_notifications` | Replaced by `message_deliveries`, which it was copied into. No longer written; to be dropped in a later release |
 
 All datetimes are stored in UTC and shown in the studio's time zone. Money is stored in cents.
@@ -95,6 +96,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
 - **`MemberSnapshots`:** each night's member snapshot.
+- **`Automations`:** sends the automated emails: first-class follow-ups from the outbox (through `AutomationTriggers`, the registered handler), birthdays and win-backs from housekeeping ([Email](Email#automations)).
 
 Controllers stay thin and call these services. The planned mobile API will call the same services ([Roadmap](Roadmap)).
 
@@ -115,7 +117,7 @@ Services dispatch Laravel events. The `StudioEmails` listener turns them into qu
 
 Every email goes through `App\Services\Messages`, which logs it in `message_deliveries` under a dedupe key (such as `reminder:booking:42`), so it goes out once however often the code that sends it runs. The delivery is marked `sent` when the mailer sends it (with Resend's message ID) and `failed` if the queue gives up.
 
-The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, and relays any domain events still waiting.
+The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, sends birthday and win-back automations, and relays any domain events still waiting.
 
 ### The outbox (`domain_events`)
 
@@ -137,7 +139,7 @@ The Laravel events above are in-process: they trigger emails, and nothing rememb
 
 - **What's in an event:** the studio, the account and attendee it's about, the type, when, and a payload of IDs and facts: never names or email addresses. Deleting an account unlinks its events, which stay as anonymous history.
 - **Relaying:** after the transaction commits, the `RelayDomainEvents` job hands new events to each handler in `config('loft.event_handlers')` (classes implementing `App\Contracts\DomainEventHandler`). Each event is relayed in its own transaction, with its row locked (`FOR UPDATE SKIP LOCKED` on Postgres). A handler that throws is retried by later relays, up to 5 times, and the error is kept on the event (`relay_attempts`, `relay_error`). Housekeeping sweeps up anything left.
-- **Handlers:** delivery is at least once and not strictly ordered, so handlers must be idempotent. None are registered yet; automations ([Roadmap](Roadmap) step 4) are the first. Until then, events are kept as history and marked relayed.
+- **Handlers:** delivery is at least once and not strictly ordered, so handlers must be idempotent. One is registered: `AutomationTriggers`, which turns a first visit into the first-class follow-up ([Email](Email#automations)). With none, events are kept as history and marked relayed.
 - **Reading it:** each member's page in the admin shows their recent activity from these events.
 - **Adding a type:** add it to `DomainEvent::TYPES` (unknown types are refused), and record it inside the transaction that makes the change.
 

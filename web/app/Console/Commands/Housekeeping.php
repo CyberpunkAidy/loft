@@ -6,6 +6,7 @@ use App\Listeners\StudioEmails;
 use App\Models\Booking;
 use App\Models\Entitlement;
 use App\Models\Studio;
+use App\Services\Automations;
 use App\Services\DomainEvents;
 use App\Services\MemberSnapshots;
 use App\Services\Messages;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Hourly: class reminders, credit-expiry warnings, expiring entitlements, each studio's nightly member
- * snapshots (once its local time passes 2 AM), and relaying any domain events still waiting. Port of
+ * snapshots (once its local time passes 2 AM), birthday and win-back automations (from 10 AM), and
+ * relaying any domain events still waiting. Port of
  * the plugin's Cron, plus the event backbone's chores.
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
  * so it goes out once however often this runs.
@@ -25,21 +27,23 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, Automations $automations): int
     {
         $reminders = 0;
         $snapshotted = 0;
-        Studio::query()->chunkById(100, function ($studios) use (&$reminders, &$snapshotted, $snapshots) {
+        $automated = 0;
+        Studio::query()->chunkById(100, function ($studios) use (&$reminders, &$snapshotted, &$automated, $snapshots, $automations) {
             foreach ($studios as $studio) {
                 $reminders += $this->reminders($studio);
                 $snapshotted += $snapshots->takeIfDue($studio);
+                $automated += $automations->runScheduled($studio);
             }
         });
         $expired = $this->expire($events);
         $warnings = $this->creditWarnings();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Events relayed: {$relayed}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Automated emails: {$automated}. Events relayed: {$relayed}.");
 
         return self::SUCCESS;
     }

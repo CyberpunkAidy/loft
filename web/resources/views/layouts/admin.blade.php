@@ -15,6 +15,7 @@
         ],
         'Business' => [
             $nav('studio.admin.members.index', 'Members', 'users', 'studio.admin.members.*'),
+            $nav('studio.admin.automations.index', 'Automations', 'zap', 'studio.admin.automations.*'),
             $nav('studio.admin.plans.index', 'Plans & pricing', 'tag', 'studio.admin.plans.*'),
             $nav('studio.admin.payments', 'Payments', 'credit-card', 'studio.admin.payments*'),
         ],
