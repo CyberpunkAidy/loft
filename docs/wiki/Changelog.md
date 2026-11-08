@@ -4,6 +4,13 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
+- **Waiver hardening** (roadmap step 1)
+  - **Waivers:** several can be in force at once, for every class or for chosen classes only (such as an aerial liability waiver), each with its own validity.
+  - **Versions:** every published version's text is kept. Signatures record the version, a hash of the exact text, the attendee's and signer's names, and how they're related. Once anyone has signed, changing the text publishes a new version.
+  - **Enforced everywhere:** member booking, waitlist promotion (a lapsed waiver keeps its place until signed), staff booking and check-in. Staff can let someone in by giving a reason, which is recorded.
+  - **Kept and downloadable:** signed waivers stay when accounts are deleted. Admins can download every signature as a ZIP.
+  - **Database:** new tables `waiver_versions`, `program_waiver` and `waiver_overrides`, plus new signature columns. Existing signatures are backfilled.
+
 - **Documentation and repository layout**
   - The project wiki (`docs/wiki/`, published by the Wiki workflow), and READMEs updated to match.
   - The WordPress plugin moved to `plugin/`. Its releases are paused, and the release checklist, zip script and `.gitattributes` zip rules are removed.

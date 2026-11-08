@@ -5,7 +5,11 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
 ## Starting point
 
 - **Booking engine (`Bookings`):** one capacity number per session. Every seat change locks the session row. Ordered waitlists promote automatically after re-checking the plan.
-- **Waivers:** one active, versioned waiver per studio, signed per attendee, with an expiry. Enforced on member web bookings only. Staff bookings, waitlist promotion and check-in show the status but don't block.
+- **Waivers (step 1, done):**
+  - Several in force at once, for every class or for chosen programs, each with its own validity.
+  - Every version's text is kept, and signatures are hashed.
+  - Enforced at booking, waitlist promotion, staff booking and check-in, with staff overrides recorded.
+  - Signatures are kept when accounts are deleted, and can be downloaded.
 - **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. No products, orders or cart.
 - **Events:** in-memory Laravel events feed the email listener. They aren't durable, nothing keeps a history, and there's no attendance event.
 - **API:** none. Server-rendered pages with session logins only.
@@ -276,7 +280,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 
 ## Order
 
-1. [ ] **Waiver hardening:** program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
+1. [x] **Waiver hardening** (built 2026-11-09): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
 2. [ ] **Rooms, apparatus capacity and waitlist limits:** settle the booking model before anything depends on it.
 3. [ ] **Event backbone:** outbox, `booking.attended`, `message_deliveries`, consent. Start the nightly snapshots here too.
 4. [ ] **Automations, email first:** first class, birthday, win-back. Start SMS carrier registration in parallel.
@@ -292,6 +296,4 @@ Steps 1 and 2 change rules members feel directly, so test them on one studio beh
 ## Known gaps (smaller)
 
 - **Stripe refunds:** a refund doesn't take back the credits or membership it paid for.
-- **Staff bookings:** they skip the waiver check (covered by step 1).
-- **Waiver signatures:** deleted with accounts today. Keeping them is decided (decision 20) and built in step 1.
 - **Merged branches:** they need deleting by hand on GitHub.

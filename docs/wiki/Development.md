@@ -30,9 +30,9 @@ vendor/bin/pint                       # code style
 DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=loft_test DB_USERNAME=postgres php vendor/bin/phpunit   # Postgres
 ```
 
-- **Size:** 99 tests (November 2026) in `tests/Feature`.
+- **Size:** 107 tests (November 2026) in `tests/Feature`.
 - **Stripe:** faked over HTTP; every Stripe call runs against fake responses.
-- **Coverage:** booking rules, session generation, Stripe client and webhooks (including delayed payments), tenancy and roles, account deletion, payments recorded in person, branding colors, email designs, sending through Resend, and every member and admin page.
+- **Coverage:** booking rules, waiver rules (program waivers, versions, enforcement, overrides, download), session generation, Stripe client and webhooks (including delayed payments), tenancy and roles, account deletion, payments recorded in person, branding colors, email designs, sending through Resend, and every member and admin page.
 
 ## CI (`.github/workflows/web.yml`)
 

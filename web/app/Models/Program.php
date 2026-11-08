@@ -61,6 +61,12 @@ class Program extends Model
         return $this->belongsToMany(Category::class);
     }
 
+    /** Waivers attached to this program (on top of the studio-wide ones). */
+    public function waivers(): BelongsToMany
+    {
+        return $this->belongsToMany(Waiver::class);
+    }
+
     public function sessions(): HasMany
     {
         return $this->hasMany(ClassSession::class);

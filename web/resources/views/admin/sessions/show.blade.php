@@ -76,6 +76,7 @@
                         @csrf
                         <x-select name="attendee_id" label="Attendee" :options="$candidates->mapWithKeys(fn ($a) => [$a->id => $a->name.' — '.$a->user->name])->all()" placeholder="Choose…" required />
                         <x-checkbox name="comp" label="Comp" hint="Add them free, without using a membership or credit." />
+                        <x-field name="waiver_override" label="No signed waiver? Reason to add them anyway" maxlength="190" placeholder="Signed a paper copy" hint="Only needed if they haven’t signed every waiver this class requires. It’s kept with the booking." />
                         <div class="actions"><button class="btn btn-small">Add to class</button></div>
                     </form>
                 @endif

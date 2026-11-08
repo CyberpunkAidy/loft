@@ -49,7 +49,11 @@ class AccountDeletionTest extends TestCase
         Storage::disk('local')->put('signatures/1/sig-1.png', 'png');
         WaiverSignature::create([
             'studio_id' => $studio->id, 'waiver_id' => $waiver->id, 'waiver_version' => 1, 'attendee_id' => $child->id,
-            'signed_by_user_id' => $user->id, 'signed_name' => $user->name, 'signature_path' => 'signatures/1/sig-1.png', 'signed_at' => now(),
+            'signed_by_user_id' => $user->id, 'signed_name' => $user->name, 'attendee_name' => $child->name, 'signature_path' => 'signatures/1/sig-1.png', 'signed_at' => now(),
+        ]);
+        WaiverSignature::create([ // the neighbor has signed, so the freed seat can go to them
+            'studio_id' => $studio->id, 'waiver_id' => $waiver->id, 'waiver_version' => 1, 'attendee_id' => $waiting->attendee_id,
+            'signed_by_user_id' => $neighbor->id, 'signed_name' => $neighbor->name, 'signed_at' => now(),
         ]);
         DB::table('password_reset_tokens')->insert(['email' => $user->email, 'token' => 'x', 'created_at' => now()]);
         DB::table('sessions')->insert([
@@ -68,8 +72,10 @@ class AccountDeletionTest extends TestCase
         $this->assertSame(0, Attendee::where('user_id', $user->id)->count());
         $this->assertSame(0, Entitlement::where('user_id', $user->id)->count());
         $this->assertSame(0, Booking::where('user_id', $user->id)->count());
-        $this->assertSame(0, WaiverSignature::count());
-        Storage::disk('local')->assertMissing('signatures/1/sig-1.png');
+        // Signed waivers stay with the studio, unlinked from the deleted account (decision 20).
+        $kept = WaiverSignature::where('signature_path', 'signatures/1/sig-1.png')->sole();
+        $this->assertSame([null, null, $child->name], [$kept->attendee_id, $kept->signed_by_user_id, $kept->attendee_name]);
+        Storage::disk('local')->assertExists('signatures/1/sig-1.png');
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
         $this->assertDatabaseMissing('sessions', ['id' => 'their-phone']);
         $this->assertDatabaseHas('sessions', ['id' => 'neighbor']);

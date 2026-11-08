@@ -11,6 +11,7 @@ use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Entitlement;
 use App\Models\Studio;
+use App\Models\User;
 use App\Support\BookingException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -33,6 +34,10 @@ class Bookings
      * $source 'web' is a member booking (waiver and booking-window rules apply); 'admin' is staff.
      * $preferred is used when it can pay for this session (e.g. the plan just bought at checkout).
      * $skipEntitlement books without using a membership or credit (staff comp).
+     * $waiverOverride (staff only: ['staff' => User, 'reason' => string]) books someone who hasn't
+     * signed every waiver the class needs, and records who decided that and why.
+     *
+     * @param  array{staff: User, reason: string}|null  $waiverOverride
      *
      * @throws BookingException
      */
@@ -43,6 +48,7 @@ class Bookings
         string $source = 'web',
         ?Entitlement $preferred = null,
         bool $skipEntitlement = false,
+        ?array $waiverOverride = null,
     ): Booking {
         $studio = $session->studio;
 
@@ -53,8 +59,9 @@ class Bookings
         if ($this->existing($session, $attendee)) {
             throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
         }
-        if ($source === 'web' && ! $this->waivers->isSigned($studio, $attendee)) {
-            throw new BookingException('waiver', "{$attendee->first_name} needs a signed waiver before booking.", ['attendee' => $attendee]);
+        $unsigned = $this->waivers->nextUnsigned($studio, $attendee, $session->program);
+        if ($unsigned && ($source === 'web' || $waiverOverride === null)) {
+            throw new BookingException('waiver', "{$attendee->first_name} needs to sign “{$unsigned->title}” before booking.", ['attendee' => $attendee, 'waiver' => $unsigned]);
         }
         $this->assertAge($session, $attendee);
 
@@ -66,7 +73,7 @@ class Bookings
             }
         }
 
-        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement) {
+        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride) {
             $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($this->existing($locked, $attendee)) {
                 throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
@@ -93,6 +100,9 @@ class Bookings
                 'source' => $source,
                 'booked_at' => now(),
             ]);
+            if ($unsigned && $waiverOverride) {
+                $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
+            }
 
             return [$booking, $full];
         }, 3);
@@ -165,11 +175,14 @@ class Bookings
             $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             $promoted = collect();
 
-            while ($this->seatsTaken($locked) < $locked->capacity) {
-                $next = $locked->bookings()->where('status', 'waitlisted')
-                    ->orderBy('position')->orderBy('booked_at')->orderBy('id')->first();
-                if (! $next) {
+            $waiting = $locked->bookings()->with(['attendee', 'studio', 'classSession.program'])->where('status', 'waitlisted')
+                ->orderBy('position')->orderBy('booked_at')->orderBy('id')->get();
+            foreach ($waiting as $next) {
+                if ($this->seatsTaken($locked) >= $locked->capacity) {
                     break;
+                }
+                if (! $this->waivers->clears($next)) {
+                    continue; // keeps their place until the waiver is signed
                 }
 
                 $entitlement = $next->entitlement;
@@ -206,14 +219,39 @@ class Bookings
         return $promoted;
     }
 
+    /** After a waiver is signed: try to move the attendee off waitlists where a seat is free. */
+    public function promoteAfterSigning(Attendee $attendee): void
+    {
+        $sessions = ClassSession::query()
+            ->whereIn('id', Booking::where('attendee_id', $attendee->id)->where('status', 'waitlisted')->select('class_session_id'))
+            ->where('status', 'scheduled')
+            ->where('starts_at', '>', now())
+            ->get();
+        foreach ($sessions as $session) {
+            $this->promoteWaitlist($session);
+        }
+    }
+
     /**
      * Staff check-in: attended, no_show, or booked (undo). With a lenient no-show policy
      * (no_show_consumes_credit off), a no-show hands the credit back, and undoing takes it again.
+     * Checking someone in needs every waiver their class requires, or a staff override with a reason.
+     *
+     * @param  array{staff: User, reason: string}|null  $waiverOverride
+     *
+     * @throws BookingException when they haven't signed and there's no override
      */
-    public function mark(Booking $booking, string $status): bool
+    public function mark(Booking $booking, string $status, ?array $waiverOverride = null): bool
     {
         if (! in_array($status, ['attended', 'no_show', 'booked'], true) || ! in_array($booking->status, Booking::SEAT_STATUSES, true)) {
             return false;
+        }
+        if ($status === 'attended' && ! $this->waivers->clears($booking)) {
+            if ($waiverOverride === null) {
+                $name = $booking->attendee->first_name;
+                throw new BookingException('waiver', "{$name} hasn’t signed the waiver this class needs. Have them sign it, or check them in with a reason.", ['attendee' => $booking->attendee]);
+            }
+            $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
         }
         $update = ['status' => $status, 'attended_at' => $status === 'attended' ? now() : null];
 

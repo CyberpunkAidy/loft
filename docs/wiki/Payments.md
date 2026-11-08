@@ -40,7 +40,7 @@ At the front desk (cash, a check, a card terminal, a bank transfer, a payment ap
 - **Record:** each one is saved in `payments` with the amount, currency, method, date, note and who recorded it (`App\Services\OfflinePayments`).
 - **Void:** for mistakes. The record stays, marked void, with who voided it and when, and the plan it granted is cancelled. Comps are recorded too, so they can be voided as well.
 - **Reporting:** the member's page lists their recorded payments. **Admin → Payments** lists every record, with the total taken in person this month (voids and comps excluded).
-- **Deleted accounts:** if a member deletes their account, the record stays in the studio's books, unlinked from the person ([Accounts and Data](Accounts-and-Data)).
+- **Deleted accounts:** if a member deletes their account, the record stays in the studio's books, unlinked from the person ([Accounts and Data](Accounts-and-Data)). Signed waivers are kept the same way.
 - **Who:** admins and owners only.
 
 ## Not supported yet

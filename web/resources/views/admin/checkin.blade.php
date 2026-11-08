@@ -37,6 +37,7 @@
                             <strong>{{ $b->attendee->name }}</strong>
                             @if ($b->attendee->age() !== null)<span class="muted"> · {{ $b->attendee->age() }}</span>@endif
                             @unless ($waiverOk[$b->id])<span class="badge badge-full">No waiver</span>@endunless
+                            @if (isset($overrides[$b->id]))<span class="badge badge-warn" title="Let in without a signed waiver">Waiver override</span>@endif
                             <div class="muted small">{{ collect([$b->user->name, $b->user->phone])->filter()->join(' · ') }}</div>
                             @if ($b->attendee->medical_notes)<div class="medical">⚠ {{ $b->attendee->medical_notes }}</div>@endif
                         </div>
@@ -46,11 +47,21 @@
                             @elseif ($b->status === 'late_cancelled')
                                 <span class="badge badge-muted">Late cancel</span>
                             @else
-                                <form method="post" action="{{ route('studio.admin.checkin.mark', ['booking' => $b]) }}" class="inline">
-                                    @csrf
-                                    <input type="hidden" name="status" value="{{ $b->status === 'attended' ? 'booked' : 'attended' }}">
-                                    <button @class(['btn', 'btn-small', 'btn-secondary' => $b->status !== 'attended']) aria-pressed="{{ $b->status === 'attended' ? 'true' : 'false' }}">Here</button>
-                                </form>
+                                @if ($waiverOk[$b->id] || $b->status === 'attended')
+                                    <form method="post" action="{{ route('studio.admin.checkin.mark', ['booking' => $b]) }}" class="inline">
+                                        @csrf
+                                        <input type="hidden" name="status" value="{{ $b->status === 'attended' ? 'booked' : 'attended' }}">
+                                        <button @class(['btn', 'btn-small', 'btn-secondary' => $b->status !== 'attended']) aria-pressed="{{ $b->status === 'attended' ? 'true' : 'false' }}">Here</button>
+                                    </form>
+                                @else
+                                    {{-- No signed waiver: staff can still let them in, with a reason that's kept. --}}
+                                    <form method="post" action="{{ route('studio.admin.checkin.mark', ['booking' => $b]) }}" class="row" data-confirm="Check {{ $b->attendee->first_name }} in without a signed waiver?">
+                                        @csrf
+                                        <input type="hidden" name="status" value="attended">
+                                        <input class="input" name="override_reason" required maxlength="190" placeholder="Reason, e.g. signed on paper" aria-label="Reason to check in without a waiver" style="width:13rem;min-height:2.15rem">
+                                        <button class="btn btn-small btn-secondary">Check in anyway</button>
+                                    </form>
+                                @endif
                                 <form method="post" action="{{ route('studio.admin.checkin.mark', ['booking' => $b]) }}" class="inline">
                                     @csrf
                                     <input type="hidden" name="status" value="{{ $b->status === 'no_show' ? 'booked' : 'no_show' }}">

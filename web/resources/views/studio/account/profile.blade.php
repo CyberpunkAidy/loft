@@ -28,7 +28,7 @@
 
 <section class="fieldset form narrow delete-account" id="delete-account" aria-labelledby="delete-account-title">
     <h2 id="delete-account-title">Delete account</h2>
-    <p>This deletes your account at every studio you belong to on {{ config('app.name') }}, with your family members, bookings, passes and signed waivers. It can’t be undone.</p>
+    <p>This deletes your account at every studio you belong to on {{ config('app.name') }}, with your family members, bookings and passes. It can’t be undone. Waivers you’ve signed stay with each studio as its record of what was agreed.</p>
     <p>Memberships that renew are cancelled now, so you won’t be charged again. Payments you’ve already made aren’t refunded.</p>
     <form method="post" action="{{ route('studio.account.destroy') }}" class="form" data-confirm="Delete your account? This can’t be undone.">
         @csrf
@@ -39,7 +39,7 @@
                 :label="'You’re the only owner of '.$owned->name.'. What happens to it?'"
                 placeholder="Choose…"
                 :options="$successors->mapWithKeys(fn ($s) => [$s->user_id => 'Make '.$s->user->name.' the owner ('.$s->role.')'])->put('close', 'Close '.$owned->name.' and delete it')->all()"
-                hint="Closing deletes the studio’s classes, plans, members’ bookings, passes and waivers, and cancels members’ renewing memberships. Members keep their accounts, and your Stripe account stays yours."
+                hint="Closing deletes the studio’s classes, plans, members’ bookings, passes and signed waivers, and cancels members’ renewing memberships. Download its signed waivers first (Admin → Waivers). Members keep their accounts, and your Stripe account stays yours."
                 required
             />
         @endforeach

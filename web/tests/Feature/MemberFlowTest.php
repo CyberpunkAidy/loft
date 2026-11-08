@@ -123,7 +123,7 @@ class MemberFlowTest extends TestCase
     {
         Storage::fake('local');
         $studio = $this->studio();
-        $this->waiver($studio, ['title' => 'Release', 'body' => "Para one.\n\nPara two."]);
+        $waiver = $this->waiver($studio, ['title' => 'Release', 'body' => "Para one.\n\nPara two."]);
         $user = $this->userIn($studio);
         $this->credits($studio, $user);
         $attendee = $this->attendee($studio, $user, ['dob' => now()->subYears(9)]);
@@ -131,14 +131,16 @@ class MemberFlowTest extends TestCase
         $this->actingAs($user);
 
         $this->post("/{$studio->slug}/book/{$session->id}", ['attendee_id' => $attendee->id])
-            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?return=%2F{$studio->slug}%2Fbook%2F{$session->id}");
+            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?waiver={$waiver->id}&return=%2F{$studio->slug}%2Fbook%2F{$session->id}");
         $this->get("/{$studio->slug}/waiver/{$attendee->id}")->assertOk()->assertSee('Para two.')->assertSee('Parent or guardian');
 
         $png = 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\n".str_repeat("\0", 20));
-        $this->post("/{$studio->slug}/waiver/{$attendee->id}", ['signed_name' => 'Priya Shah', 'agree' => '1', 'signature_png' => $png, 'return' => "/{$studio->slug}/book/{$session->id}"])
+        $this->post("/{$studio->slug}/waiver/{$attendee->id}", ['waiver_id' => $waiver->id, 'signed_name' => 'Priya Shah', 'agree' => '1', 'signature_png' => $png, 'return' => "/{$studio->slug}/book/{$session->id}"])
             ->assertRedirect("/{$studio->slug}/book/{$session->id}");
         $signature = WaiverSignature::sole();
         $this->assertSame('Priya Shah', $signature->signed_name);
+        $this->assertSame(['guardian', $attendee->name, hash('sha256', "Para one.\n\nPara two.")], [$signature->signer_relationship, $signature->attendee_name, $signature->body_sha256]);
+        $this->assertSame("Para one.\n\nPara two.", $signature->version->body);
         Storage::disk('local')->assertExists($signature->signature_path);
 
         $this->post("/{$studio->slug}/book/{$session->id}", ['attendee_id' => $attendee->id])->assertRedirect("/{$studio->slug}/account");
@@ -147,11 +149,11 @@ class MemberFlowTest extends TestCase
     public function test_waiver_rejects_offsite_return_urls(): void
     {
         $studio = $this->studio();
-        $this->waiver($studio);
+        $waiver = $this->waiver($studio);
         $user = $this->userIn($studio);
         $attendee = $this->attendee($studio, $user);
 
-        $this->actingAs($user)->post("/{$studio->slug}/waiver/{$attendee->id}", ['signed_name' => 'Pat Doe', 'agree' => '1', 'return' => '//evil.example/x'])
+        $this->actingAs($user)->post("/{$studio->slug}/waiver/{$attendee->id}", ['waiver_id' => $waiver->id, 'signed_name' => 'Pat Doe', 'agree' => '1', 'return' => '//evil.example/x'])
             ->assertRedirect("/{$studio->slug}/account/waivers");
     }
 

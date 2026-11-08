@@ -11,14 +11,15 @@
 Members delete their own account under **My account → Profile → Delete account**, after entering their password. It's deleted at every studio (`App\Services\AccountDeletion`), in this order:
 
 1. **Billing stops first.** Renewing memberships are cancelled in each studio's Stripe account, so nobody is charged again. Payments already made aren't refunded, and the form says so. If Stripe can't be reached, nothing is deleted and the member is asked to try again.
-2. **The database removes their records:** studio memberships, family members, passes and memberships, bookings, and waiver signatures.
-3. **Signature drawings** are removed from disk.
+2. **The database removes their records:** studio memberships, family members, passes and memberships, and bookings.
+3. **Waiver signatures stay** with each studio, unlinked from the account: the names, the version and hash of the exact text, and the drawing ([decision 20](Decisions)).
 4. **They're signed out** on every device, and their password-reset tokens are removed.
 5. **Seats they held** in upcoming classes go to the waitlist.
 
 What stays:
 - **Classes they taught** stay, with no instructor.
 - **Payments the studio recorded in person** stay in the studio's books, unlinked from the person.
+- **Signed waivers** stay with each studio, unlinked from the person.
 - **Payment history** stays in each studio's Stripe account. That data belongs to the studio.
 
 ## Studio owners
@@ -27,7 +28,7 @@ A studio must always have an owner.
 - **Making another owner:** owners can make another staff member an owner at any time (Admin → Staff → **Make owner**). Only owners can do this.
 - **Deleting an owner's account:** if the person is the **only** owner of a studio, the delete form asks what happens to it:
   - **Hand it over:** one of its admins or instructors becomes the owner. The studio carries on.
-  - **Close it:** members' renewing memberships at that studio are cancelled in Stripe, then the studio is deleted with everything in it (classes, plans, bookings, waivers, recorded payments, signature drawings). Members keep their Loft accounts and their other studios, and the owner's Stripe account stays theirs.
+  - **Close it:** members' renewing memberships at that studio are cancelled in Stripe, then the studio is deleted with everything in it (classes, plans, bookings, signed waivers, recorded payments, signature drawings). Members keep their Loft accounts and their other studios, and the owner's Stripe account stays theirs. The form tells the owner to **download the signed waivers first** (Admin → Waivers).
 - **After a close:** the owner lands on the Loft home page. Emails still queued for the closed studio are dropped.
 
 ## Where personal data lives
@@ -40,10 +41,8 @@ A studio must always have an owner.
 | Card details | Never in Loft; only in Stripe |
 | Studio customer records, charges, invoices | The studio's own Stripe account |
 
-## Signed waivers are kept (decided, being built)
+## Signed waivers are kept
 
-[Decision 20](Decisions), 2026-11-08: signed waivers are kept as the studio's liability records.
-- **Deleted account:** its waiver signatures stay with the studio, unlinked from the account, with the signer's and attendee's names and the exact text signed.
-- **Closing a studio:** the owner can download every signed waiver first.
-
-**Until roadmap step 1 ships**, deleting an account still deletes its signatures, as described above.
+[Decision 20](Decisions): signed waivers are the studio's liability records.
+- **Deleted account:** its signatures stay, unlinked from the account (`attendee_id` and `signed_by_user_id` become empty). Each keeps the attendee's name, the signer's typed name, how they're related (self, guardian or account holder), the waiver version, a SHA-256 hash of the exact text, the IP address and browser, and the drawing.
+- **Download:** admins can download every signature as a ZIP (Admin → Waivers). It contains `signatures.csv`, the text of every version and the drawings. Owners take a copy before closing a studio.

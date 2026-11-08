@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Color;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -41,9 +42,8 @@ class Studio extends Model
         'schedule_weeks' => 2,
     ];
 
-    private ?Waiver $activeWaiverCache = null;
-
-    private bool $activeWaiverLoaded = false;
+    /** @var Collection<int, Waiver>|null */
+    private ?Collection $activeWaiversCache = null;
 
     protected function casts(): array
     {
@@ -121,20 +121,15 @@ class Studio extends Model
         return $this->stripe_account_id !== null && $this->stripe_charges_enabled;
     }
 
-    public function activeWaiver(): ?Waiver
+    /** Waivers in force, with the programs they're attached to. */
+    public function activeWaivers(): Collection
     {
-        if (! $this->activeWaiverLoaded) {
-            $this->activeWaiverCache = $this->waivers()->where('is_active', true)->latest('id')->first();
-            $this->activeWaiverLoaded = true;
-        }
-
-        return $this->activeWaiverCache;
+        return $this->activeWaiversCache ??= $this->waivers()->where('is_active', true)->with('programs:id,title')->orderBy('id')->get();
     }
 
-    public function forgetActiveWaiver(): void
+    public function forgetActiveWaivers(): void
     {
-        $this->activeWaiverLoaded = false;
-        $this->activeWaiverCache = null;
+        $this->activeWaiversCache = null;
     }
 
     public function currentSeason(): ?Season

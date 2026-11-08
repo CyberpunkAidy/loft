@@ -81,10 +81,13 @@ class AccountController extends Controller
     {
         $attendees = $this->attendees($request, $studio);
 
+        $inForce = $studio->activeWaivers();
+
         return view('studio.account.waivers', [
-            'waiver' => $studio->activeWaiver(),
+            'waivers' => $inForce,
             'attendees' => $attendees,
-            'waiverStatus' => $attendees->mapWithKeys(fn ($a) => [$a->id => $waivers->statusFor($studio, $a)]),
+            // attendee id => waiver id => status
+            'statuses' => $attendees->mapWithKeys(fn ($a) => [$a->id => $inForce->mapWithKeys(fn ($w) => [$w->id => $waivers->statusOf($studio, $a, $w)])]),
         ]);
     }
 

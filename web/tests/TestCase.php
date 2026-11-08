@@ -85,7 +85,7 @@ abstract class TestCase extends BaseTestCase
     protected function waiver(Studio $studio, array $attributes = []): Waiver
     {
         $waiver = Waiver::factory()->create(['studio_id' => $studio->id] + $attributes);
-        $studio->forgetActiveWaiver();
+        $studio->forgetActiveWaivers();
 
         return $waiver;
     }
