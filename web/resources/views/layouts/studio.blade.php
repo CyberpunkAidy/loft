@@ -8,7 +8,7 @@
 @endphp
 <header class="site-header">
     <div class="container">
-        <a class="brand" href="{{ route('studio.schedule') }}"><span class="brand-mark" aria-hidden="true">{{ mb_strtoupper(mb_substr($studio->name, 0, 1)) }}</span> {{ $studio->name }}</a>
+        <a class="brand" href="{{ route('studio.schedule') }}"><span class="brand-mark" aria-hidden="true">{{ $studio->initial() }}</span> {{ $studio->name }}</a>
         <nav class="nav" aria-label="Studio">
             <a href="{{ route('studio.schedule') }}" @class(['active' => request()->routeIs('studio.schedule', 'studio.program', 'studio.book')])>Schedule</a>
             <a href="{{ route('studio.plans') }}" @class(['active' => request()->routeIs('studio.plans')])>Plans</a>
@@ -24,7 +24,7 @@
                     <a class="btn btn-small" href="{{ route('studio.join') }}">Join</a>
                 @endunless
             @else
-                <a href="{{ route('studio.login') }}">Sign in</a>
+                <a href="{{ route('studio.login') }}" @class(['active' => request()->routeIs('studio.login')])>Sign in</a>
                 <a class="btn btn-small" href="{{ route('studio.join') }}">Join</a>
             @endif
         </nav>
@@ -37,9 +37,9 @@
     </div>
 </main>
 <footer class="site-footer">
-    <div class="container row between">
-        <span>{{ $studio->name }}@if ($studio->contact_email) · <a href="mailto:{{ $studio->contact_email }}">{{ $studio->contact_email }}</a>@endif</span>
-        <span>Powered by <a href="{{ route('home') }}">{{ config('app.name') }}</a></span>
+    <div class="container">
+        <span><strong>{{ $studio->name }}</strong>@if ($studio->contact_email) · <a href="mailto:{{ $studio->contact_email }}">{{ $studio->contact_email }}</a>@endif</span>
+        <a class="powered" href="{{ route('home') }}">Powered by <x-logo /></a>
     </div>
 </footer>
 @endsection
