@@ -15,6 +15,7 @@ use App\Services\Bookings;
 use App\Services\DomainEvents;
 use App\Services\Entitlements;
 use App\Services\Orders;
+use App\Services\Shop;
 use App\Support\BookingException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -45,6 +46,7 @@ class StripeWebhooks
         private readonly Bookings $bookings,
         private readonly DomainEvents $events,
         private readonly Orders $orders,
+        private readonly Shop $shop,
     ) {}
 
     /**
@@ -145,6 +147,11 @@ class StripeWebhooks
      */
     public function fulfillCheckout(Studio $studio, array $cs): CheckoutResult
     {
+        if (($cs['metadata']['loft_kind'] ?? null) === 'shop') {
+            $this->shop->fulfil($studio, $cs); // an online shop order, not a plan
+
+            return new CheckoutResult(null);
+        }
         if (($cs['status'] ?? 'complete') !== 'complete') {
             return new CheckoutResult(null);
         }
@@ -191,6 +198,11 @@ class StripeWebhooks
     private function checkoutFailed(Studio $studio, array $cs): void
     {
         if (($cs['mode'] ?? '') === 'subscription') {
+            return;
+        }
+        if (($cs['metadata']['loft_kind'] ?? null) === 'shop') {
+            $this->shop->failed($studio, $cs);
+
             return;
         }
         $meta = $cs['metadata'] ?? [];

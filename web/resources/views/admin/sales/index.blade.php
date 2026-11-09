@@ -17,6 +17,9 @@
     </div>
 </div>
 
+@if ($toPickUp)
+    <div class="alert alert-warning"><div>{{ $toPickUp }} online {{ \Illuminate\Support\Str::plural('order', $toPickUp) }} waiting to be picked up. <a href="{{ route('studio.admin.sales.index', ['pickup' => 1]) }}">See them</a></div></div>
+@endif
 <div class="stats">
     <div class="stat"><strong>{{ \App\Support\Money::format($total, $studio->currency) }}</strong><span>Total sales</span></div>
     <div class="stat"><strong>{{ \App\Support\Money::format($online, $studio->currency) }}</strong><span>Online</span></div>

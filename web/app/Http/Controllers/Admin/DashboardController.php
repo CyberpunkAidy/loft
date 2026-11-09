@@ -37,6 +37,7 @@ class DashboardController extends Controller
             'checklist' => $checklist,
             'stats' => [
                 'members' => $studio->studioUsers()->where('role', 'member')->count(),
+                'to_pick_up' => $studio->orders()->where('status', 'paid')->where('fulfillment_status', 'to_pick_up')->count(),
                 'sales_month' => (int) $studio->orders()->where('status', 'paid')->where('currency', $studio->currency)
                     ->where('paid_at', '>=', $studio->localNow()->startOfMonth()->utc())->sum('total_cents'),
                 'memberships' => $studio->entitlements()->where('kind', 'subscription')->where('status', 'active')->count(),

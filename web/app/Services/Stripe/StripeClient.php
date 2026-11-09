@@ -2,6 +2,7 @@
 
 namespace App\Services\Stripe;
 
+use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Studio;
 use App\Models\User;
@@ -284,9 +285,76 @@ class StripeClient
         return $this->post('checkout/sessions', $params, $this->account($studio));
     }
 
-    public function retrieveCheckoutSession(Studio $studio, string $id): array
+    /**
+     * The studio's sales tax rate as a Stripe Tax Rate on its account, for shop checkouts. Tax Rates
+     * can't change percentage, so a new studio rate makes a new one. Null when the rate is 0.
+     */
+    public function ensureTaxRate(Studio $studio): ?string
     {
-        return $this->get('checkout/sessions/'.$id, [], $this->account($studio));
+        $milli = (int) $studio->setting('sales_tax_milli');
+        if ($milli <= 0) {
+            return null;
+        }
+        if ($studio->stripe_tax_rate_id && (int) $studio->stripe_tax_rate_milli === $milli) {
+            return $studio->stripe_tax_rate_id;
+        }
+        $rate = $this->post('tax_rates', [
+            'display_name' => 'Sales tax',
+            'percentage' => rtrim(rtrim(number_format($milli / 1000, 3, '.', ''), '0'), '.'),
+            'inclusive' => 'false',
+        ], $this->account($studio), "loft-txr-{$studio->id}-{$milli}");
+        $studio->update(['stripe_tax_rate_id' => $rate['id'], 'stripe_tax_rate_milli' => $milli]);
+
+        return $rate['id'];
+    }
+
+    /**
+     * Hosted Checkout for an online shop order (App\Services\Shop): one line per product, the studio's
+     * Tax Rate on taxable ones, held for $minutes (the order's stock is reserved meanwhile).
+     */
+    public function createShopCheckout(Studio $studio, User $user, Order $order, string $successUrl, string $cancelUrl, int $minutes): array
+    {
+        $taxRate = $this->ensureTaxRate($studio);
+        $metadata = [
+            'loft_studio_id' => $studio->id,
+            'loft_user_id' => $user->id,
+            'loft_order_id' => $order->id,
+            'loft_kind' => 'shop',
+        ];
+        $params = [
+            'customer' => $this->ensureCustomer($studio, $user),
+            'mode' => 'payment',
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+            'expires_at' => now()->addMinutes($minutes)->getTimestamp(),
+            'metadata' => $metadata,
+            'payment_intent_data' => ['metadata' => $metadata],
+            'line_items' => $order->items->map(fn ($item) => [
+                'quantity' => $item->quantity,
+                'price_data' => [
+                    'currency' => $order->currency,
+                    'unit_amount' => $item->unit_price_cents,
+                    'product_data' => ['name' => $item->description],
+                ],
+            ] + ($taxRate && $item->variant?->product?->taxable ? ['tax_rates' => [$taxRate]] : []))->values()->all(),
+        ];
+        if ($this->platformFeePercent > 0) {
+            $params['payment_intent_data']['application_fee_amount'] = (int) round($order->total_cents * $this->platformFeePercent / 100);
+        }
+
+        return $this->post('checkout/sessions', $params, $this->account($studio), 'loft-shop-'.$order->id);
+    }
+
+    /** Close a Checkout Session nobody will finish (the member came back to the cart). */
+    public function expireCheckoutSession(Studio $studio, string $id): array
+    {
+        return $this->post("checkout/sessions/{$id}/expire", [], $this->account($studio));
+    }
+
+    /** @param  list<string>  $expand  e.g. ['payment_intent'] */
+    public function retrieveCheckoutSession(Studio $studio, string $id, array $expand = []): array
+    {
+        return $this->get('checkout/sessions/'.$id, $expand ? ['expand' => $expand] : [], $this->account($studio));
     }
 
     public function retrieveSubscription(Studio $studio, string $id): array

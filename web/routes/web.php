@@ -50,6 +50,10 @@ Route::prefix('{studio}')
         Route::get('/', [Studio\ScheduleController::class, 'index'])->name('schedule');
         Route::get('/classes/{program}', [Studio\ScheduleController::class, 'program'])->name('program');
         Route::get('/plans', [Studio\PlanController::class, 'index'])->name('plans');
+        Route::get('/shop', [Studio\ShopController::class, 'index'])->name('shop');
+        Route::post('/shop/cart', [Studio\ShopController::class, 'add'])->middleware('throttle:60,1')->name('shop.add');
+        Route::get('/shop/cart', [Studio\ShopController::class, 'cart'])->name('shop.cart');
+        Route::post('/shop/cart/{variant}', [Studio\ShopController::class, 'update'])->whereNumber('variant')->name('shop.update');
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
         Route::post('/join', [Studio\JoinController::class, 'store'])->middleware('throttle:10,1')->name('join.store');
@@ -82,6 +86,8 @@ Route::prefix('{studio}')
             Route::post('/bookings/{booking}/cancel', [Studio\BookingController::class, 'cancel'])->name('bookings.cancel');
 
             Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->name('checkout');
+            Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware('throttle:20,1')->name('shop.checkout');
+            Route::get('/shop/complete', [Studio\ShopController::class, 'complete'])->name('shop.complete');
             Route::get('/checkout/complete', [Studio\CheckoutController::class, 'complete'])->name('checkout.complete');
             Route::post('/billing-portal', [Studio\CheckoutController::class, 'portal'])->name('billing.portal');
         });
@@ -142,6 +148,7 @@ Route::prefix('{studio}')
 
                 Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
                 Route::get('sales/export', [Admin\SalesController::class, 'export'])->name('sales.export');
+                Route::post('orders/{order}/picked-up', [Admin\SalesController::class, 'pickedUp'])->name('orders.picked_up');
 
                 Route::get('payments', [Admin\PaymentsController::class, 'show'])->name('payments');
                 Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->name('payments.connect');

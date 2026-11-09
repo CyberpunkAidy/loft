@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Studio;
+use App\Services\Orders;
 use App\Support\Csv;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -16,6 +18,12 @@ class SalesController extends Controller
 {
     public function index(Request $request, Studio $studio): View
     {
+        $toPickUp = $studio->orders()->where('status', 'paid')->where('fulfillment_status', 'to_pick_up');
+        if ($request->boolean('pickup')) {
+            return view('admin.sales.pickups', [
+                'orders' => (clone $toPickUp)->with(['items', 'user', 'payment', 'studio'])->oldest('paid_at')->paginate(50)->withQueryString(),
+            ]);
+        }
         [$from, $to] = $this->month($request, $studio);
         $orders = $this->orders($studio, $from, $to);
         $paid = (clone $orders)->where('status', 'paid')->where('currency', $studio->currency);
@@ -28,7 +36,19 @@ class SalesController extends Controller
             'inPerson' => (int) (clone $paid)->where('channel', 'in_person')->sum('total_cents'),
             'count' => (clone $paid)->where('method', '!=', 'comp')->count(),
             'comps' => (clone $paid)->where('method', 'comp')->count(),
+            'toPickUp' => $toPickUp->count(),
         ]);
+    }
+
+    /** An online order was collected at the front desk. */
+    public function pickedUp(Request $request, Studio $studio, Order $order, Orders $orders): RedirectResponse
+    {
+        if (! $order->awaitsPickup()) {
+            return back()->with('error', "Order #{$order->number} isn’t waiting to be picked up.");
+        }
+        $orders->markPickedUp($order, $request->user());
+
+        return back()->with('success', "Order #{$order->number} marked as picked up.");
     }
 
     /** The month's orders as CSV, for a spreadsheet or the accountant. */

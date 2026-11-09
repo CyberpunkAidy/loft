@@ -191,19 +191,9 @@ class Orders
     {
         try {
             return DB::transaction(function () use ($studio, $attributes, $items) {
-                Studio::whereKey($studio->id)->lockForUpdate()->first();
-                $number = 1 + (int) (Order::where('studio_id', $studio->id)->max('number') ?? 1000);
-                $order = Order::create($attributes + ['studio_id' => $studio->id, 'number' => $number, 'status' => 'paid']);
+                $order = Order::create($attributes + ['studio_id' => $studio->id, 'number' => $this->nextNumber($studio), 'status' => 'paid']);
                 $order->items()->createMany($items);
-                $this->events->record('order.paid', $studio, [
-                    'order_id' => $order->id,
-                    'number' => $order->number,
-                    'channel' => $order->channel,
-                    'method' => $order->method,
-                    'total_cents' => $order->total_cents,
-                    'currency' => $order->currency,
-                    'items' => array_column($items, 'description'),
-                ], $order->user_id);
+                $this->recordPaid($order);
 
                 return $order;
             });
@@ -216,6 +206,73 @@ class Orders
 
             return $existing ?? throw $e;
         }
+    }
+
+    /**
+     * An order waiting for payment (the online shop holds its stock meanwhile). It has no number or
+     * paid_at until markPaid; it isn't a sale yet, so it stays out of totals and lists.
+     */
+    public function createPending(Studio $studio, array $attributes, array $items): Order
+    {
+        return DB::transaction(function () use ($studio, $attributes, $items) {
+            $order = Order::create($attributes + ['studio_id' => $studio->id, 'status' => 'pending']);
+            $order->items()->createMany($items);
+
+            return $order;
+        });
+    }
+
+    /**
+     * A pending order was paid: number it, take Stripe's amounts, record order.paid. Returns false if
+     * it wasn't pending (already paid, or released), so callers can act once.
+     *
+     * @param  array<string, mixed>  $attributes  amounts and Stripe IDs
+     */
+    public function markPaid(Order $order, array $attributes): bool
+    {
+        return DB::transaction(function () use ($order, $attributes) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'pending') {
+                return false;
+            }
+            $locked->update($attributes + ['status' => 'paid', 'number' => $this->nextNumber($locked->studio), 'paid_at' => now()]);
+            $this->recordPaid($locked);
+            $order->setRawAttributes($locked->getAttributes(), true);
+
+            return true;
+        });
+    }
+
+    public function markPickedUp(Order $order, User $staff): void
+    {
+        if ($order->fulfillment_status !== 'to_pick_up' || $order->status !== 'paid') {
+            return;
+        }
+        DB::transaction(function () use ($order, $staff) {
+            $order->update(['fulfillment_status' => 'picked_up', 'picked_up_at' => now(), 'picked_up_by_user_id' => $staff->id]);
+            $this->events->record('order.picked_up', $order->studio_id, ['order_id' => $order->id, 'number' => $order->number], $order->user_id);
+        });
+    }
+
+    /** The studio's next order number. Call inside a transaction: it locks the studio row. */
+    private function nextNumber(Studio $studio): int
+    {
+        Studio::whereKey($studio->id)->lockForUpdate()->first();
+
+        return 1 + (int) (Order::where('studio_id', $studio->id)->max('number') ?? 1000);
+    }
+
+    private function recordPaid(Order $order): void
+    {
+        $this->events->record('order.paid', $order->studio_id, [
+            'order_id' => $order->id,
+            'number' => $order->number,
+            'channel' => $order->channel,
+            'method' => $order->method,
+            'total_cents' => $order->total_cents,
+            'currency' => $order->currency,
+            'items' => $order->items()->pluck('description')->all(),
+        ], $order->user_id);
     }
 
     /** Stripe fields can be an ID or an expanded object. */
