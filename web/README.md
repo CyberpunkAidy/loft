@@ -262,7 +262,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 184 tests. They cover:
+There are 185 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots

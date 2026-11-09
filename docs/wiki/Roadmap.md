@@ -311,5 +311,4 @@ Steps 1 and 2 change rules members feel directly. Rooms are opt-in: a studio wit
 
 ## Known gaps (smaller)
 
-- **An old table:** `sent_notifications` is no longer written (replaced by `message_deliveries`). Drop it in a release after the event backbone is live.
 - **Merged branches:** they need deleting by hand on GitHub.

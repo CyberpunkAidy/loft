@@ -16,6 +16,7 @@ use App\Services\MemberSnapshots;
 use App\Services\Messages;
 use App\Services\OfflinePayments;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use RuntimeException;
 use Tests\Support\RecordingEventHandler;
@@ -304,5 +305,11 @@ class EventBackboneTest extends TestCase
         $this->actingAs($member)->delete("/{$studio->slug}/account", ['delete_password' => 'password'])->assertRedirect();
         $this->assertSame(0, MemberSnapshot::count());
         $this->assertSame([null, null], DomainEvent::where('type', 'payment.failed')->pluck('user_id')->all());
+    }
+
+    public function test_the_old_email_log_is_gone_and_the_new_one_stays(): void
+    {
+        $this->assertFalse(Schema::hasTable('sent_notifications'), 'replaced by message_deliveries');
+        $this->assertTrue(Schema::hasTable('message_deliveries'));
     }
 }
