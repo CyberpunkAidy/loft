@@ -8,7 +8,7 @@ Loft runs on [Render](https://render.com), defined by the Blueprint in `render.y
 |---|---|---|
 | `loft-web` | Web service (Docker) | The site, behind Apache. Health check `/up`. Runs database migrations before each deploy goes live (`start migrate`). Custom domain `loftstudio.app`. |
 | `loft-worker` | Background worker (Docker) | `queue:work` (3 tries, 30-second backoff, restarts hourly). Sends the queued emails. |
-| `loft-housekeeping` | Cron job (Docker), `0 * * * *` | `loft:housekeeping`: reminders, credit-expiry warnings, expiring plans, nightly member snapshots (after 2 AM studio time), birthday and win-back automations (from 10 AM studio time), relaying domain events |
+| `loft-housekeeping` | Cron job (Docker), `0 * * * *` | `loft:housekeeping`: reminders, credit-expiry warnings, expiring plans, nightly member snapshots and churn scores (after 2 AM studio time), birthday, win-back and at-risk automations (from 10 AM studio time), settling shop checkouts and card reader sales nobody finished (asks Stripe, so it needs `STRIPE_SECRET`), relaying domain events |
 | `loft-db` | PostgreSQL 16 | The database. Only Render services can connect (`ipAllowList: []`). |
 
 - **Shared image and settings:** all three app services build the same image from `web/Dockerfile` (`rootDir: web`) and share the `loft-shared` environment group.
@@ -28,11 +28,12 @@ Values aren't recorded here. Secrets live only in Render's dashboard.
 | `APP_KEY` | `loft-shared` group | Generated once by Render |
 | `DB_URL` | Each service (Blueprint) | From the `loft-db` connection string |
 | `MAIL_MAILER`, `RESEND_API_KEY` | `loft-shared` group, **set in the dashboard** | `MAIL_MAILER=resend`. Left out of the Blueprint so a sync never overwrites them. |
-| `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | `sync: false` in the Blueprint. The secret key starts with `sk_`, not `pk_`. |
+| `STRIPE_SECRET` | `loft-web` and `loft-housekeeping`, **set in the dashboard** | The same key on both. `sync: false` in the Blueprint. The secret key starts with `sk_`, not `pk_`. Without it on `loft-housekeeping`, shop checkouts and card reader sales nobody finished stay pending and keep their stock, and its logs show `Stripe is not configured. Set STRIPE_SECRET.` |
+| `STRIPE_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | `sync: false` in the Blueprint |
 | `LOFT_PLATFORM_FEE_PERCENT` | `loft-web` | `0`: no platform fee |
 | `STRIPE_API_VERSION`, `STRIPE_V2_API_VERSION` | Optional | Default to `2024-06-20` and `2026-10-28.endive` ([Stripe](Stripe)) |
 
-A Blueprint sync overwrites the keys it declares and leaves everything else as it is.
+A Blueprint sync overwrites the keys it declares and leaves everything else as it is. The exception is `sync: false` keys: Render asks for them only when the Blueprint is first created and ignores them on every later sync. So a `sync: false` key added to `render.yaml` for a service that already exists has to be added by hand in that service's **Environment** page.
 
 ## Domain and DNS (Porkbun)
 
@@ -64,5 +65,5 @@ The app logs to stderr, which Render captures per service. Search for `productio
 
 ## Going live with real payments
 
-1. Switch `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET` to live-mode values. Create a separate live-mode webhook with the same events ([Stripe](Stripe)).
+1. Switch `STRIPE_SECRET` (on `loft-web` and `loft-housekeeping`) and `STRIPE_WEBHOOK_SECRET` to live-mode values. Create a separate live-mode webhook with the same events ([Stripe](Stripe)).
 2. Test-mode and live-mode Stripe objects don't mix. Each studio reconnects Stripe, and plans are synced to Stripe again.
