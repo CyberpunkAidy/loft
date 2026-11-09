@@ -1,4 +1,4 @@
-# Loft
+# Loft Studio
 
 Studio software for dance, aerial and fitness studios. It covers class schedules and waitlists, memberships and class packs, family accounts, digital waivers, check-in, and payments that go straight into each studio's own Stripe account.
 
