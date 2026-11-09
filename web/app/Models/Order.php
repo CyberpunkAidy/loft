@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'studio_id', 'number', 'user_id', 'channel', 'method', 'status', 'currency', 'subtotal_cents', 'discount_cents',
     'tax_cents', 'total_cents', 'stripe_checkout_session_id', 'stripe_invoice_id', 'stripe_payment_intent_id',
     'recorded_by_user_id', 'paid_at', 'voided_at', 'voided_by_user_id', 'walk_in', 'note',
-    'fulfillment_status', 'picked_up_at', 'picked_up_by_user_id',
+    'fulfillment_status', 'picked_up_at', 'picked_up_by_user_id', 'card_reader_id',
 ])]
 class Order extends Model
 {
@@ -65,6 +65,17 @@ class Order extends Model
         return $this->belongsTo(User::class, 'recorded_by_user_id');
     }
 
+    public function cardReader(): BelongsTo
+    {
+        return $this->belongsTo(CardReader::class);
+    }
+
+    /** Sent to a card reader, waiting for the customer's card. */
+    public function awaitsReader(): bool
+    {
+        return $this->status === 'pending' && $this->method === 'reader';
+    }
+
     public function isVoid(): bool
     {
         return $this->status === 'void';
@@ -89,7 +100,11 @@ class Order extends Model
     /** "Online (Stripe)", "Cash", "No charge (comp)"… */
     public function methodLabel(): string
     {
-        return $this->method === 'stripe' ? 'Online (Stripe)' : (Payment::METHODS[$this->method] ?? $this->method);
+        return match ($this->method) {
+            'stripe' => 'Online (Stripe)',
+            'reader' => 'Card reader',
+            default => Payment::METHODS[$this->method] ?? $this->method,
+        };
     }
 
     /** "5-Class Pack", or "Studio Tee · M ×2 + Grip Aid" */

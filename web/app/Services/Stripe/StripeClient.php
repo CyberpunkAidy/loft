@@ -345,6 +345,114 @@ class StripeClient
         return $this->post('checkout/sessions', $params, $this->account($studio), 'loft-shop-'.$order->id);
     }
 
+    /* ------------------------------------------------------------------ Terminal (card readers) */
+
+    /** Test-mode keys can register simulated readers and present test cards to them. */
+    public function testMode(): bool
+    {
+        return str_starts_with((string) $this->secret, 'sk_test_') || str_starts_with((string) $this->secret, 'rk_test_');
+    }
+
+    /**
+     * The studio's Terminal Location (where its readers are), made once from its address.
+     *
+     * @param  array{line1: string, line2?: ?string, city: string, state?: ?string, postal_code: string, country: string}  $address
+     */
+    public function createTerminalLocation(Studio $studio, array $address): string
+    {
+        $location = $this->post('terminal/locations', ['display_name' => $studio->name, 'address' => $address], $this->account($studio));
+        $studio->update(['stripe_terminal_location_id' => $location['id']]);
+
+        return $location['id'];
+    }
+
+    /** Pair a reader using the code it shows on screen. */
+    public function registerReader(Studio $studio, string $code, string $label): array
+    {
+        return $this->post('terminal/readers', [
+            'registration_code' => $code,
+            'label' => $label,
+            'location' => $studio->stripe_terminal_location_id,
+        ], $this->account($studio));
+    }
+
+    /** @return list<array<string, mixed>> the studio's readers as Stripe sees them (status: online or offline) */
+    public function listReaders(Studio $studio): array
+    {
+        return $this->get('terminal/readers', ['limit' => 100], $this->account($studio))['data'] ?? [];
+    }
+
+    public function retrieveReader(Studio $studio, string $id): array
+    {
+        return $this->get('terminal/readers/'.$id, [], $this->account($studio));
+    }
+
+    public function deleteReader(Studio $studio, string $id): void
+    {
+        $this->request('DELETE', 'terminal/readers/'.$id, [], $this->account($studio));
+    }
+
+    /**
+     * A card-present payment for a front-desk sale, captured as soon as it's authorized. The platform
+     * fee applies as it does online.
+     */
+    public function createReaderPaymentIntent(Studio $studio, Order $order): array
+    {
+        $metadata = ['loft_studio_id' => $studio->id, 'loft_order_id' => $order->id, 'loft_kind' => 'reader'];
+        $params = [
+            'amount' => $order->total_cents,
+            'currency' => $order->currency,
+            'payment_method_types' => ['card_present'],
+            'capture_method' => 'automatic',
+            'description' => 'Front desk sale',
+            'metadata' => $metadata,
+        ];
+        if ($this->platformFeePercent > 0) {
+            $params['application_fee_amount'] = (int) round($order->total_cents * $this->platformFeePercent / 100);
+        }
+
+        return $this->post('payment_intents', $params, $this->account($studio), 'loft-reader-'.$order->id);
+    }
+
+    /** Show the payment on the reader and wait for a card. */
+    public function processOnReader(Studio $studio, string $readerId, string $paymentIntentId): array
+    {
+        return $this->post("terminal/readers/{$readerId}/process_payment_intent", ['payment_intent' => $paymentIntentId], $this->account($studio));
+    }
+
+    /** Stop whatever the reader is doing (back to its idle screen). */
+    public function cancelReaderAction(Studio $studio, string $readerId): array
+    {
+        return $this->post("terminal/readers/{$readerId}/cancel_action", [], $this->account($studio));
+    }
+
+    /** Test mode only: tap a test card on a simulated reader. */
+    public function presentTestCard(Studio $studio, string $readerId, ?string $number = null): array
+    {
+        return $this->post("test_helpers/terminal/readers/{$readerId}/present_payment_method", $number ? ['card_present' => ['number' => $number]] : [], $this->account($studio));
+    }
+
+    public function retrievePaymentIntent(Studio $studio, string $id): array
+    {
+        return $this->get('payment_intents/'.$id, [], $this->account($studio));
+    }
+
+    public function capturePaymentIntent(Studio $studio, string $id): array
+    {
+        return $this->post("payment_intents/{$id}/capture", [], $this->account($studio), "loft-capture-{$id}");
+    }
+
+    public function cancelPaymentIntent(Studio $studio, string $id): array
+    {
+        return $this->post("payment_intents/{$id}/cancel", [], $this->account($studio));
+    }
+
+    /** Refund a payment in full, once. */
+    public function refundPaymentIntent(Studio $studio, string $id): array
+    {
+        return $this->post('refunds', ['payment_intent' => $id], $this->account($studio), "loft-refund-{$id}");
+    }
+
     /** Close a Checkout Session nobody will finish (the member came back to the cart). */
     public function expireCheckoutSession(Studio $studio, string $id): array
     {

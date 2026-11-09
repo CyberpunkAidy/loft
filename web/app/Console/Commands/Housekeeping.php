@@ -10,6 +10,7 @@ use App\Services\Automations;
 use App\Services\DomainEvents;
 use App\Services\MemberSnapshots;
 use App\Services\Messages;
+use App\Services\ReaderPayments;
 use App\Services\Shop;
 use Illuminate\Console\Attributes\AsCommand;
 use Illuminate\Console\Command;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Hourly: class reminders, credit-expiry warnings, expiring entitlements, each studio's nightly member
  * snapshots (once its local time passes 2 AM), birthday and win-back automations (from 10 AM),
- * settling online shop orders whose checkout has ended, and relaying any domain events still waiting. Port of
+ * settling online shop orders whose checkout has ended and card reader sales nobody finished, and relaying any domain events still waiting. Port of
  * the plugin's Cron, plus the event backbone's chores.
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
  * so it goes out once however often this runs.
@@ -28,7 +29,7 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots, Automations $automations, Shop $shop): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, Automations $automations, Shop $shop, ReaderPayments $readers): int
     {
         $reminders = 0;
         $snapshotted = 0;
@@ -43,9 +44,10 @@ class Housekeeping extends Command
         $expired = $this->expire($events);
         $warnings = $this->creditWarnings();
         $shopOrders = $shop->sweep();
+        $readerSales = $readers->sweep();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Events relayed: {$relayed}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Events relayed: {$relayed}.");
 
         return self::SUCCESS;
     }

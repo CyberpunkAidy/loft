@@ -20,6 +20,7 @@
     @if (isset($studio) && $studio)
         <style>:root { --accent: {{ $studio->accent() }}; --accent-ink: {{ $studio->accentInk() }}; --accent-text: {{ $studio->accentText() }}; }</style>
     @endif
+    @stack('head')
 </head>
 <body class="@yield('body-class')">
 @yield('body')

@@ -34,9 +34,11 @@
 </div>
 
 @unless ($order->isVoid())
-    <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="no-print mt" data-confirm="Void sale #{{ $order->number }}? Plans it added are cancelled and products go back into stock.">
+    <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="no-print mt" data-confirm="{{ $order->method === 'reader'
+        ? "Refund sale #{$order->number} to the card and void it? Plans it added are cancelled and products go back into stock."
+        : "Void sale #{$order->number}? Plans it added are cancelled and products go back into stock." }}">
         @csrf
-        <button class="link link-danger small">Void this sale</button>
+        <button class="link link-danger small">{{ $order->method === 'reader' ? 'Refund to the card and void' : 'Void this sale' }}</button>
     </form>
 @endunless
 @endsection

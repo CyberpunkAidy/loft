@@ -1,6 +1,6 @@
 # Payments
 
-There are three ways money comes in, plus merchandise: sold at the front-desk [point of sale](#4-the-point-of-sale) or in the [online shop](#5-the-online-shop). All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
+There are three ways money comes in, plus merchandise: sold at the front-desk [point of sale](#4-the-point-of-sale) (paid on a [card reader](#6-card-readers) or another way) or in the [online shop](#5-the-online-shop). All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
 
 ## 1. Online, through Stripe Checkout
 
@@ -48,10 +48,10 @@ At the front desk (cash, a check, a card terminal, a bank transfer, a payment ap
 Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`), for admins and owners:
 - **What it sells:** products (Admin → **Products**: each with variants such as sizes, each variant with its own stock and optionally its own price) and plans, in one cart.
 - **Who it's for:** a member (found by name or email), or a **walk-in** with no account. Plans need a member.
-- **Paying:** cash, check, card on the studio's own terminal, transfer, payment app, other, or comp, with an optional note. Card readers connected to Stripe come later.
+- **Paying:** on a Stripe [card reader](#6-card-readers), or recorded: cash, check, card on another terminal, transfer, payment app, other, or comp, with an optional note.
 - **Sales tax:** the studio's rate (Settings → Merchandise, to three decimals, such as 8.875%) is added to products marked taxable. Plans aren't taxed. The studio is responsible for the right rate.
 - **What happens:** in one transaction, stock is taken (it never goes below zero: if another sale took the last one, the sale is refused), plans are granted as if paid in person, and one order records everything, with tax per line. The member gets a receipt email; the till shows a printable receipt.
-- **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock.
+- **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock. A card reader sale is refunded to the card first (**Refund**).
 - **The cart** lives in the staff member's session, one per studio. Every button is a plain form, so it works without JavaScript.
 
 ## 5. The online shop
@@ -65,6 +65,18 @@ Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`),
 - **Missed webhooks:** the hourly housekeeping job asks Stripe about any pending order whose Checkout should have finished: paid ones are fulfilled, expired ones released, failed bank payments released; ones still clearing are left. No extra webhook events are needed.
 - **Refunds:** in the Stripe Dashboard, as for other online sales; restock by hand in Products.
 
+## 6. Card readers
+
+Stripe Terminal readers (BBPOS WisePOS E, Stripe Reader S700) at the front desk, on the studio's own Stripe account ([decision 28](Decisions)). Admins and owners set them up and use them:
+- **Setting up** (Payments → **Card readers**, `App\Services\CardReaders`): enter the studio's address once (Stripe needs it for a Terminal Location), then pair each reader with the code it shows (on the reader: Settings → Generate pairing code) and give it a name. The page shows each reader's model, serial number and whether it's online. Readers added or removed in the Stripe Dashboard are picked up there too.
+- **Charging** (`App\Services\ReaderPayments`): at the point of sale, **Charge on Front desk** sends the cart's total to the reader. The stock is taken and a pending order created (no number; plans not granted yet), with a card-present PaymentIntent captured as soon as it's authorized. The platform fee applies as online.
+- **Waiting:** a page shows the amount and refreshes itself every two seconds, asking Stripe each time. Paid: the order is numbered, plans are granted, the member gets their receipt, and the till's cart empties. Declined: Stripe's reason, with **Try again** (on the same reader) or **Cancel sale**. Cancelling clears the reader, cancels the payment and puts the stock back; if the card went through at that moment, the sale is recorded instead.
+- **Can't take it:** an offline or busy reader refuses the sale straight away, and nothing is left behind. A reader handles one sale at a time. Card payments must be at least 50¢ (Stripe's minimum).
+- **Left open:** the point of sale shows any sale still waiting on a reader. The hourly housekeeping job settles ones older than 15 minutes: paid ones are recorded, the rest cancelled and restocked. No webhook events are needed.
+- **Refunds:** **Refund** on the receipt, Sales or the member's page refunds the whole sale to the card in Stripe, then voids it (plans cancelled, products restocked).
+- **Test mode:** with test API keys, pair a simulated reader with the code `simulated-wpe`; the waiting page can then tap a test card, or one that's declined.
+- **Not supported:** tips, Interac (Canadian debit), the reader's offline mode, partial refunds (use the Stripe Dashboard).
+
 ## The orders ledger
 
 Every sale is an **order** with **items** (`orders`, `order_items`, `App\Services\Orders`), however it was paid ([decision 25](Decisions)):
@@ -74,7 +86,7 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 | One-time online checkout (pack, drop-in) | One per paid Checkout Session, with what Stripe charged after promotion codes and tax |
 | Membership or seasonal tuition | One per paid invoice: the first payment (with a season's registration fee as its own item) and every renewal |
 | Taken in person, or comped | One per recorded payment (comps at no charge), dated the day received (noon, studio time, for earlier days). Voiding the payment voids the order |
-| Point of sale | One per sale, with an item per product variant (with its tax) and per plan; a walk-in has no account on it |
+| Point of sale | One per sale, with an item per product variant (with its tax) and per plan; a walk-in has no account on it. On a card reader: pending (unnumbered, plans not granted) until the card goes through |
 | Online shop | One per paid shop Checkout, with an item per product variant (with its tax), waiting to be picked up. Pending until paid: it has no number and isn't counted anywhere |
 
 - **Numbers:** per studio, from #1001, given when paid, so paid orders are numbered without gaps.
@@ -86,7 +98,6 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 
 ## Not supported yet
 
-- **Card readers:** Stripe Terminal at the point of sale. Planned next ([Roadmap](Roadmap)).
 - **Shipping:** shop orders are picked up at the studio.
-- **Stripe refunds:** refunds don't take back what they paid for, and don't change the order. Remove the plan by hand.
+- **Stripe refunds** made in the Stripe Dashboard don't take back what they paid for, and don't change the order. Remove the plan by hand. (Card reader sales refunded from Loft are voided too.)
 - **Other payment providers:** PayPal checkout, Square, or Loft collecting money and paying studios out. Deliberately not planned ([Decisions](Decisions)).

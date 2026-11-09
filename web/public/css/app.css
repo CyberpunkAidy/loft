@@ -158,6 +158,7 @@ form.inline { display: inline; }
 .alert::before { content: ""; flex-shrink: 0; width: .55rem; height: .55rem; margin-top: .45rem; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 18%, transparent); }
 .alert-success { background: var(--ok-bg); color: #0b5a33; border-color: var(--ok-line); }
 .alert-warning { background: var(--warn-bg); color: #7a4200; border-color: var(--warn-line); }
+.alert-info { background: var(--info-bg); color: var(--info); border-color: var(--info-line); }
 .alert-error { background: var(--err-bg); color: #96141d; border-color: var(--err-line); }
 .alert ul { margin: .3rem 0 0; padding-left: 1.2rem; }
 .empty { color: var(--muted); padding: 2.25rem 1.25rem; text-align: center; }
@@ -501,6 +502,14 @@ form.inline { display: inline; }
 .pos-totals dt { color: var(--muted); }
 .pos-totals dd { margin: 0; text-align: right; }
 .pos-totals .pos-total { color: var(--ink); font-weight: 700; font-size: 1.1rem; }
+.pos-or { display: flex; align-items: center; gap: .6rem; color: var(--muted); font-size: .85rem; margin: 1rem 0 .4rem; }
+.pos-or::before, .pos-or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+/* Waiting for a card on a reader */
+.reader-wait { text-align: center; }
+.reader-amount { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; line-height: 1.1; margin: .2rem 0 .4rem; }
+.spinner { width: 2.4rem; height: 2.4rem; margin: 1.2rem auto; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.reader-wait .actions { justify-content: center; }
 @media print {
 	.sidebar, .no-print, .flash, .alert { display: none !important; }
 	.admin { display: block; }

@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
  * The front-desk point of sale (roadmap step 6). A cart of product variants and plans, for a member
  * or a walk-in, paid in person (cash, check, a card terminal…) or comped. Checking out is one
  * transaction: stock is taken (never below zero), plans are granted as in-person payments are, and
- * one order records it all. Sales tax (the studio's rate) applies to taxable products only.
+ * one order records it all. Sales tax (the studio's rate) applies to taxable products only. Card
+ * readers connected to Stripe charge the same cart through App\Services\ReaderPayments.
  *
  * The cart is a plain array kept in the staff member's session:
  * ['member_id' => ?int, 'walk_in' => bool, 'lines' => [['type' => 'variant'|'plan', 'id' => int, 'qty' => int]]]
@@ -73,11 +74,13 @@ class PointOfSale
     }
 
     /**
-     * Take payment for the cart. Comps record everything at no charge.
+     * The cart's lines and member, checked: not empty, and plans only for a member.
+     *
+     * @return array{0: Collection, 1: ?User}
      *
      * @throws CheckoutException
      */
-    public function checkout(Studio $studio, array $cart, string $method, ?string $note, User $staff): Order
+    public function prepare(Studio $studio, array $cart): array
     {
         $lines = $this->lines($studio, $cart);
         if ($lines->isEmpty()) {
@@ -87,31 +90,60 @@ class PointOfSale
         if (! $member && $lines->contains('type', 'plan')) {
             throw new CheckoutException('Plans go on a member’s account: choose the member first.');
         }
+
+        return [$lines, $member];
+    }
+
+    /**
+     * Take the stock for the cart's products and build the order's items. Plans are granted through
+     * $grant (Plan, price → Entitlement); without it they're granted later, when a card reader payment
+     * goes through. Call inside a transaction.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws CheckoutException
+     */
+    public function items(Collection $lines, bool $comp = false, ?callable $grant = null): array
+    {
+        $items = [];
+        foreach ($lines as $line) {
+            $model = $line['model'];
+            if ($model instanceof ProductVariant) {
+                // Never sell stock that isn't there, even if two tills race for the last one.
+                if ($model->isTracked() && ProductVariant::whereKey($model->id)->where('stock', '>=', $line['qty'])->decrement('stock', $line['qty']) === 0) {
+                    $left = (int) ProductVariant::whereKey($model->id)->value('stock');
+                    throw new CheckoutException($left > 0 ? "Only {$left} of {$line['description']} left." : "{$line['description']} is sold out.");
+                }
+                $items[] = [
+                    'kind' => 'product', 'product_variant_id' => $model->id, 'description' => $line['description'], 'quantity' => $line['qty'],
+                    'unit_price_cents' => $comp ? 0 : $line['unit'], 'total_cents' => $comp ? 0 : $line['total'], 'tax_cents' => $comp ? 0 : $line['tax'],
+                ];
+            } else {
+                $items[] = [
+                    'kind' => 'plan', 'plan_id' => $model->id, 'entitlement_id' => $grant ? $grant($model, $comp ? 0 : $line['unit'])->id : null,
+                    'description' => $line['description'], 'quantity' => 1,
+                    'unit_price_cents' => $comp ? 0 : $line['unit'], 'total_cents' => $comp ? 0 : $line['total'], 'tax_cents' => 0,
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Take payment for the cart, paid in person some other way (cash, check, the studio's own
+     * terminal…). Comps record everything at no charge. Card readers: App\Services\ReaderPayments.
+     *
+     * @throws CheckoutException
+     */
+    public function checkout(Studio $studio, array $cart, string $method, ?string $note, User $staff): Order
+    {
+        [$lines, $member] = $this->prepare($studio, $cart);
         $comp = $method === 'comp';
         $today = $studio->localNow()->toDateString();
 
         $order = DB::transaction(function () use ($studio, $lines, $member, $method, $comp, $today, $note, $staff) {
-            $items = [];
-            foreach ($lines as $line) {
-                $model = $line['model'];
-                if ($model instanceof ProductVariant) {
-                    // Never sell stock that isn't there, even if two tills race for the last one.
-                    if ($model->isTracked() && ProductVariant::whereKey($model->id)->where('stock', '>=', $line['qty'])->decrement('stock', $line['qty']) === 0) {
-                        $left = (int) ProductVariant::whereKey($model->id)->value('stock');
-                        throw new CheckoutException("Only {$left} of {$line['description']} left.");
-                    }
-                    $items[] = [
-                        'kind' => 'product', 'product_variant_id' => $model->id, 'description' => $line['description'], 'quantity' => $line['qty'],
-                        'unit_price_cents' => $comp ? 0 : $line['unit'], 'total_cents' => $comp ? 0 : $line['total'], 'tax_cents' => $comp ? 0 : $line['tax'],
-                    ];
-                } else {
-                    $entitlement = $this->payments->grant($model, $member, $method, $today, null, $comp ? 0 : $line['unit']);
-                    $items[] = [
-                        'kind' => 'plan', 'plan_id' => $model->id, 'entitlement_id' => $entitlement->id, 'description' => $line['description'], 'quantity' => 1,
-                        'unit_price_cents' => $comp ? 0 : $line['unit'], 'total_cents' => $comp ? 0 : $line['total'], 'tax_cents' => 0,
-                    ];
-                }
-            }
+            $items = $this->items($lines, $comp, fn (Plan $plan, int $price) => $this->payments->grant($plan, $member, $method, $today, null, $price));
             $subtotal = (int) array_sum(array_column($items, 'total_cents'));
             $tax = (int) array_sum(array_column($items, 'tax_cents'));
 
