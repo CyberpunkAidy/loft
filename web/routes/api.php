@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function () {
     Route::post('auth/tokens', [V1\TokenController::class, 'store'])->middleware('throttle:auth')->name('tokens.store');
 
+    // Check-in kiosks and readers, with a device token (not a member's).
+    Route::prefix('devices')->name('access.')->middleware('device')->group(function () {
+        Route::get('me', [V1\CheckInController::class, 'device'])->name('device');
+        Route::post('check-ins', [V1\CheckInController::class, 'store'])->middleware('idempotent')->name('check-ins');
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::delete('auth/tokens/current', [V1\TokenController::class, 'destroy'])->name('tokens.destroy');
         Route::get('me', [V1\MeController::class, 'show'])->name('me');
@@ -41,6 +47,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 Route::get('waivers', [V1\WaiverController::class, 'index'])->name('waivers.index');
                 Route::post('attendees/{attendee}/waiver-signatures', [V1\WaiverController::class, 'store'])->middleware('idempotent')->name('waivers.sign');
+                Route::get('attendees/{attendee}/check-in-code', [V1\CheckInController::class, 'code'])->name('check-in-code');
 
                 Route::get('entitlements', [V1\PurchaseController::class, 'entitlements'])->name('entitlements');
                 Route::get('orders', [V1\PurchaseController::class, 'orders'])->name('orders');

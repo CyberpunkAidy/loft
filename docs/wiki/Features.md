@@ -24,11 +24,14 @@
   - **Upcoming** and **History:** classes booked and attended.
   - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
   - **Plans & billing:** memberships and credits, their purchases (with order numbers, and shop orders to pick up), a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
+  - **Check-in:** a QR code for each person on the account, to scan at the studio's kiosk; it changes every 30 seconds.
   - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
   - **Profile:** name, email, phone, password, news and offers from the studio (marketing email, opt-in), and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
 - **Joining:** an optional, unticked box to get the studio's news and offers. Every marketing email has a one-click **Unsubscribe** link ([Email](Email#marketing-email-and-consent)).
 - **Plans page:** every plan a studio sells, with checkout.
 - **Shop** (once the studio has products for sale): products with their sizes or options, sold-out and low-stock labels, and a cart anyone can fill. Members check out through Stripe Checkout (sales tax added), and their items are held for 30 minutes while they pay. Paid orders are picked up at the front desk; Plans & billing shows "Ready to pick up" until then ([Payments](Payments#5-the-online-shop)).
+
+- **Check-in kiosk** (`/{studio}/kiosk`): a browser at the door, set up once with a device code. Members tap a tag or scan their check-in code and are checked in to their class (from an hour before it starts until it ends), or told why not.
 
 ## Staff (`/{studio}/admin`)
 
@@ -36,6 +39,7 @@
 |---|---|---|
 | Dashboard | Members, sales this month, shop orders to pick up, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist | admin |
 | Check-in | Today's classes (or any date), roster with waiver status, apparatus spot and medical notes, mark attended or no-show | instructor+ |
+| Check-in devices | Kiosks and readers members check themselves in at (each with a device code, shown once), and every scan with its result. Tags (cards, fobs) are given out on a member's page | admin |
 | Sessions | Every class by date, rosters, capacity (raising it promotes the waitlist), waitlist limit, room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus and waitlist limit for new sessions, and **Apply to upcoming sessions** to update existing ones | admin |
 | Seasons | Date ranges for weekly classes | admin |

@@ -510,6 +510,26 @@ form.inline { display: inline; }
 .spinner { width: 2.4rem; height: 2.4rem; margin: 1.2rem auto; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .reader-wait .actions { justify-content: center; }
+/* Check-in kiosk: full screen, big type, readable from a step away */
+.kiosk-body { background: var(--bg); }
+.kiosk { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 1.5rem 1rem; }
+.kiosk-card { width: 100%; max-width: 34rem; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: 2.2rem 1.6rem; }
+.kiosk-card h1 { font-size: clamp(2rem, 6vw, 2.8rem); margin: .4rem 0; }
+.kiosk-card > p { font-size: 1.1rem; color: var(--muted); }
+.kiosk-brand { display: flex; justify-content: center; align-items: center; gap: .5rem; font-weight: 600; margin-bottom: 1.2rem; }
+.kiosk-icon { display: block; width: 3.6rem; height: 3.6rem; margin: 0 auto .2rem; color: var(--accent); }
+.kiosk-scan { display: flex; gap: .5rem; margin: 1.4rem 0 .6rem; }
+.kiosk-scan input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: .7rem .9rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--soft); color: var(--ink); text-align: center; }
+.kiosk-result { border-radius: var(--radius-lg); padding: 1.4rem 1.2rem; border: 1px solid; }
+.kiosk-result strong { display: block; font-family: var(--font-display); font-size: clamp(1.8rem, 5vw, 2.4rem); line-height: 1.15; }
+.kiosk-result p { margin: .5rem 0 0; font-size: 1.15rem; }
+.kiosk-result.is-granted { background: var(--ok-bg); border-color: var(--ok-line); color: var(--ok); }
+.kiosk-result.is-denied { background: var(--err-bg); border-color: var(--err-line); color: var(--err); }
+.kiosk-foot { display: flex; gap: .4rem; align-items: center; }
+/* A member's check-in codes */
+.codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
+.code-card { text-align: center; margin: 0 !important; }
+.code-card svg { width: 100%; max-width: 15rem; height: auto; display: block; margin: .6rem auto; background: #fff; border-radius: var(--radius); padding: .4rem; }
 @media print {
 	.sidebar, .no-print, .flash, .alert { display: none !important; }
 	.admin { display: block; }

@@ -4,6 +4,7 @@
         'studio.account.family' => 'Family',
         'studio.account.billing' => 'Plans & billing',
         'studio.account.waivers' => 'Waivers',
+        'studio.account.check-in' => 'Check-in',
         'studio.account.history' => 'History',
         'studio.account.profile' => 'Profile',
     ];

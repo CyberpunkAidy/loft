@@ -40,6 +40,7 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 409 | `already_booked` | Already in the class |
 | 422 | `waiver_not_in_force` | That waiver was replaced or switched off |
 | 422 | `checkout_unavailable` | The studio can't take online payments, or the plan isn't for sale |
+| 401 | `unauthenticated` (device routes) | The device token is wrong or the device was removed |
 | 502 | `payment_provider_error` | Stripe didn't answer as expected: try again |
 | 409 | `request_in_progress`, 422 `idempotency_key_reused`, 400 `invalid_idempotency_key` | See below |
 | 429 | `rate_limited` | Wait for `Retry-After` seconds |
@@ -102,6 +103,21 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `GET /studios/{slug}/orders` | | Purchases, newest first |
 | `POST /studios/{slug}/checkouts` | `plan_id`, and to finish a booking once paid: `session_id`, `attendee_id`, `apparatus_id`? | `201` `{id, url, expires_at, return_url}`. Idempotent |
 | `GET /studios/{slug}/checkouts/{id}` | | `status`, `payment_status`, `fulfilled`, the `entitlement` and `booking` it made, or `booking_error` |
+| `GET /studios/{slug}/attendees/{id}/check-in-code` | | `{code, expires_at, refresh_in}`: show `code` as a QR code, and fetch a new one after `refresh_in` seconds |
+
+### Check-in devices
+
+Kiosks and readers sign in with their own **device token** (`loftdev_…`, from Admin → Check-in devices), not a member's. Device tokens work only here, and member tokens don't work here.
+
+| | | |
+|---|---|---|
+| `GET /devices/me` | | The device's name and its studio |
+| `POST /devices/check-ins` | `credential`: `{kind: "qr" \| "nfc" \| "rfid", value}`, `occurred_at`? | Always `200` for a scan: `result` (`granted` or `denied`), `reason`, a `message` to show, the `attendee` and `booking`. Idempotent |
+
+- **What a scan does:** a QR `value` is a member's check-in code; anything else is a tag's UID (any separators, any case). Whoever it is gets checked in to their class that starts within the next hour, or has started and not ended. Their waivers must be signed (a device can't override that).
+- **Reasons:** `checked_in` and `already_checked_in` (granted); `unknown_credential`, `expired_code`, `no_booking`, `waitlisted`, `waiver_required` (denied).
+- **Offline:** a device that lost its connection sends `occurred_at` (up to a day old) with each scan it kept, and the class is matched to that time. Use the same `Idempotency-Key` if a send is retried.
+- **Codes:** `LOFT1.{attendee}.{time step}.{signature}`, signed by Loft and changing every 30 seconds. They're accepted for about a minute either side, so a screenshot soon stops working.
 
 ## Booking, step by step
 
