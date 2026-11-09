@@ -27,6 +27,7 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 401 | `unauthenticated` | No token, or it's expired or revoked: sign in again |
 | 403 | `not_a_member` | Signed in, but not a member of this studio: offer to join |
 | 403 | `forbidden` | Not theirs (someone else's booking) |
+| 403 | `studio_paused` | The studio's Loft subscription has lapsed, so it isn't taking bookings or payments ([Loft Subscription](Loft-Subscription)). Plan purchases say so with `checkout_unavailable` |
 | 404 | `not_found` | No such record, or not at this studio |
 | 422 | `validation_failed` | `fields`: `{field: [messages]}` |
 | 422 | `invalid_credentials` | Wrong email or password |

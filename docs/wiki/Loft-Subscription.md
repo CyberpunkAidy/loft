@@ -1,0 +1,88 @@
+# Loft subscription
+
+What studios pay Loft ([decision 36](Decisions)). It's separate from what members pay studios, which goes to each studio's own Stripe account ([Payments](Payments)). Loft's subscription is billed on **Loft's own Stripe account** (the platform account, `STRIPE_SECRET`).
+
+## How it works
+
+- **Price:** $49 a month per studio, with every feature and no limits on members, staff, classes or bookings. The [pricing page](https://loftstudio.app/pricing) and the signup page show it.
+- **Free trial:** 30 days from signup, with no card. Staff see **Free trial: N days left** at the top of the admin, amber in the last week.
+- **Subscribing:** **Admin → Subscription → Subscribe** (owners only) opens Stripe Checkout. During the trial the card is saved and first charged when the trial ends; with less than two days of trial left, or after it, it's charged straight away. Checkout accepts promotion codes, made in Stripe under **Product catalog → Coupons**.
+- **Managing it:** **Manage billing** opens Stripe's billing portal, where owners change the card, download invoices or cancel. Cancelling ends the subscription at the end of the month already paid for.
+- **Grace:** when the trial ends without a subscription, the subscription ends, or a payment fails, everything keeps working for 7 more days. Staff see a warning with the date it pauses, and owners get an email.
+- **Paused:** after the 7 days:
+  - **Staff** see only the Subscription page.
+  - **Members** can't book, join waitlists, buy plans or order from the shop, on the website or in the app (error `studio_paused`). The schedule says **Booking paused**, and every studio page carries a notice.
+  - **Automations** wait.
+  - **Still working:** members can cancel what they booked, and keep their memberships and credits. Memberships on the studio's own Stripe account keep renewing. Check-in kiosks and class reminders carry on.
+  - **Nothing is deleted.** Subscribing, or a card that works again, restores everything straight away.
+- **Comped:** free for good. Every studio on Loft when subscriptions began was comped. Others can be comped with `loft:billing` ([below](#comps-and-trials)).
+
+### Emails to owners
+
+From "Loft", to every owner of the studio, each once:
+
+| When | Email |
+|---|---|
+| 3 days before the trial ends | Your Loft trial ends *date* |
+| The trial ended, the subscription ended, or a payment failed | Your Loft trial has ended / Your Loft subscription has ended / Your Loft payment didn’t go through, with the date the studio pauses |
+| The studio pauses | *Studio* is paused on Loft |
+
+Stripe can also send its own receipts and failed-payment emails from Loft's account (**Settings → Billing → Customer emails**).
+
+## Setting it up (once)
+
+1. **The billing webhook.** In the Stripe Dashboard, in the same mode as `loft-web`'s `STRIPE_SECRET` (test or live), go to **Developers → Webhooks → Add destination** and choose **Your account**, not Connected accounts. It's a separate endpoint from the Connect one ([Stripe](Stripe)), because Stripe sends events on Loft's own account only to endpoints on it.
+   - **Payload style:** Snapshot; **API version:** any
+   - **URL:** `https://loftstudio.app/stripe/billing-webhook`
+   - **Events:**
+     - `checkout.session.completed`
+     - `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`
+     - `invoice.paid`, `invoice.payment_failed`
+2. **Its signing secret.** Add it to Render as `STRIPE_BILLING_WEBHOOK_SECRET` on `loft-web` (**Environment**). It's `sync: false` in the Blueprint, so a sync won't add it.
+3. **Nothing else.** The Stripe product (**Loft**) and its monthly price are created the first time a studio subscribes, and so is the billing portal's setup.
+
+Without the webhook, a subscription still shows when the owner comes back from Checkout, and the hourly job catches renewals and failed payments. A cancellation from the billing portal, though, would only show once the month ended.
+
+**Optional extras:**
+- **Sales tax:** set up Stripe Tax on Loft's account, then set `LOFT_BILLING_AUTOMATIC_TAX=true` on `loft-web`. Checkout then asks for the studio's address and adds tax.
+- **Changing the price:** set `LOFT_MONTHLY_PRICE_CENTS` (for example `5900`) in the `loft-shared` group, which both the website and the hourly emails read. New subscriptions use the new price, and existing ones keep theirs; move those in Stripe if you want to. `LOFT_TRIAL_DAYS` and `LOFT_BILLING_GRACE_DAYS` change the trial and the grace period the same way.
+
+## Comps and trials
+
+There's no Loft-wide admin screen. In Render, open **`loft-web` → Shell** and run:
+
+```bash
+php artisan loft:billing skyline
+```
+
+That shows where the studio stands. The options:
+
+| Command | What it does |
+|---|---|
+| `php artisan loft:billing skyline --comp --note="Pilot studio"` | Free from now on |
+| `php artisan loft:billing skyline --end-comp` | Pays from now on, after a fresh 30-day trial (`--trial-days=0` skips it) |
+| `php artisan loft:billing skyline --trial-days=14` | The trial ends 14 days from now: to extend it, or start a new one |
+
+Comping a studio that already pays doesn't cancel its Stripe subscription; the command says so. Cancel it in the Stripe Dashboard.
+
+Closing a studio (its last owner deleting their account, [Accounts and Data](Accounts-and-Data)) cancels its Loft subscription straight away.
+
+## How it's built
+
+- **The `studios` table:**
+  - `trial_ends_at`;
+  - `comped_at` and `comp_note`;
+  - a copy of the Stripe subscription: `billing_customer_id`, `billing_subscription_id`, `billing_status`, `billing_period_ends_at`, `billing_cancels_at`, `billing_payment_failed_at` and `billing_ended_at`.
+- **`App\Services\StudioBilling`:**
+  - **State:** `state()` works out comped, subscribed, trial, grace or paused (`App\Support\BillingState`), from those columns and the time.
+  - **Subscribing:** `checkoutUrl()`, `complete()` and `portalUrl()`.
+  - **Staying in step with Stripe:** `sync()` copies a Stripe subscription onto the studio. It's safe to repeat and to receive out of order, and a second subscription never replaces one that's still running. `sweep()` runs hourly and asks Stripe about failing subscriptions and live ones past their renewal date.
+  - **Owner emails:** `remind()` runs hourly and sends them (`App\Mail\LoftNotice`), logged in `message_deliveries` with dedupe keys.
+- **`App\Services\Stripe\StudioBillingWebhooks`:** `POST /stripe/billing-webhook`. It logs each event in `stripe_events`, fetches the subscription and calls `sync()`.
+- **The pause:**
+  - `studio.active` (`EnsureStudioActive`) sends every admin page to the Subscription page.
+  - `Bookings::assertOpen`, `PlanCheckout::start` and `Shop::checkout` refuse new bookings and purchases.
+  - `Automations` skips the studio.
+- **The price:** found by its lookup key, `loft_studio_monthly_<currency>_<cents>`, or created on the product `loft_studio`.
+- **Operator command:** `loft:billing` (`App\Console\Commands\StudioBillingCommand`).
+- **Tests:** `tests/Feature/StudioBillingTest.php`.

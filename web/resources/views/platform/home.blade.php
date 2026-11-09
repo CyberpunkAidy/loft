@@ -17,7 +17,7 @@
             @endauth
         </div>
         <div class="hero-note">
-            <span><x-icon name="check" /> Free to set up</span>
+            <span><x-icon name="check" /> Free for {{ $trialDays }} days, no card needed</span>
             <span><x-icon name="check" /> Paid straight to your Stripe</span>
             <span><x-icon name="check" /> Works on any device</span>
         </div>
@@ -85,7 +85,7 @@
 
 <section class="cta">
     <h2>Ready when your students are.</h2>
-    <p>Set up your schedule today. Families book, sign and pay from one link.</p>
+    <p>Set up your schedule today. Families book, sign and pay from one link. Free for {{ $trialDays }} days, then {{ $price }} a month. <a href="{{ route('pricing') }}">See pricing</a></p>
     <a class="btn btn-large" href="{{ route('signup') }}">Start your studio <x-icon name="arrow-right" /></a>
 </section>
 @endsection

@@ -7,7 +7,7 @@
     <div class="page-head">
         <div>
             <h1>Start your studio</h1>
-            <p>Free to set up. You’ll connect Stripe when you’re ready to take payments.</p>
+            <p>Free for {{ $trialDays }} days, no card needed. Then {{ $price }} a month for your studio. You’ll connect Stripe when you’re ready to take payments.</p>
         </div>
     </div>
     <form method="post" action="{{ route('signup') }}" class="form">

@@ -49,6 +49,9 @@ class Automations
         if ($event->type !== 'booking.attended' || empty($event->payload['first_visit']) || ! $event->user_id) {
             return;
         }
+        if (Studio::find($event->studio_id)?->isPaused()) {
+            return; // a paused studio's automations wait until it subscribes (decision 36)
+        }
         $automation = Automation::where('studio_id', $event->studio_id)->where('trigger', 'first_class')->where('active', true)->first();
         if (! $automation) {
             return;
@@ -67,7 +70,7 @@ class Automations
     public function runScheduled(Studio $studio): int
     {
         $today = $studio->localNow();
-        if ($today->hour < self::SEND_HOUR) {
+        if ($today->hour < self::SEND_HOUR || $studio->isPaused()) {
             return 0;
         }
         $sent = 0;

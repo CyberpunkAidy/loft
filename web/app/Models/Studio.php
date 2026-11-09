@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\StudioBilling;
+use App\Support\BillingState;
 use App\Support\Color;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,6 +22,8 @@ use Illuminate\Support\Carbon;
     'slug', 'name', 'timezone', 'currency', 'accent_color', 'contact_email', 'email_from_name', 'settings',
     'stripe_account_id', 'stripe_charges_enabled', 'stripe_details_submitted', 'stripe_portal_configuration_id',
     'stripe_tax_rate_id', 'stripe_tax_rate_milli', 'stripe_terminal_location_id',
+    'trial_ends_at', 'comped_at', 'comp_note', 'billing_customer_id', 'billing_subscription_id', 'billing_status',
+    'billing_period_ends_at', 'billing_cancels_at', 'billing_payment_failed_at', 'billing_ended_at',
 ])]
 class Studio extends Model
 {
@@ -53,6 +57,12 @@ class Studio extends Model
             'settings' => 'array',
             'stripe_charges_enabled' => 'boolean',
             'stripe_details_submitted' => 'boolean',
+            'trial_ends_at' => 'datetime',
+            'comped_at' => 'datetime',
+            'billing_period_ends_at' => 'datetime',
+            'billing_cancels_at' => 'datetime',
+            'billing_payment_failed_at' => 'datetime',
+            'billing_ended_at' => 'datetime',
         ];
     }
 
@@ -121,6 +131,18 @@ class Studio extends Model
     public function stripeReady(): bool
     {
         return $this->stripe_account_id !== null && $this->stripe_charges_enabled;
+    }
+
+    /** Where the studio stands with its Loft subscription: comped, subscribed, trial, grace or paused. */
+    public function billing(): BillingState
+    {
+        return app(StudioBilling::class)->state($this);
+    }
+
+    /** Paused for want of a Loft subscription: staff see only the subscription page, members can't book or buy. */
+    public function isPaused(): bool
+    {
+        return $this->billing()->paused();
     }
 
     /** Waivers in force, with the programs they're attached to. */

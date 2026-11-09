@@ -441,6 +441,9 @@ class Bookings
     /** @throws BookingException */
     public function assertOpen(ClassSession $session, string $source = 'web'): void
     {
+        if ($session->studio->isPaused()) {
+            throw new BookingException('paused', $session->studio->name.' isn’t taking online bookings right now. Please contact the studio.');
+        }
         if ($session->isCancelled()) {
             throw new BookingException('cancelled', 'This class has been cancelled.');
         }

@@ -13,6 +13,7 @@ use App\Services\MemberSnapshots;
 use App\Services\Messages;
 use App\Services\ReaderPayments;
 use App\Services\Shop;
+use App\Services\StudioBilling;
 use App\Services\Videos;
 use Illuminate\Console\Attributes\AsCommand;
 use Illuminate\Console\Command;
@@ -23,7 +24,9 @@ use Illuminate\Support\Facades\DB;
  * snapshots (once its local time passes 2 AM) and churn scores from them, birthday, win-back and
  * churn-risk automations (from 10 AM),
  * settling online shop orders whose checkout has ended and card reader sales nobody finished, following
- * videos still on their way through Mux, and relaying any domain events still waiting. Port of
+ * videos still on their way through Mux, catching up studios' Loft subscriptions with Stripe and
+ * emailing owners whose trial is ending or whose studio is about to pause (decision 36), and
+ * relaying any domain events still waiting. Port of
  * the plugin's Cron, plus the event backbone's chores. Settling asks Stripe, so the cron service needs
  * STRIPE_SECRET too (render.yaml); following videos needs the Mux keys (the loft-shared group).
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
@@ -34,7 +37,7 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers, Videos $videos): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers, Videos $videos, StudioBilling $billing): int
     {
         $reminders = 0;
         $snapshotted = 0;
@@ -53,9 +56,11 @@ class Housekeeping extends Command
         $shopOrders = $shop->sweep();
         $readerSales = $readers->sweep();
         $videosDone = $videos->sweep();
+        $subscriptions = $billing->sweep();
+        $billingEmails = $billing->remind();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Events relayed: {$relayed}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Subscriptions synced: {$subscriptions}. Billing emails: {$billingEmails}. Events relayed: {$relayed}.");
 
         return self::SUCCESS;
     }

@@ -21,6 +21,25 @@ return [
     ],
 
     /*
+    | Loft's own subscription (decision 36): each studio pays Loft monthly, on the platform Stripe
+    | account (STRIPE_SECRET). A free trial from signup, then trial_days… grace_days of reminders,
+    | then the studio pauses. monthly_cents sets the price of new subscriptions: Loft finds or
+    | creates a Stripe Price for it (lookup key loft_studio_monthly_<currency>_<cents>), so changing
+    | it needs no change in Stripe, and existing subscribers keep the price they signed up at.
+    | webhook_secret belongs to a webhook endpoint for events on *your account* (not connected
+    | accounts) pointing at /stripe/billing-webhook. automatic_tax turns on Stripe Tax for the
+    | subscription (set up Stripe Tax first).
+    */
+    'billing' => [
+        'monthly_cents' => (int) env('LOFT_MONTHLY_PRICE_CENTS', 4900),
+        'currency' => strtolower((string) env('LOFT_BILLING_CURRENCY', 'usd')),
+        'trial_days' => (int) env('LOFT_TRIAL_DAYS', 30),
+        'grace_days' => (int) env('LOFT_BILLING_GRACE_DAYS', 7),
+        'webhook_secret' => env('STRIPE_BILLING_WEBHOOK_SECRET'),
+        'automatic_tax' => (bool) env('LOFT_BILLING_AUTOMATIC_TAX', false),
+    ],
+
+    /*
     | Mux, for on-demand video (decision 33). Loft's own Mux account hosts every studio's videos.
     | token_id/token_secret: an access token with Mux Video read and write. signing_key_id and
     | signing_key: a URL signing key (Settings → Signing keys); the key is the base64 private key

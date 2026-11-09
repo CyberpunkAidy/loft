@@ -7,6 +7,7 @@
     <div class="container">
         <a class="brand" href="{{ route('home') }}"><x-logo /></a>
         <nav class="nav" aria-label="Main">
+            <a href="{{ route('pricing') }}" @class(['active' => request()->routeIs('pricing')])>Pricing</a>
             @auth
                 <a href="{{ route('studios') }}" @class(['active' => request()->routeIs('studios')])>My studios</a>
                 <form method="post" action="{{ route('logout') }}" class="inline">@csrf<button class="link">Sign out</button></form>

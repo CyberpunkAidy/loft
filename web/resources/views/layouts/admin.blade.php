@@ -28,8 +28,13 @@
             $nav('studio.admin.access.index', 'Check-in devices', 'scan-line', 'studio.admin.access.*'),
             $nav('studio.admin.staff.index', 'Staff', 'id-card', 'studio.admin.staff.*'),
             $nav('studio.admin.settings', 'Settings', 'settings'),
+            $nav('studio.admin.subscription', 'Subscription', 'sparkles', 'studio.admin.subscription*'),
         ],
     ] : ['' => [$nav('studio.admin.checkin', 'Check-in', 'clipboard-check')]];
+    $billing = $studio->billing();
+    if ($billing->paused()) {
+        $groups = ['' => [$nav('studio.admin.subscription', 'Subscription', 'sparkles', 'studio.admin.subscription*')]]; // the one page left
+    }
 @endphp
 <div class="admin">
     <aside class="sidebar">
@@ -58,6 +63,9 @@
     </aside>
     <main class="admin-main">
         @include('partials.flash')
+        @unless (request()->routeIs('studio.admin.subscription*'))
+            @include('admin._subscription-banner', ['billing' => $billing])
+        @endunless
         @yield('content')
     </main>
 </div>

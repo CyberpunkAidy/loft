@@ -31,6 +31,7 @@ A studio must always have an owner.
 - **Deleting an owner's account:** if the person is the **only** owner of a studio, the delete form asks what happens to it:
   - **Hand it over:** one of its admins or instructors becomes the owner. The studio carries on.
   - **Close it:** members' renewing memberships at that studio are cancelled in Stripe, then the studio is deleted with everything in it (classes, plans, bookings, signed waivers, recorded payments, signature drawings, and its videos, which are deleted from Mux too). Members keep their Loft accounts and their other studios, and the owner's Stripe account stays theirs. The form tells the owner to **download the signed waivers first** (Admin → Waivers).
+- **Loft subscription:** a closing studio's subscription to Loft is cancelled straight away ([Loft Subscription](Loft-Subscription)).
 - **After a close:** the owner lands on the Loft home page. Emails still queued for the closed studio are dropped.
 
 ## Where personal data lives

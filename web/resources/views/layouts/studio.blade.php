@@ -39,6 +39,9 @@
 <main class="site-main">
     <div class="container">
         @include('partials.flash')
+        @if ($studio->isPaused())
+            <div class="alert alert-info" role="status">{{ $studio->name }} isn’t taking online bookings or payments right now. Please contact the studio.</div>
+        @endif
         @yield('content')
     </div>
 </main>

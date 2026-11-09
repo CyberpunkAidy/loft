@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\StudioSignupController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Studio;
+use App\Http\Controllers\StudioBillingWebhookController;
 use App\Models\Automation;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [PlatformController::class, 'home'])->name('home');
+Route::get('/pricing', [PlatformController::class, 'pricing'])->name('pricing');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
@@ -32,6 +34,7 @@ Route::post('/signup', [StudioSignupController::class, 'store'])->middleware('th
 Route::get('/studios', [PlatformController::class, 'studios'])->middleware('auth')->name('studios');
 
 Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
+Route::post('/stripe/billing-webhook', StudioBillingWebhookController::class)->name('stripe.billing-webhook');
 
 /*
 |--------------------------------------------------------------------------
@@ -103,7 +106,15 @@ Route::prefix('{studio}')
         });
 
         // Staff
-        Route::prefix('admin')->name('admin.')->middleware(['auth', 'studio.role:instructor'])->group(function () {
+        Route::prefix('admin')->name('admin.')->middleware(['auth', 'studio.role:instructor', 'studio.active'])->group(function () {
+            // The studio's Loft subscription: the one page left open while the studio is paused.
+            Route::get('/subscription', [Admin\SubscriptionController::class, 'show'])->name('subscription');
+            Route::middleware('studio.role:owner')->group(function () {
+                Route::post('/subscription/checkout', [Admin\SubscriptionController::class, 'checkout'])->middleware('throttle:10,1')->name('subscription.checkout');
+                Route::get('/subscription/complete', [Admin\SubscriptionController::class, 'complete'])->name('subscription.complete');
+                Route::post('/subscription/portal', [Admin\SubscriptionController::class, 'portal'])->middleware('throttle:10,1')->name('subscription.portal');
+            });
+
             Route::get('/', Admin\DashboardController::class)->name('dashboard');
             Route::get('/checkin', [Admin\CheckinController::class, 'index'])->name('checkin');
             Route::post('/checkin/{booking}', [Admin\CheckinController::class, 'mark'])->name('checkin.mark');

@@ -4,6 +4,17 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
+- **Studios pay Loft: $49 a month after a 30-day free trial** ([Loft Subscription](Loft-Subscription))
+  - **Trial:** new studios start a 30-day free trial with no card; staff see the days left at the top of the admin.
+  - **Admin → Subscription:** owners subscribe through Stripe Checkout on Loft's own Stripe account. In the trial the card is first charged when it ends, and promotion codes work. **Manage billing** opens Stripe's billing portal: card, invoices, cancelling at the end of the month.
+  - **If it lapses:** when the trial or subscription ends, or a payment fails, everything works for 7 more days with a warning, then the studio pauses. Staff see only the Subscription page, and members can't book, join waitlists, buy plans or order from the shop online (`studio_paused` in the API); automations wait. Nothing is deleted, and paying restores it all.
+  - **Emails to owners,** from Loft: 3 days before the trial ends, when it lapses, and when the studio pauses.
+  - **Pricing page** (`/pricing`), linked from the header and home page; the signup page shows the trial and price.
+  - **Comps:** every studio already on Loft is free. `php artisan loft:billing <studio>` shows where a studio stands, comps it, ends a comp or sets its trial.
+  - **Closing a studio** cancels its Loft subscription.
+  - **Decision 36.**
+  - **Database:** `studios.trial_ends_at`, `comped_at`, `comp_note` and `billing_*`.
+  - **Action needed:** add the billing webhook in Stripe and `STRIPE_BILLING_WEBHOOK_SECRET` on `loft-web` ([setup](Loft-Subscription#setting-it-up-once)).
 - **The mobile app, first version** (`mobile/`)
   - **One Loft app for every studio**, for iOS and Android, built with Expo on the API. Members find their studio by its web address, then sign in, create an account or join; the app takes on the studio's color, and follows the phone's light or dark setting.
   - **Booking:** the schedule a week at a time in the studio's time zone; each class with a line per person on the account: book, join the waitlist, sign a waiver first, or buy a plan that covers it (the booking finishes once paid). Online or in the studio for hybrid classes; apparatus where there's a choice.
