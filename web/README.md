@@ -302,6 +302,6 @@ CI (`.github/workflows/web.yml`) runs both, and builds and starts the Docker ima
 - **Studio subdomains and custom domains.** URLs are path-based today; a host-based resolver can go in front of the same routes.
 - **Billing studios for the platform itself.** A subscription per studio, or the existing application fee.
 - **Importing an existing WordPress plugin install.** Its tables map almost one-to-one.
-- **The mobile app** (React Native with Expo), against the API that's built. See the wiki's [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap).
+- **The mobile app in the stores.** The app itself is in `../mobile` (Expo); see its README and the wiki's [Mobile App](https://github.com/CyberpunkAidy/loft-studio/wiki/Mobile-App) page.
 - **SMS reminders.** Listen to the same events the emails do.
 - **Email verification, and a platform-operator admin.**

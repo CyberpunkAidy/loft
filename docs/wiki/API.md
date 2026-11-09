@@ -94,7 +94,7 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 
 | | | |
 |---|---|---|
-| `GET /studios/{slug}/bookings` | `when` = `upcoming` (default) or `past` | Their bookings, in class order. Each has `online` (they join online) and `join_opens_at` |
+| `GET /studios/{slug}/bookings` | `when` = `upcoming` (default) or `past` | Their bookings, in class order. Upcoming means booked, waitlisted or checked in, until the class ends (so an online class can be joined again); past is everything that has ended. Each has `online` (they join online) and `join_opens_at` |
 | `POST /studios/{slug}/sessions/{id}/bookings` | `attendee_id`, `apparatus_id`?, `online`? | `201` booked or waitlisted (`status`, `position`), with a `message`. `online: true` takes one of a hybrid class's online spots (ignored for other classes; everyone in an online class is online). Idempotent |
 | `POST /studios/{slug}/bookings/{id}/join` | | `{url}`: the online class's meeting link, from 15 minutes before class until it ends. Checks them in. Otherwise `not_open_yet` (with `opens_at`), `ended`, `not_online`, `not_booked` or `no_link` |
 | `DELETE /studios/{slug}/bookings/{id}` | | Cancelled, with `credit_refunded` (late cancellations may keep the credit) |

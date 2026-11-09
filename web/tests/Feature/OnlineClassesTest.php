@@ -271,6 +271,15 @@ class OnlineClassesTest extends TestCase
         $this->api('POST', "studios/{$studio->slug}/bookings/{$booking}/join", $token)->assertOk()->assertExactJson(['data' => ['url' => self::LINK]]);
         $this->assertSame('attended', Booking::find($booking)->status);
 
+        // Checked in, it stays under upcoming until the class ends, so the app can join again.
+        $this->travelTo($start->copy()->addMinutes(30));
+        $this->api('GET', "studios/{$studio->slug}/bookings", $token)->assertJsonPath('data.0.id', $booking)->assertJsonPath('data.0.status', 'attended');
+        $this->api('GET', "studios/{$studio->slug}/bookings?when=past", $token)->assertJsonCount(0, 'data');
+        $this->travelTo($start->copy()->addMinutes(61));
+        $this->api('GET', "studios/{$studio->slug}/bookings", $token)->assertJsonCount(0, 'data');
+        $this->api('GET', "studios/{$studio->slug}/bookings?when=past", $token)->assertJsonPath('data.0.id', $booking);
+        $this->travelTo($start->copy()->subMinutes(15));
+
         // Someone else's token can't join it.
         $other = $this->userIn($studio)->createToken('Phone', ['member'])->plainTextToken;
         $this->api('POST', "studios/{$studio->slug}/bookings/{$booking}/join", $other)->assertNotFound()->assertJsonPath('error.code', 'not_found');
