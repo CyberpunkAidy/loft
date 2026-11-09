@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Services\Automations;
+use App\Services\ChurnScores;
 use App\Services\DomainEvents;
 use App\Services\MemberSnapshots;
 use App\Services\Messages;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Hourly: class reminders, credit-expiry warnings, expiring entitlements, each studio's nightly member
- * snapshots (once its local time passes 2 AM), birthday and win-back automations (from 10 AM),
+ * snapshots (once its local time passes 2 AM) and churn scores from them, birthday, win-back and
+ * churn-risk automations (from 10 AM),
  * settling online shop orders whose checkout has ended and card reader sales nobody finished, and relaying any domain events still waiting. Port of
  * the plugin's Cron, plus the event backbone's chores.
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
@@ -29,15 +31,17 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots, Automations $automations, Shop $shop, ReaderPayments $readers): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers): int
     {
         $reminders = 0;
         $snapshotted = 0;
         $automated = 0;
-        Studio::query()->chunkById(100, function ($studios) use (&$reminders, &$snapshotted, &$automated, $snapshots, $automations) {
+        $scored = 0;
+        Studio::query()->chunkById(100, function ($studios) use (&$reminders, &$snapshotted, &$scored, &$automated, $snapshots, $churn, $automations) {
             foreach ($studios as $studio) {
                 $reminders += $this->reminders($studio);
                 $snapshotted += $snapshots->takeIfDue($studio);
+                $scored += $churn->scoreLatest($studio);
                 $automated += $automations->runScheduled($studio);
             }
         });
@@ -47,7 +51,7 @@ class Housekeeping extends Command
         $readerSales = $readers->sweep();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Events relayed: {$relayed}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Events relayed: {$relayed}.");
 
         return self::SUCCESS;
     }

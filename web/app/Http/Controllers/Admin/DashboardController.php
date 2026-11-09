@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\MemberRiskScore;
 use App\Models\StripeEvent;
 use App\Models\Studio;
+use App\Services\ChurnScores;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -37,6 +39,9 @@ class DashboardController extends Controller
             'checklist' => $checklist,
             'stats' => [
                 'members' => $studio->studioUsers()->where('role', 'member')->count(),
+                'at_risk' => ($day = app(ChurnScores::class)->latestDay($studio))
+                    ? MemberRiskScore::where('studio_id', $studio->id)->where('model_version', ChurnScores::MODEL)->whereDate('as_of', $day)->where('level', 'high')->count()
+                    : null,
                 'to_pick_up' => $studio->orders()->where('status', 'paid')->where('fulfillment_status', 'to_pick_up')->count(),
                 'sales_month' => (int) $studio->orders()->where('status', 'paid')->where('currency', $studio->currency)
                     ->where('paid_at', '>=', $studio->localNow()->startOfMonth()->utc())->sum('total_cents'),

@@ -47,6 +47,14 @@ class Automation extends Model
             'subject' => 'We miss you at {studio}',
             'body' => "Hi {first_name},\n\nIt's been {days} days since we last saw you at {studio}, and your spot is waiting.\n\nTake a look at what's coming up this week.",
         ],
+        'churn_risk' => [
+            'label' => 'At risk of leaving',
+            'description' => 'Check in when a member’s churn risk turns high (coming less, nothing booked, a plan running out), before they stop coming.',
+            'placeholders' => ['first_name', 'studio'],
+            'action' => 'See what’s on',
+            'subject' => 'How are classes going, {first_name}?',
+            'body' => "Hi {first_name},\n\nWe haven't seen as much of you at {studio} lately, and we wanted to check in. Is there a class time that would suit you better, or something you'd like to try?\n\nJust reply to this email, or take a look at what's coming up.",
+        ],
     ];
 
     public const PLACEHOLDERS = [
@@ -119,6 +127,7 @@ class Automation extends Model
             },
             'birthday' => 'On the birthday, from 10 AM studio time',
             'win_back' => $this->days().' days after their last class, if nothing is booked (from 10 AM)',
+            'churn_risk' => 'The day a member’s risk turns high (from 10 AM), at most once a month each',
         };
     }
 

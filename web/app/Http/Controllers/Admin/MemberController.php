@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\DomainEvent;
+use App\Models\MemberRiskScore;
 use App\Models\MessageDelivery;
 use App\Models\Payment;
 use App\Models\Studio;
 use App\Models\StudioUser;
 use App\Models\User;
+use App\Services\ChurnScores;
 use App\Services\OfflinePayments;
 use App\Services\Waivers;
 use App\Support\Money;
@@ -22,11 +24,19 @@ use Illuminate\View\View;
 /** Member accounts: families, plans, bookings, and giving a plan by hand (paid in person or comped). */
 class MemberController extends Controller
 {
-    public function index(Request $request, Studio $studio): View
+    public function index(Request $request, Studio $studio, ChurnScores $churn): View
     {
         $q = (string) $request->query('q', '');
+        $atRisk = $request->query('risk') === 'at_risk';
+        $day = $churn->latestDay($studio);
         $members = $studio->members()
             ->tap(fn ($query) => Search::apply($query, ['first_name', 'last_name', 'email'], $q))
+            // At risk: high and medium on the latest night scored, riskiest first (nobody before the first night).
+            ->when($atRisk && ! $day, fn ($query) => $query->whereRaw('1 = 0'))
+            ->when($atRisk && $day, fn ($query) => $query
+                ->join('member_risk_scores as risk', fn ($join) => $join->on('risk.user_id', '=', 'users.id')
+                    ->where('risk.studio_id', $studio->id)->whereDate('risk.as_of', $day)->where('risk.model_version', ChurnScores::MODEL))
+                ->whereIn('risk.level', ['high', 'medium'])->orderByDesc('risk.score'))
             ->orderByPivot('created_at', 'desc')
             ->paginate(50)
             ->withQueryString();
@@ -37,7 +47,10 @@ class MemberController extends Controller
         $planCounts = $studio->entitlements()->whereIn('status', ['active', 'past_due'])->whereIn('user_id', $ids)
             ->selectRaw('user_id, count(*) as n')->groupBy('user_id')->pluck('n', 'user_id');
 
-        return view('admin.members.index', compact('members', 'q', 'attendeeCounts', 'planCounts'));
+        $risk = $day ? MemberRiskScore::where('studio_id', $studio->id)->where('model_version', ChurnScores::MODEL)->whereDate('as_of', $day)
+            ->whereIn('user_id', $ids)->get()->keyBy('user_id') : collect();
+
+        return view('admin.members.index', compact('members', 'q', 'attendeeCounts', 'planCounts', 'risk', 'atRisk', 'day'));
     }
 
     public function show(Studio $studio, User $member, Waivers $waivers): View
@@ -49,6 +62,8 @@ class MemberController extends Controller
             'role' => $member->pivot->role,
             'attendees' => $attendees,
             'waiverStatus' => $attendees->mapWithKeys(fn ($a) => [$a->id => $waivers->statusFor($studio, $a)]),
+            'risk' => MemberRiskScore::where('studio_id', $studio->id)->where('user_id', $member->id)->where('model_version', ChurnScores::MODEL)
+                ->orderByDesc('as_of')->limit(8)->get(),
             'tags' => $studio->accessCredentials()->with('attendee')->whereIn('attendee_id', $attendees->pluck('id'))->whereNull('revoked_at')->orderBy('id')->get(),
             'entitlements' => $studio->entitlements()->with(['plan', 'payment'])->where('user_id', $member->id)->latest()->get(),
             'orders' => $studio->orders()->sales()->with(['items', 'payment', 'studio'])->where('user_id', $member->id)->latest('paid_at')->latest('id')->limit(25)->get(),

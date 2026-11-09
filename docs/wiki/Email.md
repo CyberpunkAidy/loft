@@ -38,6 +38,7 @@ Admin → Automations: emails a studio sets up once that then go out by themselv
 | After a first class | A set number of hours (default 3) after someone's first class at the studio is checked in | attendee |
 | Birthday | On the birthday, from 10 AM studio time; children's birthdays go to the parent. Leap-day birthdays are on February 28 in other years | attendee, per year |
 | We miss you | A set number of days (default 30) after a member's last class, if they have nothing booked. Only members who lapsed in the past week are included, so turning it on doesn't email everyone who ever left | absence: coming back and lapsing again sends it again |
+| At risk of leaving | From 10 AM, the day a member's churn risk turns **high** ([churn scores](Architecture#churn-scores)). Not within two weeks of a “We miss you” email | member, at most once in 30 days |
 
 - **Marketing:** every automation counts as marketing ([decision 23](Decisions)). It goes only to members who opted in, with the unsubscribe link and headers. Members who didn't opt in get nothing, and the delivery log shows it as "not sent".
 - **The text:** a subject and plain-text message with placeholders (`{first_name}`, `{attendee_first_name}`, `{who}`, `{studio}`, `{class}`, `{days}`, depending on the automation; unknown ones are refused). Blank lines separate paragraphs, and a button to the schedule is added. The page previews the saved version with sample names, and **Send me a test** emails it to the admin.

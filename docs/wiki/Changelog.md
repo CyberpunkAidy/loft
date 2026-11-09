@@ -4,7 +4,17 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Contactless check-in** (roadmap step 8)
+- **Churn scoring** (roadmap step 9)
+  - **Risk scores each night:** right after the member snapshot, every member gets a churn risk (0 to 100: high, medium, low, or lapsed) from rules a studio would recognise (time since their last class, coming less, nothing booked, a failed payment, no plan left), with the reasons in plain words and the model version (`rules-v1`).
+  - **Members → At risk of leaving:** high and medium, riskiest first, and a risk column for everyone. Each member's page shows their score, why, and the nights before. The dashboard counts members at high risk.
+  - **At risk of leaving automation:** a check-in email the day a member turns high; at most once a month, not right after a win-back email; marketing, so opted-in members only.
+  - **Training export:** `loft:churn-export` writes the snapshots with pseudonymous members and a 30-day churn label, for a trained model later.
+  - **Decision 31.** Roadmap step 9 is built with rules; the demo studio is scored when seeded.
+  - **Database:** new table `member_risk_scores`.
+
+## 2026-11-09
+
+- **Contactless check-in** (roadmap step 8, [#24](https://github.com/CyberpunkAidy/loft-studio/pull/24))
   - **Admin → Check-in devices:** add kiosks and readers (each gets a device code, shown once), remove them, and see every scan, allowed or not, and why.
   - **The kiosk** (`/{studio}/kiosk`): any browser, set up once with a device code. Works with USB or Bluetooth NFC readers and QR scanners that type what they read. Shows a big welcome, or why not and to see the front desk.
   - **Tags:** give a card or fob to anyone on a member's account from their admin page; take it back.
@@ -12,9 +22,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **The rule:** the person's class from an hour before it starts until it ends, through the front desk's check-in (waivers enforced). Device API: `POST /api/v1/devices/check-ins` ([API](API)).
   - **Decision 30.** Roadmap step 8 is complete.
   - **Database:** new tables `access_devices`, `access_credentials` and `access_events`.
-
-## 2026-11-09
-
 - **Mobile API, v1** (roadmap step 7, [#23](https://github.com/CyberpunkAidy/loft-studio/pull/23))
   - **`/api/v1`** for the mobile app, documented on the new [API](API) page: sign in or register (Sanctum tokens, one per install), the member and their studios, push tokens.
   - **Per studio:** its details, plans and schedule (public; with a token, the member's own bookings), a class's booking options per person, booking and cancelling, the family, waivers and signing them, memberships and credits, purchases, and buying a plan through Stripe Checkout (finishing a booking once paid).
