@@ -37,6 +37,7 @@ class DomainEvent extends Model
         'checkout.failed' => 'Payment didn’t go through',
         'order.paid' => 'Paid',
         'order.voided' => 'Payment voided',
+        'order.picked_up' => 'Picked up an order',
         'waiver.signed' => 'Signed a waiver',
         'consent.email_marketing_granted' => 'Opted in to marketing emails',
         'consent.email_marketing_withdrawn' => 'Opted out of marketing emails',

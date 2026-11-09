@@ -1,6 +1,6 @@
 # Payments
 
-There are three ways money comes in, plus the front-desk [point of sale](#4-the-point-of-sale) for merchandise. All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
+There are three ways money comes in, plus merchandise: sold at the front-desk [point of sale](#4-the-point-of-sale) or in the [online shop](#5-the-online-shop). All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
 
 ## 1. Online, through Stripe Checkout
 
@@ -54,6 +54,17 @@ Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`),
 - **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock.
 - **The cart** lives in the staff member's session, one per studio. Every button is a plain form, so it works without JavaScript.
 
+## 5. The online shop
+
+**Shop** on the studio site (`/{studio}/shop`, `App\Services\Shop`) sells the same products online, to pick up at the front desk ([decision 27](Decisions)). The link appears once the studio has a product for sale:
+- **Browsing and the cart:** anyone can browse and fill a cart (kept in their browser session). Checking out needs a member account; signing in comes back to the cart. Sold-out variants can't be chosen, and low stock is shown.
+- **Checkout:** Stripe Checkout on the studio's connected account, one line per product with the studio's sales tax rate on taxable ones (mirrored as a Stripe Tax Rate on the studio's account, made once per rate). Plans aren't sold here: they have their own Checkout on the Plans page.
+- **Holding stock:** starting checkout takes the stock (never below zero, as at the till) and creates a **pending** order with no number yet. The Checkout Session expires after 30 minutes, Stripe's shortest. Coming back from Checkout without paying closes the session and puts the stock back; so does starting another checkout.
+- **Paid:** the webhook (or the return page, whichever comes first) gives the order its number and Stripe's amounts, and emails a receipt telling the member to pick it up. It waits under **Admin → Sales → To pick up** (also on the dashboard) until staff mark it **picked up**. Members see "Ready to pick up" under Plans & billing.
+- **Not paid:** an abandoned or expired checkout, or a bank payment that fails later, releases the order (expired or failed) and restocks. A failed bank payment emails the member that the order was cancelled.
+- **Missed webhooks:** the hourly housekeeping job asks Stripe about any pending order whose Checkout should have finished: paid ones are fulfilled, expired ones released, failed bank payments released; ones still clearing are left. No extra webhook events are needed.
+- **Refunds:** in the Stripe Dashboard, as for other online sales; restock by hand in Products.
+
 ## The orders ledger
 
 Every sale is an **order** with **items** (`orders`, `order_items`, `App\Services\Orders`), however it was paid ([decision 25](Decisions)):
@@ -64,8 +75,9 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 | Membership or seasonal tuition | One per paid invoice: the first payment (with a season's registration fee as its own item) and every renewal |
 | Taken in person, or comped | One per recorded payment (comps at no charge), dated the day received (noon, studio time, for earlier days). Voiding the payment voids the order |
 | Point of sale | One per sale, with an item per product variant (with its tax) and per plan; a walk-in has no account on it |
+| Online shop | One per paid shop Checkout, with an item per product variant (with its tax), waiting to be picked up. Pending until paid: it has no number and isn't counted anywhere |
 
-- **Numbers:** per studio, from #1001.
+- **Numbers:** per studio, from #1001, given when paid, so paid orders are numbered without gaps.
 - **Once each:** orders are keyed on the Stripe Checkout Session or invoice ID, so retried webhooks and the checkout return page can't record a sale twice.
 - **History:** each order records an `order.paid` domain event (`order.voided` when voided), shown in the member's activity.
 - **Admin → Sales:** a month at a time (studio time), with total, online and in-person sales, the number of sales and comps, every order with its items, how it was paid (online ones link to the payment in the studio's Stripe Dashboard), and **Download CSV** for the books. Voided sales are listed but left out of totals.
@@ -74,7 +86,7 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 
 ## Not supported yet
 
-- **An online shop:** buying products online (a cart paid through Stripe Checkout, picked up at the studio). Planned next ([Roadmap](Roadmap)).
-- **Card readers:** Stripe Terminal at the point of sale. Planned after the online shop.
+- **Card readers:** Stripe Terminal at the point of sale. Planned next ([Roadmap](Roadmap)).
+- **Shipping:** shop orders are picked up at the studio.
 - **Stripe refunds:** refunds don't take back what they paid for, and don't change the order. Remove the plan by hand.
 - **Other payment providers:** PayPal checkout, Square, or Loft collecting money and paying studios out. Deliberately not planned ([Decisions](Decisions)).

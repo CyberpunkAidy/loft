@@ -17,7 +17,7 @@
 | Path | What's there |
 |---|---|
 | `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation`, `Order`, `OrderItem`, `Product`, `ProductVariant` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, `Shop`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
 | `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
 | `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox), and the `RelayDomainEvents` and `SendAutomatedMessage` jobs |
@@ -70,7 +70,7 @@ Elsewhere in the repository:
 | `waivers`, `waiver_versions`, `program_waiver` | Waivers (for every class or for attached programs, with optional validity), and the exact text of every published version |
 | `waiver_signatures` | Who signed which version for whom: names, relationship, a hash of the text, IP address, browser, optional drawing. Kept, unlinked, when accounts are deleted |
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
-| `orders`, `order_items` | The ledger: every sale (online checkout, membership invoice, in person, point of sale), numbered per studio, with its items (plans, products with their tax), amounts, how it was paid, Stripe IDs, and for in-person sales a note or a walk-in flag ([Payments](Payments#the-orders-ledger)) |
+| `orders`, `order_items` | The ledger: every sale (online checkout, membership invoice, in person, point of sale, online shop), numbered per studio when paid (shop orders are pending, unnumbered, while the member pays), with its items (plans, products with their tax), amounts, how it was paid, Stripe IDs, for in-person sales a note or a walk-in flag, and for shop orders whether they've been picked up ([Payments](Payments#the-orders-ledger)) |
 | `products`, `product_variants` | Merchandise, and its sizes or colours, each with its own stock (null = not tracked) and optional price |
 | `payments` | Payments staff recorded by hand, and comps, each linked to its order ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
@@ -96,6 +96,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`OfflinePayments`:** records and voids payments taken in person.
 - **`Orders`:** the ledger. Records an order for each paid one-time checkout, each paid membership invoice, each payment taken in person and each point-of-sale sale; voids in-person sales (cancelling their plans and restocking their products).
 - **`PointOfSale`:** the front-desk till: prices the cart (with sales tax), then in one transaction takes stock, grants plans and records the order; emails the receipt.
+- **`Shop`:** the online shop: holds stock in a pending order, opens a 30-minute Stripe Checkout on the studio's account, marks the order paid (webhook or return page) and emails a pickup receipt, or releases it and restocks. Housekeeping settles checkouts whose webhook never came.
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
@@ -121,7 +122,7 @@ Services dispatch Laravel events. The `StudioEmails` listener turns them into qu
 
 Every email goes through `App\Services\Messages`, which logs it in `message_deliveries` under a dedupe key (such as `reminder:booking:42`), so it goes out once however often the code that sends it runs. The delivery is marked `sent` when the mailer sends it (with Resend's message ID) and `failed` if the queue gives up.
 
-The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, sends birthday and win-back automations, and relays any domain events still waiting.
+The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, sends birthday and win-back automations, settles online shop checkouts whose webhook never came (by asking Stripe), and relays any domain events still waiting.
 
 ### The outbox (`domain_events`)
 

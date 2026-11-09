@@ -32,6 +32,8 @@ class MessageDelivery extends Model
         'birthday' => 'Birthday (automation)',
         'win_back' => 'We miss you (automation)',
         'automation_test' => 'Automation test',
+        'receipt' => 'Receipt (point of sale)',
+        'shop_order' => 'Shop order, ready to pick up',
     ];
 
     public const STATUSES = ['queued' => 'Queued', 'sent' => 'Sent', 'failed' => 'Failed', 'suppressed' => 'Not sent (no consent)'];

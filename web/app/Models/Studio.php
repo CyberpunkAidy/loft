@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'slug', 'name', 'timezone', 'currency', 'accent_color', 'contact_email', 'email_from_name', 'settings',
     'stripe_account_id', 'stripe_charges_enabled', 'stripe_details_submitted', 'stripe_portal_configuration_id',
+    'stripe_tax_rate_id', 'stripe_tax_rate_milli',
 ])]
 class Studio extends Model
 {

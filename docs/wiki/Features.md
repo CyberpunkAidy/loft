@@ -22,17 +22,18 @@
 - **My account tabs:**
   - **Upcoming** and **History:** classes booked and attended.
   - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
-  - **Plans & billing:** memberships and credits, their purchases (with order numbers), a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
+  - **Plans & billing:** memberships and credits, their purchases (with order numbers, and shop orders to pick up), a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
   - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
   - **Profile:** name, email, phone, password, news and offers from the studio (marketing email, opt-in), and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
 - **Joining:** an optional, unticked box to get the studio's news and offers. Every marketing email has a one-click **Unsubscribe** link ([Email](Email#marketing-email-and-consent)).
 - **Plans page:** every plan a studio sells, with checkout.
+- **Shop** (once the studio has products for sale): products with their sizes or options, sold-out and low-stock labels, and a cart anyone can fill. Members check out through Stripe Checkout (sales tax added), and their items are held for 30 minutes while they pay. Paid orders are picked up at the front desk; Plans & billing shows "Ready to pick up" until then ([Payments](Payments#5-the-online-shop)).
 
 ## Staff (`/{studio}/admin`)
 
 | Area | What it does | Who |
 |---|---|---|
-| Dashboard | Members, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist | admin |
+| Dashboard | Members, sales this month, shop orders to pick up, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist | admin |
 | Check-in | Today's classes (or any date), roster with waiver status, apparatus spot and medical notes, mark attended or no-show | instructor+ |
 | Sessions | Every class by date, rosters, capacity (raising it promotes the waitlist), waitlist limit, room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus and waitlist limit for new sessions, and **Apply to upcoming sessions** to update existing ones | admin |
@@ -43,7 +44,7 @@
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
 | Point of sale | The front-desk till: products and plans in one cart, for a member or a walk-in; sales tax on products; paid in person or comped; stock taken; receipt email and printable receipt; void (restocks, cancels plans) | admin |
 | Products | Merchandise with variants (sizes, colours), each with its own stock and optionally its own price; taxable or not; hidden instead of deleted once sold; low stock flagged | admin |
-| Sales | The orders ledger: every sale (online checkouts, each membership payment, in person), a month at a time, with totals, links to Stripe and a CSV download | admin |
+| Sales | The orders ledger: every sale (online checkouts, each membership payment, in person, the online shop), a month at a time, with totals, links to Stripe and a CSV download. **To pick up:** paid shop orders waiting at the front desk, each marked picked up when collected | admin |
 | Payments | Connect Stripe; everything taken in person (point of sale and plans added from a member's page) and this month's total | admin |
 | Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |
 | Staff | Add instructors and admins (new people get an email to set a password); owners can make other owners | admin |

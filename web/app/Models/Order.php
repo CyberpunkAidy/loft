@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'studio_id', 'number', 'user_id', 'channel', 'method', 'status', 'currency', 'subtotal_cents', 'discount_cents',
     'tax_cents', 'total_cents', 'stripe_checkout_session_id', 'stripe_invoice_id', 'stripe_payment_intent_id',
     'recorded_by_user_id', 'paid_at', 'voided_at', 'voided_by_user_id', 'walk_in', 'note',
+    'fulfillment_status', 'picked_up_at', 'picked_up_by_user_id',
 ])]
 class Order extends Model
 {
@@ -34,6 +35,7 @@ class Order extends Model
             'paid_at' => 'datetime',
             'voided_at' => 'datetime',
             'walk_in' => 'boolean',
+            'picked_up_at' => 'datetime',
         ];
     }
 
@@ -66,6 +68,17 @@ class Order extends Model
     public function isVoid(): bool
     {
         return $this->status === 'void';
+    }
+
+    public function awaitsPickup(): bool
+    {
+        return $this->status === 'paid' && $this->fulfillment_status === 'to_pick_up';
+    }
+
+    /** Sales: paid or voided. Pending (unpaid) and released online orders aren't sales. */
+    public function scopeSales($query)
+    {
+        return $query->whereIn('status', ['paid', 'void']);
     }
 
     public function totalLabel(): string

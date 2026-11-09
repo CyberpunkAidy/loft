@@ -299,7 +299,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 5. [x] **Orders ledger** (built 2026-11-09, [#19](https://github.com/CyberpunkAidy/loft-studio/pull/19)): plan checkouts, membership invoices and recorded payments all go through `orders`.
 6. [ ] **Merchandise and point of sale:**
    - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions)).
-   - [ ] An online shop: a cart of products (and a plan) paid through Stripe Checkout, picked up at the studio.
+   - [x] An online shop: a cart of products paid through Stripe Checkout, stock held while paying, picked up at the studio ([decision 27](Decisions)). Plans keep their own Checkout.
    - [ ] Stripe Terminal card readers at the point of sale.
 7. [ ] **API v1:** services first, then Sanctum, schedule, bookings, account, waivers, push tokens.
 8. [ ] **Contactless check-in:** devices, credentials and the check-in endpoint, QR and NFC first.
