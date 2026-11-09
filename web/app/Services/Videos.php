@@ -11,7 +11,7 @@ use App\Support\VideoException;
 use Illuminate\Support\Facades\Log;
 
 /**
- * A studio's video library on Mux (roadmap step 10, decision 32): uploads straight from the
+ * A studio's video library on Mux (roadmap step 10, decision 33): uploads straight from the
  * browser to Mux, imports from a link, and following each one until it's ready. There's no Mux
  * webhook: a pending video is checked when staff look at it, by the uploader while it waits, and
  * by the hourly housekeeping.

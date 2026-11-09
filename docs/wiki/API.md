@@ -140,7 +140,7 @@ Kiosks and readers sign in with their own **device token** (`loftdev_…`, from 
 
 ## Videos
 
-Videos are on Mux, with signed playback ([decision 32](Decisions)):
+Videos are on Mux, with signed playback ([decision 33](Decisions)):
 1. `GET /studios/{slug}/videos` for the library. Show `locked_reason` on locked ones: sign in, join the studio, or one of `meta.plans`.
 2. `POST …/videos/{id}/playback` when they press play.
 3. Play it with Mux's player SDK (`playback_id` and `tokens.playback`; `tokens.thumbnail` and `tokens.storyboard` for the poster and scrubbing previews), or any HLS player with `stream_url`.
@@ -154,7 +154,7 @@ Plans are paid on Stripe's own Checkout page, opened in an in-app browser (`ASWe
 3. `GET /studios/{slug}/checkouts/{id}` records the purchase straight away if Stripe's webhook hasn't yet (it's recorded once either way), and returns the plan and the booking it finished.
 4. Bank payments can show `payment_status: unpaid` for a few days; the plan appears when they clear.
 
-Classes, memberships and packs are services used in person, so they aren't Apple or Google in-app purchases. Video is digital content, so **the app plays videos members already have access to, and doesn't sell plans that include videos** (`includes_videos`). In the US the app may link to the studio's plans page on the website instead; elsewhere, check the stores' rules before showing even a link ([decision 32](Decisions)).
+Classes, memberships and packs are services used in person, so they aren't Apple or Google in-app purchases. Video is digital content, so **the app plays videos members already have access to, and doesn't sell plans that include videos** (`includes_videos`). In the US the app may link to the studio's plans page on the website instead; elsewhere, check the stores' rules before showing even a link ([decision 33](Decisions)).
 
 ## Changes
 

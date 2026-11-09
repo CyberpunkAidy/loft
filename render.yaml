@@ -111,6 +111,12 @@ services:
         fromDatabase:
           name: loft-db
           property: connectionString
+      # The same secret key as loft-web's. The hourly run asks Stripe about shop checkouts and card
+      # reader sales nobody finished; without it they stay pending and keep their stock. Declared
+      # here, not in loft-shared, because loft-worker doesn't need it. A Blueprint sync ignores
+      # sync: false keys on services that already exist, so set it in loft-housekeeping → Environment.
+      - key: STRIPE_SECRET
+        sync: false
 
 databases:
   - name: loft-db

@@ -21,7 +21,7 @@ return [
     ],
 
     /*
-    | Mux, for on-demand video (decision 32). Loft's own Mux account hosts every studio's videos.
+    | Mux, for on-demand video (decision 33). Loft's own Mux account hosts every studio's videos.
     | token_id/token_secret: an access token with Mux Video read and write. signing_key_id and
     | signing_key: a URL signing key (Settings → Signing keys); the key is the base64 private key
     | Mux shows once. Playback is always signed, so videos only play for people Loft lets in.

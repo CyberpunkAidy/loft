@@ -309,6 +309,41 @@ class ShopTest extends TestCase
         $this->assertSame('failed', $order->fresh()->status);
     }
 
+    public function test_an_abandoned_checkout_is_released_when_stripe_expires_it_without_waiting_for_the_sweep(): void
+    {
+        [$studio, $medium] = $this->shop([]);
+        $this->checkout($studio, $this->userIn($studio), $medium, 2)->assertRedirect('https://checkout.stripe.com/c/pay/cs_1');
+        $order = Order::sole();
+        $this->assertSame(1, $medium->fresh()->stock);
+
+        // An early event: Stripe still has the session open, so nothing is released.
+        $this->webhook('checkout.session.expired', 'cs_1', 'evt_early')->assertOk();
+        $this->assertSame(['pending', 1], [$order->fresh()->status, $medium->fresh()->stock]);
+
+        // The member closed the tab, and Stripe expires the session at the end of the hold.
+        $this->sessions['cs_1']['status'] = 'expired';
+        // Another studio's account can't release this studio's order.
+        $this->studio(['stripe_account_id' => 'acct_B']);
+        $this->postWebhook(['id' => 'evt_other', 'type' => 'checkout.session.expired', 'account' => 'acct_B', 'data' => ['object' => ['id' => 'cs_1', 'object' => 'checkout.session']]])->assertOk();
+        $this->assertSame(['pending', 1], [$order->fresh()->status, $medium->fresh()->stock]);
+
+        $this->webhook('checkout.session.expired', 'cs_1', 'evt_1')->assertOk();
+        $this->assertSame(['expired', null, null, 3], [$order->fresh()->status, $order->fresh()->number, $order->fresh()->fulfillment_status, $medium->fresh()->stock]);
+        Mail::assertNothingQueued();
+
+        // Told twice: restocked once, and the sweep finds nothing left to settle.
+        $this->webhook('checkout.session.expired', 'cs_1', 'evt_retry')->assertOk();
+        $this->travel(Shop::HOLD_MINUTES + 15)->minutes();
+        $this->assertSame(0, app(Shop::class)->sweep());
+        $this->assertSame(3, $medium->fresh()->stock);
+
+        // A plan's Checkout expiring holds no stock: nothing to do.
+        $this->sessions['cs_plan'] = ['id' => 'cs_plan', 'object' => 'checkout.session', 'mode' => 'payment', 'status' => 'expired', 'payment_status' => 'unpaid',
+            'metadata' => ['loft_plan_id' => '1', 'loft_user_id' => '1'], 'payment_intent' => null];
+        $this->webhook('checkout.session.expired', 'cs_plan', 'evt_plan')->assertOk();
+        $this->assertSame(['expired'], Order::pluck('status')->all());
+    }
+
     public function test_the_hourly_sweep_settles_checkouts_nobody_came_back_from(): void
     {
         [$studio, $medium] = $this->shop([]);

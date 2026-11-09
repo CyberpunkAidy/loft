@@ -11,12 +11,17 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Videos for members:** a library page and a player (Mux Player, signed tokens, no tracking cookies). Locked videos say why and link to sign in, join, or the plans that include videos. Views are counted once a day and appear on the member's activity.
   - **Plans:** **Includes the video library**.
   - **API:** sessions say where they happen and how many online spots are left; bookings and checkouts take `online`; `POST …/bookings/{id}/join` returns the meeting link; `GET …/videos` and `POST …/videos/{id}/playback` ([API](API)).
-  - **Decision 32**, including why the app won't sell plans that include videos. Roadmap step 10 is built.
+  - **Decision 33**, including why the app won't sell plans that include videos. Roadmap step 10 is built.
   - **Database:** new tables `videos` and `video_views`; `delivery`, `online_capacity` and `meeting_url` on `programs` and `class_sessions`; `bookings.online_spot`; `plans.includes_videos`.
   - **Setup:** Mux keys in Render ([Deployment](Deployment#video-mux)).
 
 ## 2026-11-09
 
+- **Abandoned shop checkouts are released reliably** ([#26](https://github.com/CyberpunkAidy/loft-studio/pull/26))
+  - **The hourly job gets the Stripe key:** `render.yaml` gave `STRIPE_SECRET` only to `loft-web`, so `loft-housekeeping` couldn't ask Stripe about shop checkouts or card reader sales nobody finished. Those would have stayed pending and kept their stock for good. It's now declared on `loft-housekeeping` too.
+  - **`checkout.session.expired`** releases a shop order the member walked away from, and puts its stock back, as soon as Stripe expires the session. The hourly sweep still settles anything a webhook missed.
+  - **Decision 32**, which revises decision 27.
+  - **Action needed:** add `STRIPE_SECRET` to `loft-housekeeping` → Environment in Render, with the same key as `loft-web`. A Blueprint sync won't add it. Then add `checkout.session.expired` to the Stripe webhook.
 - **Churn scoring** (roadmap step 9, [#25](https://github.com/CyberpunkAidy/loft-studio/pull/25))
   - **Risk scores each night:** right after the member snapshot, every member gets a churn risk (0 to 100: high, medium, low, or lapsed) from rules a studio would recognise (time since their last class, coming less, nothing booked, a failed payment, no plan left), with the reasons in plain words and the model version (`rules-v1`).
   - **Members → At risk of leaving:** high and medium, riskiest first, and a risk column for everyone. Each member's page shows their score, why, and the nights before. The dashboard counts members at high risk.

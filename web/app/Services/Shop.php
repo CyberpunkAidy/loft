@@ -22,8 +22,10 @@ use Throwable;
  * Starting checkout reserves the stock and creates a pending order (no number yet), then a Checkout
  * Session held for HOLD_MINUTES. Paid (webhook or return page): the order is numbered, takes
  * Stripe's amounts and waits for pickup. Not paid (expired, abandoned, a delayed payment that
- * failed): the order is released and the stock goes back. The hourly sweep asks Stripe about
- * pending orders whose Checkout should have finished, so no extra webhook events are needed.
+ * failed): the order is released and the stock goes back. checkout.session.expired releases a
+ * checkout the member walked away from as soon as Stripe expires it. The hourly sweep asks Stripe
+ * about pending orders whose Checkout should have finished, in case a webhook never came; it needs
+ * STRIPE_SECRET on the cron service too.
  *
  * The cart is [variant_id => quantity] in the session.
  */
@@ -145,6 +147,20 @@ class Shop
                 $order->items()->get()->mapWithKeys(fn ($i) => [$i->description => '×'.$i->quantity])->all(),
                 ['You can order again and pay with a card or another payment method.'], route('studio.shop', $studio), 'Back to the shop', 'checkout_failed'),
                 "checkout_failed:order:{$order->id}");
+        }
+
+        return $order;
+    }
+
+    /**
+     * Its Checkout Session expired unpaid (checkout.session.expired): the member closed the tab, so
+     * release the order and its stock. Returns null if the session isn't a shop order's.
+     */
+    public function expired(Studio $studio, array $cs): ?Order
+    {
+        $order = $this->orderFor($studio, $cs);
+        if ($order && ($cs['status'] ?? '') === 'expired') {
+            $this->release($order, 'expired');
         }
 
         return $order;

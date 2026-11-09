@@ -24,7 +24,8 @@ use Illuminate\Support\Facades\DB;
  * churn-risk automations (from 10 AM),
  * settling online shop orders whose checkout has ended and card reader sales nobody finished, following
  * videos still on their way through Mux, and relaying any domain events still waiting. Port of
- * the plugin's Cron, plus the event backbone's chores.
+ * the plugin's Cron, plus the event backbone's chores. Settling asks Stripe, so the cron service needs
+ * STRIPE_SECRET too (render.yaml); following videos needs the Mux keys (the loft-shared group).
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
  * so it goes out once however often this runs.
  */

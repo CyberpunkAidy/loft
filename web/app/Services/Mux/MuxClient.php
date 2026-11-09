@@ -9,7 +9,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Mux Video, on Loft's own account (decision 32). Every asset is created with a signed playback
+ * Mux Video, on Loft's own account (decision 33). Every asset is created with a signed playback
  * policy and basic video quality (no encoding charge); the tokens that play it come from token().
  * Mux's docs: https://www.mux.com/docs/api-reference/video and /docs/guides/secure-video-playback.
  */

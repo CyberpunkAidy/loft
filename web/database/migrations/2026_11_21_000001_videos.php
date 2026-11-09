@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * On-demand video (roadmap step 10), hosted on Loft's Mux account (decision 32).
+ * On-demand video (roadmap step 10), hosted on Loft's Mux account (decision 33).
  * - videos: a studio's library. status: uploading (waiting for the file) → processing (Mux is
  *   encoding it) → ready, or errored. Playback is signed, so the playback ID alone plays nothing.
  *   access: members (anyone with an account at the studio) or plan (a current plan that includes
