@@ -14,7 +14,7 @@
 ## Setup checklist
 
 1. Platform account: turn on **Connect** (Settings → Connect).
-2. Copy the **secret** key (`sk_test_…` in test mode) into Render: `loft-web` → Environment → `STRIPE_SECRET`. The publishable `pk_` key won't work.
+2. Copy the **secret** key (`sk_test_…` in test mode) into Render as `STRIPE_SECRET`, on two services: `loft-web` → Environment, and `loft-housekeeping` → Environment (the hourly job asks Stripe about shop checkouts and card reader sales nobody finished). The publishable `pk_` key won't work.
 3. Create the webhook (Developers → Webhooks → add destination):
    - **Events from:** Connected accounts
    - **Payload style:** Snapshot
@@ -24,6 +24,7 @@
      - `checkout.session.completed`
      - `checkout.session.async_payment_succeeded`
      - `checkout.session.async_payment_failed`
+     - `checkout.session.expired`
      - `invoice.paid`
      - `invoice.payment_failed`
      - `customer.subscription.updated`
@@ -35,7 +36,7 @@
 6. Create a plan (Admin → Plans & pricing), then **Create in Stripe**.
 7. Make a test purchase with card `4242 4242 4242 4242`.
 
-Status in November 2026: the platform keys, Connect and the webhook are being set up in test mode. The two `async_payment` events were added to the app on 2026-11-08 and must be added to the webhook as well.
+Status in November 2026: the platform keys, Connect and the webhook are being set up in test mode. The two `async_payment` events were added to the app on 2026-11-08 and must be added to the webhook as well. `checkout.session.expired` was added on 2026-11-09; until it's on the webhook, abandoned shop checkouts wait for the hourly job, which needs `STRIPE_SECRET` on `loft-housekeeping`.
 
 ## API versions
 
@@ -59,6 +60,7 @@ Status in November 2026: the platform keys, Connect and the webhook are being se
 | `checkout.session.completed` | Grants the plan if paid (or if it's a subscription) and finishes the booking it started from |
 | `checkout.session.async_payment_succeeded` | Same, once a delayed payment (bank debit) clears |
 | `checkout.session.async_payment_failed` | Emails the member that the payment didn't go through (one-time purchases) |
+| `checkout.session.expired` | Releases a shop order the member walked away from and puts its stock back (plan checkouts hold nothing) |
 | `invoice.paid` | Extends the membership period; restores a past-due membership; grants it if checkout hasn't arrived yet |
 | `invoice.payment_failed` | Marks the membership past due (bookings pause) and emails once per lapse |
 | `customer.subscription.updated` | Copies status, period end and scheduled cancellation |
@@ -82,6 +84,7 @@ Returning from Checkout (`/{studio}/checkout/complete`) runs the same fulfilment
 | "This API call cannot be made with a publishable API key" | `STRIPE_SECRET` held the `pk_` key | Use the `sk_` secret key |
 | "Stripe no longer recommends Accounts v1 for new Connect integrations…" | Stripe blocks v1 account creation for new platforms | Accounts v2 since [#8](https://github.com/CyberpunkAidy/loft-studio/pull/8) |
 | A pack paid by bank debit never appears | `async_payment_succeeded` wasn't handled | Handled since [#13](https://github.com/CyberpunkAidy/loft-studio/pull/13); add the event to the webhook |
+| Shop orders or card reader sales stay pending and keep their stock; `loft-housekeeping`'s logs show "Stripe is not configured. Set STRIPE_SECRET." | `STRIPE_SECRET` was only on `loft-web`, so the hourly job couldn't ask Stripe | Add `STRIPE_SECRET` (the same key) to `loft-housekeeping` → Environment. A Blueprint sync won't add it, because it's `sync: false`. Also add `checkout.session.expired` to the webhook |
 
 ## Known gaps
 

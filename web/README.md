@@ -105,7 +105,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 - **Contactless check-in** (`App\Services\CheckIns`, `CheckInCodes`, Admin → Check-in devices, `/{studio}/kiosk`): kiosks and readers with their own tokens; NFC/RFID tags (stored as keyed hashes) and members' QR codes (signed, rotating every 30 seconds); a scan checks the person in to their class now, waivers enforced; every scan logged.
 - **Mobile API** (`routes/api.php`, `App\Http\Controllers\Api\V1`): `/api/v1` with Sanctum bearer tokens, one per install. The same services as the website (`Bookings`, `BookingOptions`, `Waivers`, `PlanCheckout`, `Memberships`), errors with stable codes, `Idempotency-Key` on writes that matter, cursor pages. Documented in the wiki's API page.
 - **Card readers** (`App\Services\CardReaders`, `App\Services\ReaderPayments`, Payments → Card readers): Stripe Terminal readers paired on the studio's account; the point of sale charges the cart on one, waits for the card on a page that refreshes itself, and records the sale when it's paid. Refunds go back to the card. Housekeeping settles sales left open.
-- **Online shop** (`App\Services\Shop`, `/{studio}/shop`): the same products, paid through Stripe Checkout with the studio's sales tax; stock held for 30 minutes while the member pays; picked up at the front desk (Admin → Sales → To pick up). Housekeeping settles checkouts whose webhook never came.
+- **Online shop** (`App\Services\Shop`, `/{studio}/shop`): the same products, paid through Stripe Checkout with the studio's sales tax; stock held for 30 minutes while the member pays; picked up at the front desk (Admin → Sales → To pick up). `checkout.session.expired` releases an abandoned checkout's stock; housekeeping settles any checkout whose webhook never came.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
 - **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
@@ -155,12 +155,12 @@ These are fixed here; the plugin still has them.
 ## Payments (Stripe Connect)
 
 1. In the platform's Stripe account, enable **Connect** (Settings → Connect). The app creates studio accounts with Stripe's Accounts v2 API, set up like Standard accounts: each studio has the full Stripe Dashboard, pays Stripe's fees itself, and Stripe covers losses. A new account is in the platform's country.
-2. Set `STRIPE_SECRET` to the platform's secret key (`sk_…`, not the publishable `pk_…` key).
+2. Set `STRIPE_SECRET` to the platform's secret key (`sk_…`, not the publishable `pk_…` key), on both `loft-web` and `loft-housekeeping` (see [Deploy on Render](#deploy-on-render)).
 3. Under **Developers → Webhooks**, add an endpoint for **events on connected accounts**:
    - URL: `https://<your-domain>/stripe/webhook`
    - API version: any; the latest is fine. The app takes only the object's ID from each webhook and fetches the object from the API in the version it pins (`2024-06-20`).
    - Payload style: snapshot. These are v1 events; Stripe sends them for Accounts v2 accounts too.
-   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
 
    Put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 4. Each studio connects from **Admin → Payments**. The app creates the studio's Customer Portal configuration on first use.
@@ -207,7 +207,9 @@ Use card `4242 4242 4242 4242`. Test-mode and live-mode objects don't mix, so st
 All four are paid Render plans. Workers, cron jobs, disks and pre-deploy commands aren't available on Render's free tier.
 
 1. In Render, choose **New → Blueprint**, connect this repository, and pick the branch to deploy.
-2. Render asks for `STRIPE_SECRET` and `STRIPE_WEBHOOK_SECRET`. Leave them blank to start, and add them later in `loft-web`'s environment. See [Payments](#payments-stripe-connect).
+2. Render asks for `STRIPE_SECRET` (for `loft-web` and `loft-housekeeping`) and `STRIPE_WEBHOOK_SECRET` (for `loft-web`). Leave them blank to start, and add them later in each service's **Environment** page. See [Payments](#payments-stripe-connect).
+   - **`STRIPE_SECRET` goes on both services, with the same key.** `loft-housekeeping` asks Stripe each hour about shop checkouts and card reader sales nobody finished. Without the key it can't, so those orders stay pending and their stock stays held. Its logs then show `Stripe is not configured. Set STRIPE_SECRET.`
+   - **Already deployed?** Render asks for `sync: false` keys only when the Blueprint is first created, and later syncs ignore them. If your `loft-housekeeping` was created before it had `STRIPE_SECRET` in `render.yaml`, add the key by hand: `loft-housekeeping` → **Environment**.
 3. Deploy. The first build takes a few minutes. The site answers at `https://loft-web.onrender.com` straight away; open `/signup` there to create your studio.
 4. **Domain: loftstudio.app.** `render.yaml` adds `loftstudio.app` to `loft-web`, and Render adds `www.loftstudio.app` and redirects it to the bare domain. At your DNS provider:
    - `loftstudio.app`: an `ALIAS` or `ANAME` record to `loft-web.onrender.com`. If your provider has neither, use an `A` record with `216.24.57.1`.
@@ -255,14 +257,14 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 163 tests. They cover:
+There are 164 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
 - automations: first-class follow-ups through the outbox, birthdays (leap days too), win-back once per absence, and the admin screens
 - the orders ledger: checkouts, membership invoices and renewals, in-person payments and voids, numbering, the Sales page and CSV
 - merchandise and the point of sale: products and variants, stock that never goes negative, sales tax, walk-ins and comps, voids that restock
-- the online shop: the cart, stock held while paying and released when not, Stripe Checkout with tax, paid orders numbered with a pickup receipt, bank payments that fail, the hourly sweep, pickups
+- the online shop: the cart, stock held while paying and released when not, Stripe Checkout with tax, paid orders numbered with a pickup receipt, bank payments that fail, abandoned checkouts released when Stripe expires them, the hourly sweep, pickups
 - card readers: pairing and syncing with Stripe, charging the till's cart, declines and retries, cancelling (and paying at the same moment), offline and busy readers, refunds, the hourly sweep
 - the mobile API: signing in and out, registering and joining, token revocation (password change or reset, deleting the account), push tokens, the schedule and cursor pages, booking with stable error codes and idempotency keys, the family, waivers, purchases, buying a plan, rate limits, and that nobody reaches another member's or studio's records
 - contactless check-in: devices and their codes, pairing the kiosk, tags (one person at a time, taken back), rotating QR codes, the check-in window, waivers and waitlists, offline scans, the device API, and that member and device tokens don't cross over

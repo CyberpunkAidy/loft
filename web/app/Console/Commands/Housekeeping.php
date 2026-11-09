@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  * snapshots (once its local time passes 2 AM) and churn scores from them, birthday, win-back and
  * churn-risk automations (from 10 AM),
  * settling online shop orders whose checkout has ended and card reader sales nobody finished, and relaying any domain events still waiting. Port of
- * the plugin's Cron, plus the event backbone's chores.
+ * the plugin's Cron, plus the event backbone's chores. Settling asks Stripe, so the cron service needs STRIPE_SECRET too (render.yaml).
  * Run hourly by the loft-housekeeping cron job; each email has a dedupe key in message_deliveries,
  * so it goes out once however often this runs.
  */

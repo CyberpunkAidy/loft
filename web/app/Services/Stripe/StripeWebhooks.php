@@ -128,6 +128,7 @@ class StripeWebhooks
             'checkout.session.completed',
             'checkout.session.async_payment_succeeded' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
             'checkout.session.async_payment_failed' => $this->checkoutFailed($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
+            'checkout.session.expired' => $this->shop->expired($studio, $this->stripe->retrieveCheckoutSession($studio, $id)), // plan checkouts hold nothing
             'invoice.paid' => $this->invoicePaid($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'invoice.payment_failed' => $this->invoiceFailed($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'customer.subscription.updated' => $this->subscriptionUpdated($studio, $this->stripe->retrieveSubscription($studio, $id)),
