@@ -6,6 +6,7 @@
 - [Stripe](Stripe)
 - [Email](Email)
 - [Payments](Payments)
+- [API](API)
 - [Accounts and Data](Accounts-and-Data)
 - [Design System](Design-System)
 - [Development](Development)

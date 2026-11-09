@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Studio;
+use App\Support\ApiException;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,11 @@ class RequireStudioRole
 
         if ($user && $user->hasRoleIn($studio, $role)) {
             return $next($request);
+        }
+        if ($request->is('api/*')) {
+            throw $role === 'member'
+                ? new ApiException('not_a_member', "You’re not a member of {$studio->name} yet. Join first.", 403)
+                : new ApiException('forbidden', 'You don’t have access to this part of '.$studio->name.'.', 403);
         }
         if ($user && $role === 'member') {
             if ($request->isMethod('GET')) {

@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Studio;
+use App\Services\BookingOptions;
 use App\Services\Bookings;
-use App\Services\Waivers;
 use App\Support\BookingException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,42 +19,17 @@ use Illuminate\View\View;
  */
 class BookingController extends Controller
 {
-    public function create(Request $request, Studio $studio, ClassSession $session, Bookings $bookings, Waivers $waivers): View
+    public function create(Request $request, Studio $studio, ClassSession $session, BookingOptions $options): View
     {
         abort_if($session->isCancelled() || ! $session->program->is_published, 404);
-        $session->loadCount([
-            'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES),
-            'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
-        ]);
-
-        $attendees = $studio->attendees()->where('user_id', $request->user()->id)->where('status', 'active')
-            ->orderByDesc('is_self')->orderBy('first_name')->get();
-        $states = [];
-        foreach ($attendees as $attendee) {
-            $existing = $bookings->existing($session, $attendee);
-            $ageError = null;
-            try {
-                $bookings->assertAge($session, $attendee);
-            } catch (BookingException $e) {
-                $ageError = $e->getMessage();
-            }
-            $states[$attendee->id] = [
-                'booking' => $existing,
-                'age_error' => $ageError,
-                'needs_waiver' => ! $waivers->isSigned($studio, $attendee, $session->program),
-            ];
-        }
-
-        $closed = null;
-        try {
-            $bookings->assertOpen($session);
-        } catch (BookingException $e) {
-            $closed = $e->getMessage();
-        }
-        if (! $closed && $session->isFull() && $session->waitlistIsFull()) {
-            $closed = $session->waitlist_capacity === 0 ? 'This class is full.' : 'This class and its waitlist are full.';
-        }
-
+        $found = $options->for($studio, $session, $request->user());
+        $attendees = $found['attendees']->pluck('attendee');
+        $states = $found['attendees']->mapWithKeys(fn (array $o) => [$o['attendee']->id => [
+            'booking' => $o['booking'],
+            'age_error' => $o['age_error'],
+            'needs_waiver' => $o['waiver'] !== null,
+        ]])->all();
+        $closed = $found['closed'];
         $slots = $session->apparatusSlots();
         $chosen = $slots->has($request->integer('apparatus')) ? $request->integer('apparatus') : null;
 

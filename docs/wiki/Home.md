@@ -27,6 +27,7 @@ This wiki covers the web app. The plugin is documented in `plugin/README.md` and
 - [Stripe](Stripe): Connect setup, webhooks, API versions and troubleshooting.
 - [Email](Email): Resend setup, the templates and troubleshooting.
 - [Payments](Payments): online, delayed (bank) and in-person payments.
+- [API](API): the mobile app's JSON API (v1): tokens, errors, endpoints.
 - [Accounts and Data](Accounts-and-Data): deleting accounts, closing studios and what's kept.
 - [Design System](Design-System): logo, colors, fonts, icons and components.
 - [Development](Development): running it locally, tests, CI and pull requests.

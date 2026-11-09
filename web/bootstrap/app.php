@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\ApiErrors;
+use App\Http\Middleware\Idempotency;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
 use App\Models\Studio;
@@ -11,6 +13,7 @@ use Illuminate\Http\Request;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -18,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'studio' => ResolveStudio::class,
             'studio.role' => RequireStudioRole::class,
+            'idempotent' => Idempotency::class,
         ]);
         // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
         // for one-click unsubscribe (RFC 8058) without a session.
@@ -41,4 +45,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+        // The mobile API's errors: one shape, with stable codes (App\Http\ApiErrors).
+        $exceptions->render(fn (Throwable $e, Request $request) => $request->is('api/*') ? ApiErrors::render($e) : null);
     })->create();

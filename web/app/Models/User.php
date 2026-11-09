@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
  * A person with a login. Users are global: the same account can be a member of one
@@ -21,7 +22,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /** @var array<int, StudioUser|null> */
     private array $membershipCache = [];
@@ -42,6 +43,12 @@ class User extends Authenticatable
     public function studioUsers(): HasMany
     {
         return $this->hasMany(StudioUser::class);
+    }
+
+    /** The member's app installs, with their push notification tokens. */
+    public function devices(): HasMany
+    {
+        return $this->hasMany(UserDevice::class);
     }
 
     public function studios(): BelongsToMany

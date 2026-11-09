@@ -56,14 +56,7 @@ class AttendeeController extends Controller
 
     private function validated(Request $request): array
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
-            'dob' => ['nullable', 'date', 'before_or_equal:today', 'after:1900-01-01'],
-            'emergency_contact' => ['nullable', 'string', 'max:190'],
-            'medical_notes' => ['nullable', 'string', 'max:2000'],
-            'is_self' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validate(Attendee::rules());
         $data['is_self'] = $request->boolean('is_self');
 
         return $data;
