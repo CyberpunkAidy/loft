@@ -4,11 +4,20 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **The old email log is dropped**
-  - **Database:** the `sent_notifications` table is dropped. It was replaced by `message_deliveries` when the event backbone went live ([#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)), which copied its rows (class reminders and credit-expiry warnings already sent), and nothing has used it since. Rolling back brings the table back empty.
+- **The mobile app, first version** (`mobile/`)
+  - **One Loft app for every studio**, for iOS and Android, built with Expo on the API. Members find their studio by its web address, then sign in, create an account or join; the app takes on the studio's color, and follows the phone's light or dark setting.
+  - **Booking:** the schedule a week at a time in the studio's time zone; each class with a line per person on the account: book, join the waitlist, sign a waiver first, or buy a plan that covers it (the booking finishes once paid). Online or in the studio for hybrid classes; apparatus where there's a choice.
+  - **My classes:** upcoming and past, cancelling, and **Join online** for online classes.
+  - **Account:** rotating check-in codes per person, family and their waivers, adding someone, plans and purchases, buying a plan in an in-app browser (not plans with videos), switching studios, signing out, deleting the account on the website.
+  - **Videos:** the library and player.
+  - **Checks:** a type check and 21 tests on every change (`.github/workflows/mobile.yml`), and the web build. Not in the stores yet: that needs Apple and Google developer accounts ([Mobile App](Mobile-App)).
+  - **Decision 35.**
+- **API:** upcoming bookings now stay upcoming until the class ends, checked-in ones too, as on the website, so the app can rejoin an online class; past is what has ended.
 
 ## 2026-11-09
 
+- **The old email log is dropped** ([#29](https://github.com/CyberpunkAidy/loft-studio/pull/29))
+  - **Database:** the `sent_notifications` table is dropped. It was replaced by `message_deliveries` when the event backbone went live ([#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)), which copied its rows (class reminders and credit-expiry warnings already sent), and nothing has used it since. Rolling back brings the table back empty.
 - **Refunds** ([#28](https://github.com/CyberpunkAidy/loft-studio/pull/28))
   - **Refund from Loft:** **Refund** on Sales, a member's page or a card reader receipt opens a page that says what the refund does, then gives back what's left of the payment through Stripe. Online sales (packs, drop-ins, membership payments, shop orders) and card reader sales.
   - **What a full refund takes back:** packs and drop-ins are cancelled (classes already booked stay), products go back into stock, and a shop order no longer waits to be picked up. For a membership or season payment, staff choose **Refund this payment only** or **Refund and end the membership now** (cancelled in Stripe at once).

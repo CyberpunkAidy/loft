@@ -23,6 +23,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - See [Architecture](Architecture#the-outbox-domain_events).
 - **Automations (step 4, done by email):** after a first class, birthday and we miss you, as marketing email ([Email](Email#automations)). The first-class follow-up is the outbox's first consumer.
 - **API (step 7, done):** a JSON API for the mobile app at `/api/v1`, with Sanctum tokens ([API](API)).
+- **Mobile app (first version, built):** the Loft app for iOS and Android in `mobile/` ([Mobile App](Mobile-App), [decision 35](Decisions)). Not in the stores yet.
 - **Video and live classes (step 10, done):** classes in the studio, online or both, joined through the studio's meeting link; an on-demand library on Loft's Mux account, open to members or to plans that include videos ([decision 33](Decisions)).
 
 ## Principles
@@ -136,7 +137,7 @@ Route::prefix('v1')->group(function () {
 - **On-demand video (built):** a `videos` table pointing at Mux assets, with signed playback. Access is for everyone with an account, or comes from plans that include videos.
 - **Live classes (built):** `class_sessions.delivery` is `in_person`, `online` or `hybrid`. A hybrid class's online spots are counted apart from its seats (`bookings.online_spot`, `online_capacity`) rather than as a resource in the apparatus model: they have no items to number and no waitlist.
 - **Apple's rules:** digital content sold inside an iOS app falls under Apple's in-app purchase rules. Since the April 2025 injunction, US apps may link to outside purchases without Apple's commission; the Ninth Circuit allowed Apple some commission on them in December 2025 (the amount is still to be set), and the Supreme Court agreed on June 30, 2026 to review the case ([Courthouse News](https://www.courthousenews.com/apples-fight-over-commissions-for-linked-out-app-store-purchases-continues-in-federal-court/), [Apple's 2026 10-K](https://www.sec.gov/Archives/edgar/data/0000320193/000032019326000026/aapl-20260926.htm), [FKKS](https://technologylaw.fkks.com/post/102mp7y/update-your-app-external-purchase-developments-for-apple-google)). So the app plays videos but doesn't sell plans that include them ([decision 33](Decisions)). Check again before the app ships.
-- **The app itself:** React Native (Expo) against this API ([decision 17](Decisions#tech-stack-nextjs-and-node)).
+- **The app itself (first version built):** React Native (Expo) against this API ([decision 17](Decisions#tech-stack-nextjs-and-node), [decision 35](Decisions), [Mobile App](Mobile-App)). Still to do: push notifications (sending them from the server first), store listings and release, a drawn waiver signature, editing family and profile in the app, and types generated from an OpenAPI description.
 
 ### Contactless check-in
 

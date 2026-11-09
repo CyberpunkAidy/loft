@@ -7,6 +7,7 @@
 - [Email](Email)
 - [Payments](Payments)
 - [API](API)
+- [Mobile App](Mobile-App)
 - [Accounts and Data](Accounts-and-Data)
 - [Design System](Design-System)
 - [Development](Development)

@@ -31,11 +31,13 @@ class BookingController extends Controller
             ->join('class_sessions as session', 'session.id', '=', 'bookings.class_session_id')
             ->select('bookings.*', 'session.starts_at as session_starts_at')
             ->with(['attendee', 'apparatus', 'classSession.program', 'classSession.room']);
+        // As on the website: a class stays upcoming until it ends, checked-in ones too, so someone
+        // in an online class can join again after a dropped call.
         if ($upcoming) {
-            $query->where('session.starts_at', '>=', now())->whereIn('bookings.status', ['booked', 'waitlisted'])
+            $query->where('session.ends_at', '>=', now())->whereIn('bookings.status', ['booked', 'waitlisted', 'attended'])
                 ->orderBy('session_starts_at')->orderBy('bookings.id');
         } else {
-            $query->where('session.starts_at', '<', now())->orderByDesc('session_starts_at')->orderByDesc('bookings.id');
+            $query->where('session.ends_at', '<', now())->orderByDesc('session_starts_at')->orderByDesc('bookings.id');
         }
         $page = $query->cursorPaginate((int) ($data['per_page'] ?? 50))->withQueryString();
         $page->getCollection()->each(fn (Booking $b) => $b->classSession->setRelation('studio', $studio));

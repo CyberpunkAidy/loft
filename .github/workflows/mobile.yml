@@ -1,0 +1,29 @@
+name: Mobile app
+
+on:
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Tests
+        run: npm test -- --ci
+      - name: Build (web bundle, as a check that everything compiles)
+        run: npx expo export --platform web --output-dir /tmp/loft-web
