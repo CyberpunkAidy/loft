@@ -156,12 +156,12 @@ class Orders
      * cancelled, products go back into stock, and its payment record (if any) is voided too. Online
      * sales are refunded in Stripe instead.
      */
-    public function void(Order $order, User $staff): void
+    public function void(Order $order, User $staff, array $details = []): void
     {
         if ($order->isVoid() || $order->channel !== 'in_person') {
             return;
         }
-        DB::transaction(function () use ($order, $staff) {
+        DB::transaction(function () use ($order, $staff, $details) {
             $order->update(['status' => 'void', 'voided_at' => now(), 'voided_by_user_id' => $staff->id]);
             foreach ($order->items()->with(['entitlement.plan'])->get() as $item) {
                 $entitlement = $item->entitlement;
@@ -177,7 +177,7 @@ class Orders
             if ($payment && ! $payment->isVoided()) {
                 $payment->update(['voided_at' => now(), 'voided_by_user_id' => $staff->id]);
             }
-            $this->events->record('order.voided', $order->studio_id, ['order_id' => $order->id, 'number' => $order->number], $order->user_id);
+            $this->events->record('order.voided', $order->studio_id, ['order_id' => $order->id, 'number' => $order->number] + $details, $order->user_id);
         });
     }
 
@@ -237,6 +237,29 @@ class Orders
             }
             $locked->update($attributes + ['status' => 'paid', 'number' => $this->nextNumber($locked->studio), 'paid_at' => now()]);
             $this->recordPaid($locked);
+            $order->setRawAttributes($locked->getAttributes(), true);
+
+            return true;
+        });
+    }
+
+    /**
+     * A pending order that won't be paid (a checkout abandoned or failed, a card reader sale cancelled):
+     * it gets $status and its products go back into stock. False if it wasn't pending.
+     */
+    public function release(Order $order, string $status): bool
+    {
+        return DB::transaction(function () use ($order, $status) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
+            if (! $locked || $locked->status !== 'pending') {
+                return false;
+            }
+            $locked->update(['status' => $status, 'fulfillment_status' => null]);
+            foreach ($locked->items as $item) {
+                if ($item->product_variant_id) {
+                    ProductVariant::whereKey($item->product_variant_id)->whereNotNull('stock')->increment('stock', $item->quantity);
+                }
+            }
             $order->setRawAttributes($locked->getAttributes(), true);
 
             return true;

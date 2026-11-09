@@ -4,16 +4,23 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Online shop** (roadmap step 6, second part)
+- **Card readers** (roadmap step 6, last part)
+  - **Payments → Card readers:** the studio's address for Stripe once, then pair Stripe Terminal readers (WisePOS E, S700) by code; model, serial number and online status; readers added or removed in the Stripe Dashboard are picked up.
+  - **Point of sale:** **Charge on Front desk** sends the cart to a reader. A waiting page refreshes itself until the card goes through (order numbered, plans granted, receipt sent), is declined (try again or cancel) or is cancelled (stock back, nothing charged). Offline or busy readers refuse the sale straight away.
+  - **Refund** for card reader sales (receipt, Sales, member page): refunded to the card in Stripe, then voided.
+  - **Housekeeping** settles reader sales left open for 15 minutes. Test mode can tap a test card on a simulated reader.
+  - **Decision 28.** Roadmap step 6 is complete.
+  - **Database:** new table `card_readers`; `studios.stripe_terminal_location_id`; `orders.card_reader_id`.
+
+## 2026-11-09
+
+- **Online shop** (roadmap step 6, second part, [#21](https://github.com/CyberpunkAidy/loft-studio/pull/21))
   - **Shop** on the studio site: products by variant, a cart for anyone, checkout for members through Stripe Checkout with the studio's sales tax; picked up at the front desk.
   - **Stock is held while members pay** (30 minutes): coming back without paying, abandoning checkout or a failed bank payment puts it back. Paid orders get their number when paid.
   - **Pickups:** Admin → Sales → To pick up (and a dashboard count) lists paid shop orders; staff mark each one picked up. Members see "Ready to pick up" and get a pickup receipt by email.
   - **Housekeeping** settles shop checkouts whose webhook never arrived, by asking Stripe.
   - **Decision 27.** The demo studio has an online order waiting to be picked up.
   - **Database:** `orders.number` and `paid_at` can be empty while an order is pending; `orders.fulfillment_status`, `picked_up_at`, `picked_up_by_user_id`; `studios.stripe_tax_rate_id` and `stripe_tax_rate_milli`.
-
-## 2026-11-09
-
 - **Merchandise and the point of sale** (roadmap step 6, first part, [#20](https://github.com/CyberpunkAidy/loft-studio/pull/20))
   - **Admin → Products:** merchandise with variants (sizes, colours), each with its own stock and optionally its own price; taxable or not; low stock flagged; hidden instead of deleted once sold.
   - **Admin → Point of sale:** products and plans in one cart, for a member or a walk-in; paid in person (cash, check, card terminal…) or comped, with a note. Stock never goes below zero; plans are granted as in-person payments are; one order records it, with tax per line. Receipt email and a printable receipt.

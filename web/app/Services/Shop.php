@@ -177,21 +177,7 @@ class Shop
     /** Pending → expired or failed, and the stock back on the shelf. False if it wasn't pending. */
     public function release(Order $order, string $status): bool
     {
-        return DB::transaction(function () use ($order, $status) {
-            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
-            if (! $locked || $locked->status !== 'pending') {
-                return false;
-            }
-            $locked->update(['status' => $status, 'fulfillment_status' => null]);
-            foreach ($locked->items as $item) {
-                if ($item->product_variant_id) {
-                    ProductVariant::whereKey($item->product_variant_id)->whereNotNull('stock')->increment('stock', $item->quantity);
-                }
-            }
-            $order->setRawAttributes($locked->getAttributes(), true);
-
-            return true;
-        });
+        return $this->orders->release($order, $status);
     }
 
     /**

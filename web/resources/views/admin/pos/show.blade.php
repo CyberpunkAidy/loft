@@ -7,10 +7,17 @@
 <div class="page-head">
     <div>
         <h1>Point of sale</h1>
-        <p>Sell products and plans at the front desk. Take payment however it’s paid; card readers come later.</p>
+        <p>Sell products and plans at the front desk. Charge a card reader, or record payment taken another way.</p>
     </div>
     <a class="btn btn-secondary btn-small" href="{{ route('studio.admin.products.index') }}">Products</a>
 </div>
+
+@foreach ($waiting as $sale)
+    <div class="alert alert-warning">
+        <div>Waiting for a card on {{ $sale->cardReader?->label ?? 'a reader' }}: {{ $money($sale->total_cents) }} for {{ $sale->customerLabel() }} ({{ $sale->itemsLabel() }}).
+            <a href="{{ route('studio.admin.pos.reader', ['order' => $sale]) }}">Open it</a></div>
+    </div>
+@endforeach
 
 <div class="split pos">
     <section class="stack">
@@ -115,6 +122,20 @@
                 @if ($totals['tax'])<dt>Tax ({{ rtrim(rtrim(number_format($studio->salesTaxPercent(), 3), '0'), '.') }}%)</dt><dd>{{ $money($totals['tax']) }}</dd>@endif
                 <dt class="pos-total">Total</dt><dd class="pos-total">{{ $money($totals['total']) }}</dd>
             </dl>
+            @if ($readers->isNotEmpty())
+                <form method="post" action="{{ route('studio.admin.pos.charge') }}" class="form">
+                    @csrf
+                    @if ($readers->count() > 1)
+                        <x-select name="reader_id" label="Card reader" :options="$readers->pluck('label', 'id')->all()" />
+                    @else
+                        <input type="hidden" name="reader_id" value="{{ $readers->first()->id }}">
+                    @endif
+                    <button class="btn btn-block">Charge on {{ $readers->count() > 1 ? 'card reader' : $readers->first()->label }} · {{ $money($totals['total']) }}</button>
+                </form>
+                <div class="pos-or">or record it another way</div>
+            @elseif ($studio->stripeReady())
+                <p class="small muted" style="margin:0 0 .6rem"><a href="{{ route('studio.admin.payments.readers') }}">Set up a card reader</a> to charge cards through Stripe.</p>
+            @endif
             <form method="post" action="{{ route('studio.admin.pos.checkout') }}" class="form">
                 @csrf
                 <x-select name="method" label="Paid by" :options="$methods" value="cash" />

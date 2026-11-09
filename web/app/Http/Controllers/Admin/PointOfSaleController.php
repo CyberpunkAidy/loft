@@ -8,6 +8,9 @@ use App\Models\Payment;
 use App\Models\Studio;
 use App\Services\Orders;
 use App\Services\PointOfSale;
+use App\Services\ReaderPayments;
+use App\Services\Stripe\StripeClient;
+use App\Services\Stripe\StripeException;
 use App\Support\CheckoutException;
 use App\Support\Search;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +20,8 @@ use Illuminate\View\View;
 
 /**
  * Admin → Point of sale: the front-desk till. The cart lives in the staff member's session, one per
- * studio; every button is a plain form, so it works without JavaScript.
+ * studio; every button is a plain form, so it works without JavaScript. Card reader sales wait on a
+ * page that refreshes itself until the customer has paid (App\Services\ReaderPayments).
  */
 class PointOfSaleController extends Controller
 {
@@ -38,6 +42,8 @@ class PointOfSaleController extends Controller
             'matches' => $q === '' ? collect() : $studio->members()->tap(fn ($query) => Search::apply($query, ['first_name', 'last_name', 'email'], $q))
                 ->orderBy('first_name')->limit(8)->get(),
             'methods' => Payment::METHODS,
+            'readers' => $studio->stripeReady() ? $studio->cardReaders()->get() : collect(),
+            'waiting' => $studio->orders()->where('status', 'pending')->where('method', 'reader')->with(['cardReader', 'user', 'items'])->oldest()->get(),
         ]);
     }
 
@@ -114,13 +120,107 @@ class PointOfSaleController extends Controller
         return redirect()->route('studio.admin.pos.receipt', ['order' => $order])->with('success', "Sale #{$order->number} recorded.");
     }
 
-    public function receipt(Studio $studio, Order $order): View
+    public function receipt(Studio $studio, Order $order): View|RedirectResponse
     {
-        return view('admin.pos.receipt', ['order' => $order->load(['items', 'user', 'recordedBy'])]);
+        if ($order->awaitsReader()) {
+            return redirect()->route('studio.admin.pos.reader', ['order' => $order]);
+        }
+        abort_unless(in_array($order->status, ['paid', 'void'], true), 404);
+
+        return view('admin.pos.receipt', ['order' => $order->load(['items', 'user', 'recordedBy', 'cardReader'])]);
     }
 
-    /** Void an in-person sale made by mistake (from Sales, a member's page or the receipt). */
-    public function void(Request $request, Studio $studio, Order $order, Orders $orders): RedirectResponse
+    /** Send the cart to a card reader, then wait for the card. */
+    public function charge(Request $request, Studio $studio, ReaderPayments $readers): RedirectResponse
+    {
+        $data = $request->validate([
+            'reader_id' => ['required', 'integer', Rule::exists('card_readers', 'id')->where('studio_id', $studio->id)],
+            'note' => ['nullable', 'string', 'max:190'],
+        ]);
+        try {
+            $order = $readers->charge($studio, $this->cart($request, $studio), $studio->cardReaders()->findOrFail($data['reader_id']),
+                $data['note'] ?? null, $request->user());
+        } catch (CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        $request->session()->put($this->readerKey($studio), $order->id); // its cart is cleared once paid
+
+        return redirect()->route('studio.admin.pos.reader', ['order' => $order]);
+    }
+
+    /** Waiting for the card: asks Stripe each time it loads, and reloads itself while the reader waits. */
+    public function reader(Request $request, Studio $studio, Order $order, ReaderPayments $readers, StripeClient $stripe): View|RedirectResponse
+    {
+        abort_unless($order->method === 'reader', 404);
+        $error = null;
+        try {
+            $status = $readers->settle($order);
+        } catch (StripeException $e) {
+            report($e);
+            [$status, $error] = [['state' => 'waiting', 'message' => null], 'Couldn’t reach Stripe just now: '.$e->getMessage()];
+        }
+
+        return match ($status['state']) {
+            'paid' => $this->paid($request, $studio, $order),
+            'closed' => redirect()->route('studio.admin.pos')->with('warning', 'That card reader sale was cancelled. Nothing was charged.'),
+            default => view('admin.pos.reader', [
+                'order' => $order->load(['items', 'user', 'cardReader']),
+                'state' => $status['state'],
+                'message' => $status['message'],
+                'error' => $error,
+                'testMode' => $stripe->testMode(),
+            ]),
+        };
+    }
+
+    public function cancelReader(Request $request, Studio $studio, Order $order, ReaderPayments $readers): RedirectResponse
+    {
+        abort_unless($order->method === 'reader', 404);
+        try {
+            $state = $readers->cancel($order)['state'];
+        } catch (StripeException $e) {
+            report($e);
+
+            return back()->with('error', 'Couldn’t cancel it: '.$e->getMessage());
+        }
+
+        return match ($state) {
+            'paid' => $this->paid($request, $studio, $order),
+            'closed' => redirect()->route('studio.admin.pos')->with('success', 'Cancelled. Nothing was charged, and the cart is still here.'),
+            default => back()->with('error', 'The payment couldn’t be cancelled yet. Wait a moment and try again.'),
+        };
+    }
+
+    public function retryReader(Studio $studio, Order $order, ReaderPayments $readers): RedirectResponse
+    {
+        abort_unless($order->method === 'reader', 404);
+        try {
+            $readers->retry($order);
+        } catch (CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('studio.admin.pos.reader', ['order' => $order]);
+    }
+
+    /** Test mode: tap a test card on a simulated reader. */
+    public function simulateReader(Request $request, Studio $studio, Order $order, ReaderPayments $readers, StripeClient $stripe): RedirectResponse
+    {
+        abort_unless($order->method === 'reader' && $stripe->testMode(), 404);
+        try {
+            $readers->simulateTap($order, $request->boolean('decline'));
+        } catch (StripeException $e) {
+            return back()->with('error', 'Stripe: '.$e->getMessage());
+        }
+
+        return redirect()->route('studio.admin.pos.reader', ['order' => $order]);
+    }
+
+    /**
+     * Undo an in-person sale made by mistake (from Sales, a member's page or the receipt). A card reader
+     * sale is refunded to the card first.
+     */
+    public function void(Request $request, Studio $studio, Order $order, Orders $orders, ReaderPayments $readers): RedirectResponse
     {
         if ($order->channel !== 'in_person') {
             return back()->with('error', 'Online sales are refunded in Stripe.');
@@ -128,9 +228,38 @@ class PointOfSaleController extends Controller
         if ($order->isVoid()) {
             return back()->with('error', 'That sale is already void.');
         }
+        if ($order->status !== 'paid') {
+            return back()->with('error', 'Only paid sales can be voided.');
+        }
+        if ($order->method === 'reader') {
+            try {
+                $readers->refund($order, $request->user());
+            } catch (StripeException $e) {
+                report($e);
+
+                return back()->with('error', 'Stripe couldn’t refund it: '.$e->getMessage());
+            }
+
+            return back()->with('success', "Sale #{$order->number} refunded to the card and voided: plans it added were cancelled and products went back into stock.");
+        }
         $orders->void($order, $request->user());
 
         return back()->with('success', "Sale #{$order->number} voided: plans it added were cancelled and products went back into stock.");
+    }
+
+    /** Paid on the reader: on to the receipt, emptying the till's cart if it was this sale's. */
+    private function paid(Request $request, Studio $studio, Order $order): RedirectResponse
+    {
+        if ((int) $request->session()->get($this->readerKey($studio)) === $order->id) {
+            $request->session()->forget([$this->key($studio), $this->readerKey($studio)]);
+        }
+
+        return redirect()->route('studio.admin.pos.receipt', ['order' => $order])->with('success', "Paid on the card reader. Sale #{$order->number} recorded.");
+    }
+
+    private function readerKey(Studio $studio): string
+    {
+        return "pos.reader.{$studio->id}";
     }
 
     private function key(Studio $studio): string

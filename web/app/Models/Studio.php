@@ -19,7 +19,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'slug', 'name', 'timezone', 'currency', 'accent_color', 'contact_email', 'email_from_name', 'settings',
     'stripe_account_id', 'stripe_charges_enabled', 'stripe_details_submitted', 'stripe_portal_configuration_id',
-    'stripe_tax_rate_id', 'stripe_tax_rate_milli',
+    'stripe_tax_rate_id', 'stripe_tax_rate_milli', 'stripe_terminal_location_id',
 ])]
 class Studio extends Model
 {
@@ -187,6 +187,11 @@ class Studio extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function cardReaders(): HasMany
+    {
+        return $this->hasMany(CardReader::class)->orderBy('label');
     }
 
     /** Sales tax on taxable products, as a percentage (8.25). */

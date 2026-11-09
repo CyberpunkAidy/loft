@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 5 are built (step 4 by email; SMS waits on carrier registration), and step 6 is under way; the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 6 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -297,10 +297,10 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 3. [x] **Event backbone** (built 2026-11-08, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
 4. [x] **Automations, email first** (built 2026-11-08, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18)): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early. Each studio will connect its own Twilio account ([decision 24](Decisions)).
 5. [x] **Orders ledger** (built 2026-11-09, [#19](https://github.com/CyberpunkAidy/loft-studio/pull/19)): plan checkouts, membership invoices and recorded payments all go through `orders`.
-6. [ ] **Merchandise and point of sale:**
-   - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions)).
-   - [x] An online shop: a cart of products paid through Stripe Checkout, stock held while paying, picked up at the studio ([decision 27](Decisions)). Plans keep their own Checkout.
-   - [ ] Stripe Terminal card readers at the point of sale.
+6. [x] **Merchandise and point of sale** (built 2026-11-09):
+   - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions), [#20](https://github.com/CyberpunkAidy/loft-studio/pull/20)).
+   - [x] An online shop: a cart of products paid through Stripe Checkout, stock held while paying, picked up at the studio ([decision 27](Decisions), [#21](https://github.com/CyberpunkAidy/loft-studio/pull/21)). Plans keep their own Checkout.
+   - [x] Stripe Terminal card readers at the point of sale: paired by code, charged from the till, refunds from Loft ([decision 28](Decisions)).
 7. [ ] **API v1:** services first, then Sanctum, schedule, bookings, account, waivers, push tokens.
 8. [ ] **Contactless check-in:** devices, credentials and the check-in endpoint, QR and NFC first.
 9. [ ] **Churn scoring v1:** rules over the snapshots, feeding automations. A trained model after about six months of labelled history.

@@ -33,9 +33,11 @@
                     @if ($order->isVoid())
                         <span class="badge badge-muted">Void</span>
                     @elseif ($order->channel === 'in_person')
-                        <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="inline" data-confirm="Void order #{{ $order->number }}? Plans it added are cancelled and products go back into stock. Use this for mistakes.">
+                        <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="inline" data-confirm="{{ $order->method === 'reader'
+                            ? "Refund order #{$order->number} to the card and void it? Plans it added are cancelled and products go back into stock."
+                            : "Void order #{$order->number}? Plans it added are cancelled and products go back into stock. Use this for mistakes." }}">
                             @csrf
-                            <button class="link link-danger small">Void</button>
+                            <button class="link link-danger small">{{ $order->method === 'reader' ? 'Refund' : 'Void' }}</button>
                         </form>
                     @endif
                 </td>

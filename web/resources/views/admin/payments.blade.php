@@ -21,6 +21,7 @@
         <div class="actions">
             <a class="btn btn-secondary" href="https://dashboard.stripe.com/" target="_blank" rel="noopener">Open Stripe dashboard ↗</a>
             <a class="btn btn-secondary" href="{{ route('studio.admin.plans.index') }}">Plans &amp; pricing</a>
+            <a class="btn btn-secondary" href="{{ route('studio.admin.payments.readers') }}">Card readers</a>
         </div>
     @elseif ($studio->stripe_account_id)
         <h2>Finish connecting Stripe</h2>
@@ -37,7 +38,7 @@
     <div class="page-head" style="margin-bottom:1rem">
         <div>
             <h2 style="margin:0">Payments recorded in person</h2>
-            <p>Cash, checks, card terminals, transfers and payment apps, plus comps: from the <a href="{{ route('studio.admin.pos') }}">point of sale</a>, or “Add a plan” on a member’s page. Every sale, online and in person, is under <a href="{{ route('studio.admin.sales.index') }}">Sales</a>.</p>
+            <p>Card readers, cash, checks, other card terminals, transfers and payment apps, plus comps: from the <a href="{{ route('studio.admin.pos') }}">point of sale</a>, or “Add a plan” on a member’s page. Every sale, online and in person, is under <a href="{{ route('studio.admin.sales.index') }}">Sales</a>.</p>
         </div>
     </div>
     <div class="stats">

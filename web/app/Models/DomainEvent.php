@@ -84,6 +84,7 @@ class DomainEvent extends Model
             'booking.attended' => ! empty($p['first_visit']) ? 'Attended (first class)' : $label,
             'entitlement.granted' => 'Got '.($p['plan_name'] ?? 'a plan').match ($p['source'] ?? 'stripe') {
                 'stripe' => ' (paid online)',
+                'reader' => ' (paid on a card reader)',
                 'comp' => ' (comped)',
                 'staff' => ' (given by staff)',
                 default => ' (paid in person: '.strtolower(Payment::METHODS[$p['source']] ?? $p['source']).')',

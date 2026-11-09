@@ -144,6 +144,11 @@ Route::prefix('{studio}')
                 Route::post('pos/clear', [Admin\PointOfSaleController::class, 'clear'])->name('pos.clear');
                 Route::post('pos/checkout', [Admin\PointOfSaleController::class, 'checkout'])->name('pos.checkout');
                 Route::get('pos/orders/{order}', [Admin\PointOfSaleController::class, 'receipt'])->name('pos.receipt');
+                Route::post('pos/reader', [Admin\PointOfSaleController::class, 'charge'])->middleware('throttle:30,1')->name('pos.charge');
+                Route::get('pos/orders/{order}/reader', [Admin\PointOfSaleController::class, 'reader'])->name('pos.reader');
+                Route::post('pos/orders/{order}/reader/cancel', [Admin\PointOfSaleController::class, 'cancelReader'])->name('pos.reader.cancel');
+                Route::post('pos/orders/{order}/reader/retry', [Admin\PointOfSaleController::class, 'retryReader'])->name('pos.reader.retry');
+                Route::post('pos/orders/{order}/reader/simulate', [Admin\PointOfSaleController::class, 'simulateReader'])->name('pos.reader.simulate');
                 Route::post('orders/{order}/void', [Admin\PointOfSaleController::class, 'void'])->name('orders.void');
 
                 Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
@@ -152,6 +157,10 @@ Route::prefix('{studio}')
 
                 Route::get('payments', [Admin\PaymentsController::class, 'show'])->name('payments');
                 Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->name('payments.connect');
+                Route::get('payments/readers', [Admin\CardReaderController::class, 'index'])->name('payments.readers');
+                Route::post('payments/readers/location', [Admin\CardReaderController::class, 'location'])->name('payments.readers.location');
+                Route::post('payments/readers', [Admin\CardReaderController::class, 'store'])->middleware('throttle:20,1')->name('payments.readers.store');
+                Route::delete('payments/readers/{cardReader}', [Admin\CardReaderController::class, 'destroy'])->name('payments.readers.destroy');
                 Route::get('payments/return', [Admin\PaymentsController::class, 'return'])->name('payments.return');
                 Route::post('payments/{payment}/void', [Admin\PaymentsController::class, 'void'])->name('payments.void');
 
