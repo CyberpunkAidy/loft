@@ -8,7 +8,9 @@ use App\Models\Program;
 use App\Models\Studio;
 use App\Models\User;
 use App\Services\Bookings;
+use App\Services\ChurnScores;
 use App\Services\Entitlements;
+use App\Services\MemberSnapshots;
 use App\Services\OfflinePayments;
 use App\Services\Orders;
 use App\Services\SessionGenerator;
@@ -166,6 +168,10 @@ class DatabaseSeeder extends Seeder
         $jordan = $studio->attendees()->create(['user_id' => $walkIn->id, 'first_name' => 'Jordan', 'last_name' => 'Lee', 'is_self' => true]);
         $waivers->sign($studio, $jordan, $waiver, $walkIn, 'Jordan Lee', null, '127.0.0.1', 'seed');
         $bookings->book($next($adultSilks), $jordan, $walkIn->id, 'admin', null, skipEntitlement: true);
+
+        // Tonight's snapshot and risk scores, so the members list and dashboard show churn risk now.
+        app(MemberSnapshots::class)->take($studio, $studio->localNow()->toDateString());
+        app(ChurnScores::class)->scoreLatest($studio);
 
         $this->command?->info("Demo studio: /{$studio->slug} — sign in as owner@example.com / password");
     }

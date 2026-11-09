@@ -16,7 +16,7 @@ Members delete their own account under **My account → Profile → Delete accou
 4. **They're signed out** on every device, including the mobile app (its tokens and push tokens are deleted), and their password-reset tokens are removed.
 5. **Seats they held** in upcoming classes go to the waitlist.
 6. **Their check-in tags are deleted** with their family members, and their scans in the check-in log are unlinked from them.
-7. **Their nightly activity snapshots are deleted.** Their activity history (`domain_events`) and email log (`message_deliveries`) are unlinked: they hold IDs and facts, no names or addresses, so what's left is anonymous.
+7. **Their nightly activity snapshots and churn risk scores are deleted.** Their activity history (`domain_events`) and email log (`message_deliveries`) are unlinked: they hold IDs and facts, no names or addresses, so what's left is anonymous.
 
 What stays:
 - **Classes they taught** stay, with no instructor.

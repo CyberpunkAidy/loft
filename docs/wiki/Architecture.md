@@ -17,7 +17,7 @@
 | Path | What's there |
 |---|---|
 | `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation`, `Order`, `OrderItem`, `Product`, `ProductVariant` |
-| `app/Services` | The business rules: `Bookings`, `BookingOptions`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `PlanCheckout`, `Memberships`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, `CardReaders`, `ReaderPayments`, `Shop`, `CheckIns`, `CheckInCodes`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Services` | The business rules: `Bookings`, `BookingOptions`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `PlanCheckout`, `Memberships`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `ChurnScores`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, `CardReaders`, `ReaderPayments`, `Shop`, `CheckIns`, `CheckInCodes`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `Api/V1/*` (the mobile app's API, `routes/api.php`), `PlatformController`, `StripeWebhookController` |
 | `app/Http/Resources/Api` | The API's JSON shapes; `app/Http/ApiErrors.php` renders every API error with a stable code ([API](API)) |
 | `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
@@ -80,7 +80,8 @@ Elsewhere in the repository:
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
 | `domain_events` | The outbox and history: every booking, check-in, plan, payment failure, waiver signature and consent change, with IDs and facts only ([below](#events-and-email)) |
 | `message_deliveries` | Every studio email: its kind, transactional or marketing, status (queued, sent, failed, suppressed), the automation that sent it (if any), and a unique dedupe key |
-| `member_snapshots` | Each member's activity as of each night, for churn scoring later |
+| `member_snapshots` | Each member's activity as of each night, for churn scoring |
+| `member_risk_scores` | Each member's churn risk each night: a score from 0 to 100, a level, the reasons in plain words, and the model version |
 | `automations` | Each studio's automated emails (one per trigger: first class, birthday, we miss you): text, timing, on or off |
 | `sent_notifications` | Replaced by `message_deliveries`, which it was copied into. No longer written; to be dropped in a later release |
 
@@ -108,6 +109,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
 - **`MemberSnapshots`:** each night's member snapshot.
+- **`ChurnScores`:** scores each snapshot for churn risk (rules, version `rules-v1`) into `member_risk_scores`.
 - **`Automations`:** sends the automated emails: first-class follow-ups from the outbox (through `AutomationTriggers`, the registered handler), birthdays and win-backs from housekeeping ([Email](Email#automations)).
 
 Controllers stay thin and call these services. The planned mobile API will call the same services ([Roadmap](Roadmap)).
@@ -129,7 +131,7 @@ Services dispatch Laravel events. The `StudioEmails` listener turns them into qu
 
 Every email goes through `App\Services\Messages`, which logs it in `message_deliveries` under a dedupe key (such as `reminder:booking:42`), so it goes out once however often the code that sends it runs. The delivery is marked `sent` when the mailer sends it (with Resend's message ID) and `failed` if the queue gives up.
 
-The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots, sends birthday and win-back automations, settles online shop checkouts whose webhook never came and card reader sales left open (by asking Stripe), and relays any domain events still waiting.
+The hourly `loft:housekeeping` command sends class reminders and credit-expiry warnings, expires plans past their end date, takes each studio's nightly member snapshots and scores them for churn risk, sends birthday and win-back automations, settles online shop checkouts whose webhook never came and card reader sales left open (by asking Stripe), and relays any domain events still waiting.
 
 ### The outbox (`domain_events`)
 
@@ -159,6 +161,27 @@ The Laravel events above are in-process: they trigger emails, and nothing rememb
 ### Member snapshots
 
 Each night, after 2 AM in the studio's time zone, housekeeping saves every member's activity into `member_snapshots` (`App\Services\MemberSnapshots`). The counts cover classes before that night's midnight: days since the last visit, visits in the last 28 days and the 28 before that, no-shows and late cancels, upcoming bookings, whether they hold a membership, credits left, failed payments in the last 90 days, family size and how long they've been a member. Staff aren't included. Snapshots are kept so churn scoring can later look at what was known on each date; they're deleted with the account.
+
+### Churn scores
+
+Right after the snapshot, housekeeping scores it (`App\Services\ChurnScores`, [decision 31](Decisions)). Rules add points for what a studio would notice and take some away for what keeps people coming:
+
+| Signal | Points |
+|---|---|
+| No class in 7, 14, 21 or 45+ days | +10, +25, +35, +50 |
+| Joined 14+ days ago and hasn't been to a class | +40 |
+| Came 2+ times the month before, not at all this month | +25 |
+| Classes halved compared with the month before | +15 |
+| Missed or cancelled late twice or more this month | +10 |
+| A payment failed in the last 90 days | +20 |
+| No membership or credits left; one credit left | +15; +5 |
+| Nothing booked | +15 |
+| A class booked | −20 |
+| A member coming 4+ times this month | −20 |
+
+The total (0 to 100) gives the level: **high** at 60, **medium** at 35, otherwise **low**. Someone with no class in 90 days, nothing booked and no plan is **lapsed** instead: already gone, which is the win-back email's job. Each score keeps its reasons in plain words and the model version (`rules-v1`). Staff see them on the members list (**At risk of leaving**), the dashboard and each member's page; the **At risk of leaving** automation reads only this table, so a trained model can replace the rules without changing anything else.
+
+**Training data:** `php artisan loft:churn-export {studio} --output=file.csv` exports the snapshots with members as pseudonyms (a keyed hash; no names, emails or IDs) and a `churned_30d` label (no class in the 30 days after), for training a model once there's enough history.
 
 ## Security notes
 

@@ -26,6 +26,8 @@
                 <x-field name="delay_hours" label="Hours after the class" type="number" min="0" max="168" :value="intdiv($automation->delay_minutes, 60)" required hint="Counted from check-in. 0 sends it right away." />
             @elseif ($automation->trigger === 'win_back')
                 <x-field name="days" label="Days since their last class" type="number" min="7" max="365" :value="$automation->days()" required hint="Sent once per absence, to members with nothing booked. Coming back and lapsing again sends it again." />
+            @elseif ($automation->trigger === 'churn_risk')
+                <p class="small" style="margin:0">From 10 AM studio time, the day a member’s churn risk turns <strong>high</strong> (see <a href="{{ route('studio.admin.members.index', ['risk' => 'at_risk']) }}">members at risk</a>). At most once a month each, and not within two weeks of a “We miss you” email.</p>
             @else
                 <p class="small" style="margin:0">On the birthday, from 10 AM studio time. Children’s birthdays go to the parent’s account.</p>
             @endif

@@ -20,6 +20,7 @@
 
 <div class="stats">
     <div class="stat"><strong>{{ $stats['members'] }}</strong><span>Members</span></div>
+    @if ($stats['at_risk'] !== null)<a class="stat" href="{{ route('studio.admin.members.index', ['risk' => 'at_risk']) }}"><strong>{{ $stats['at_risk'] }}</strong><span>At high risk of leaving</span></a>@endif
     <a class="stat" href="{{ route('studio.admin.sales.index') }}"><strong>{{ \App\Support\Money::format($stats['sales_month'], $studio->currency) }}</strong><span>Sales this month</span></a>
     @if ($stats['to_pick_up'])<a class="stat" href="{{ route('studio.admin.sales.index', ['pickup' => 1]) }}"><strong>{{ $stats['to_pick_up'] }}</strong><span>Orders to pick up</span></a>@endif
     <div class="stat"><strong>{{ $stats['memberships'] }}</strong><span>Active memberships</span></div>

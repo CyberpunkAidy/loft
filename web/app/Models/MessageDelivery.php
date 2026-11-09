@@ -31,6 +31,7 @@ class MessageDelivery extends Model
         'first_class' => 'After a first class (automation)',
         'birthday' => 'Birthday (automation)',
         'win_back' => 'We miss you (automation)',
+        'churn_risk' => 'At risk of leaving (automation)',
         'automation_test' => 'Automation test',
         'receipt' => 'Receipt (point of sale)',
         'shop_order' => 'Shop order, ready to pick up',

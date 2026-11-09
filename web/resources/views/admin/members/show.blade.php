@@ -145,6 +145,25 @@
 
     <aside class="stack">
         <div class="card">
+            <h3>Risk of leaving</h3>
+            @if ($latest = $risk->first())
+                <p style="margin:.2rem 0 .6rem"><span class="badge {{ $latest->badgeClass() }}">{{ $latest->levelLabel() }}</span> <span class="small muted">{{ $latest->score }} of 100 · {{ $latest->as_of->format('M j') }}</span></p>
+                @if ($latest->concerns())
+                    <ul class="small" style="margin:0 0 .5rem;padding-left:1.1rem">
+                        @foreach ($latest->concerns() as $concern)<li>{{ $concern }}</li>@endforeach
+                    </ul>
+                @endif
+                @foreach (array_filter($latest->reasons, fn ($r) => $r['points'] < 0) as $good)
+                    <div class="small muted">✓ {{ $good['label'] }}</div>
+                @endforeach
+                @if ($risk->count() > 1)
+                    <div class="small muted mt">Before: @foreach ($risk->skip(1) as $earlier){{ $earlier->as_of->format('M j') }} {{ strtolower($earlier->levelLabel()) }}@if (! $loop->last), @endif @endforeach</div>
+                @endif
+            @else
+                <p class="small muted" style="margin:0">Scored each night from 2 AM, from their activity.</p>
+            @endif
+        </div>
+        <div class="card">
             <h3>Plans</h3>
             @forelse ($entitlements as $e)
                 <div class="item small" style="padding:.4rem 0;border-bottom:1px solid var(--line)">

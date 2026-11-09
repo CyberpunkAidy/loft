@@ -7,6 +7,7 @@ use App\Mail\StudioMessage;
 use App\Models\Attendee;
 use App\Models\Automation;
 use App\Models\DomainEvent;
+use App\Models\MemberRiskScore;
 use App\Models\MessageDelivery;
 use App\Models\Studio;
 use App\Models\StudioUser;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\DB;
  * - first_class: from the outbox. A first-visit booking.attended event queues the email for
  *   delay_minutes after check-in.
  * - birthday and win_back: checked by the hourly housekeeping run, from SEND_HOUR studio time.
+ * - churn_risk: from SEND_HOUR, members whose latest risk score (App\Services\ChurnScores) turned
+ *   high, reading only member_risk_scores; at most once per CHURN_COOLDOWN_DAYS, and not right after
+ *   a win-back email.
  *
  * Every send goes through Messages as marketing, under a dedupe key, so it goes out once and only
  * to members who opted in. Each delivery is logged with its automation.
@@ -30,6 +34,12 @@ class Automations
 
     /** Win-back reaches members who lapsed in the last this-many days past the threshold, not everyone ever. */
     public const WIN_BACK_WINDOW_DAYS = 7;
+
+    /** A member gets the churn-risk email at most once in this many days… */
+    public const CHURN_COOLDOWN_DAYS = 30;
+
+    /** …and not within this many days of a win-back email. */
+    public const CHURN_AFTER_WIN_BACK_DAYS = 14;
 
     public function __construct(private readonly Messages $messages) {}
 
@@ -61,9 +71,13 @@ class Automations
             return 0;
         }
         $sent = 0;
-        foreach (Automation::where('studio_id', $studio->id)->where('active', true)->whereIn('trigger', ['birthday', 'win_back'])->get() as $automation) {
+        foreach (Automation::where('studio_id', $studio->id)->where('active', true)->whereIn('trigger', ['birthday', 'win_back', 'churn_risk'])->get() as $automation) {
             $automation->setRelation('studio', $studio);
-            $sent += $automation->trigger === 'birthday' ? $this->birthdays($automation, $today) : $this->winBacks($automation, $today);
+            $sent += match ($automation->trigger) {
+                'birthday' => $this->birthdays($automation, $today),
+                'win_back' => $this->winBacks($automation, $today),
+                'churn_risk' => $this->churnRisks($automation, $today),
+            };
         }
 
         return $sent;
@@ -177,6 +191,47 @@ class Automations
             $lastVisit = $studio->local(Carbon::parse($lapsed[$member->user_id], 'UTC'))->startOfDay();
             $key = "automation:{$automation->id}:win_back:user:{$member->user_id}:{$lastVisit->toDateString()}";
             if ($member->user && $this->send($automation, $member->user, null, ['days' => (int) $lastVisit->diffInDays($today->copy()->startOfDay())], $key)) {
+                $sent++;
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Members whose latest score is high and whose score before it wasn't: they just crossed. Only
+     * fresh scores (today's or yesterday's) count, so a studio that hasn't been scored for a while
+     * doesn't get a burst.
+     */
+    private function churnRisks(Automation $automation, Carbon $today): int
+    {
+        $studio = $automation->studio;
+        $day = MemberRiskScore::where('studio_id', $studio->id)->where('model_version', ChurnScores::MODEL)->max('as_of');
+        $day = $day ? substr((string) $day, 0, 10) : null;
+        if (! $day || $day < $today->copy()->subDay()->toDateString()) {
+            return 0;
+        }
+        $high = MemberRiskScore::where('studio_id', $studio->id)->where('model_version', ChurnScores::MODEL)->whereDate('as_of', $day)
+            ->where('level', 'high')->pluck('user_id');
+        if ($high->isEmpty()) {
+            return 0;
+        }
+        $before = MemberRiskScore::where('studio_id', $studio->id)->where('model_version', ChurnScores::MODEL)->whereIn('user_id', $high)
+            ->whereDate('as_of', '<', $day)->whereDate('as_of', '>=', Carbon::parse($day)->subDays(7)->toDateString())
+            ->orderByDesc('as_of')->get(['user_id', 'level'])->unique('user_id')->pluck('level', 'user_id');
+        $crossed = $high->filter(fn ($userId) => ($before[$userId] ?? null) !== 'high');
+
+        $winBack = Automation::where('studio_id', $studio->id)->where('trigger', 'win_back')->value('id');
+        $recent = MessageDelivery::where('studio_id', $studio->id)->whereIn('user_id', $crossed)
+            ->where(fn ($q) => $q->where(fn ($q) => $q->where('automation_id', $automation->id)->where('created_at', '>=', now()->subDays(self::CHURN_COOLDOWN_DAYS)))
+                ->orWhere(fn ($q) => $q->where('automation_id', $winBack)->where('created_at', '>=', now()->subDays(self::CHURN_AFTER_WIN_BACK_DAYS))))
+            ->pluck('user_id')->unique();
+
+        $sent = 0;
+        $members = StudioUser::where('studio_id', $studio->id)->where('role', 'member')->whereIn('user_id', $crossed->diff($recent))->with('user')->get();
+        foreach ($members as $member) {
+            $key = "automation:{$automation->id}:churn_risk:user:{$member->user_id}:{$day}";
+            if ($member->user && $this->send($automation, $member->user, null, [], $key)) {
                 $sent++;
             }
         }
