@@ -122,6 +122,6 @@ class OfflinePaymentsTest extends TestCase
         // The studio's books keep the amount; the member's link is gone.
         $payment = Payment::sole();
         $this->assertSame([2500, null, null], [$payment->amount_cents, $payment->user_id, $payment->entitlement_id]);
-        $this->get("/{$studio->slug}/admin/payments")->assertOk()->assertSee('Deleted account')->assertSee('$25.00');
+        $this->get("/{$studio->slug}/admin/payments")->assertOk()->assertSee('Account deleted')->assertSee('$25.00');
     }
 }

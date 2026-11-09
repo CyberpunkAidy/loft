@@ -34,17 +34,8 @@ class OfflinePayments
         $comp = $data['method'] === 'comp';
 
         $payment = DB::transaction(function () use ($plan, $member, $staff, $data, $studio, $comp) {
-            $entitlement = $this->entitlements->grantFromPlan($plan, $member->id, [], [
-                'source' => $data['method'],
-                'amount_cents' => $comp ? 0 : ($data['amount_cents'] ?? $plan->price_cents),
-            ]);
-            $endsOn = $data['ends_on'] ?? null;
-            if ($endsOn) {
-                $entitlement->update(['expires_at' => $studio->parseLocal("{$endsOn} 23:59:59")]);
-            } elseif (! $comp && $plan->kind === 'subscription') {
-                // Paid in person, a monthly membership covers a month. (Comps stay open-ended, as before.)
-                $entitlement->update(['expires_at' => $studio->parseLocal($data['paid_on'].' 23:59:59')->addMonthNoOverflow()]);
-            }
+            $entitlement = $this->grant($plan, $member, $data['method'], $data['paid_on'], $data['ends_on'] ?? null,
+                $comp ? 0 : ($data['amount_cents'] ?? $plan->price_cents));
 
             $payment = Payment::create([
                 'studio_id' => $studio->id,
@@ -70,18 +61,38 @@ class OfflinePayments
         return $payment;
     }
 
+    /**
+     * Grant a plan sold in person (here, or at the point of sale). paid_on and ends_on are studio-local
+     * dates. Paid in person, a monthly membership covers a month; comps stay open-ended; packs follow
+     * their validity; ends_on overrides all of that.
+     */
+    public function grant(Plan $plan, User $member, string $method, string $paidOn, ?string $endsOn, int $amountCents): Entitlement
+    {
+        $studio = $plan->studio;
+        $entitlement = $this->entitlements->grantFromPlan($plan, $member->id, [], ['source' => $method, 'amount_cents' => $amountCents]);
+        if ($endsOn) {
+            $entitlement->update(['expires_at' => $studio->parseLocal("{$endsOn} 23:59:59")]);
+        } elseif ($method !== 'comp' && $plan->kind === 'subscription') {
+            $entitlement->update(['expires_at' => $studio->parseLocal("{$paidOn} 23:59:59")->addMonthNoOverflow()]);
+        }
+
+        return $entitlement;
+    }
+
     /** Undo a recorded payment: the record stays, marked void, and the plan it granted is cancelled. */
     public function void(Payment $payment, User $staff): void
     {
+        if ($payment->order) {
+            $this->orders->void($payment->order, $staff); // voids this payment record too
+
+            return;
+        }
         DB::transaction(function () use ($payment, $staff) {
             $payment->update(['voided_at' => now(), 'voided_by_user_id' => $staff->id]);
             $entitlement = $payment->entitlement;
             if ($entitlement instanceof Entitlement && in_array($entitlement->status, ['active', 'past_due'], true)) {
                 $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
                 $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'voided']);
-            }
-            if ($payment->order) {
-                $this->orders->void($payment->order, $staff);
             }
         });
     }

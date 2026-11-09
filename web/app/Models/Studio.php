@@ -40,6 +40,7 @@ class Studio extends Model
         'waitlist_auto_promote' => true,
         'minor_age' => 18,
         'schedule_weeks' => 2,
+        'sales_tax_milli' => 0, // sales tax on taxable products, in thousandths of a percent (8875 = 8.875%)
     ];
 
     /** @var Collection<int, Waiver>|null */
@@ -180,6 +181,17 @@ class Studio extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /** Sales tax on taxable products, as a percentage (8.25). */
+    public function salesTaxPercent(): float
+    {
+        return ((int) $this->setting('sales_tax_milli')) / 1000;
     }
 
     public function automations(): HasMany

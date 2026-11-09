@@ -6,16 +6,16 @@
         @foreach ($orders as $order)
             <tr @class(['is-cancelled' => $order->isVoid()])>
                 <td class="nowrap">{{ $studio->local($order->paid_at)->format('M j, Y') }}</td>
-                <td class="nowrap">#{{ $order->number }}</td>
+                <td class="nowrap">@if ($order->channel === 'in_person')<a href="{{ route('studio.admin.pos.receipt', ['order' => $order]) }}">#{{ $order->number }}</a>@else#{{ $order->number }}@endif</td>
                 @if ($showMember)
                     <td>
-                        @if ($order->user)<a href="{{ route('studio.admin.members.show', ['member' => $order->user_id]) }}">{{ $order->user->name }}</a>@else<span class="muted">Account deleted</span>@endif
+                        @if ($order->user)<a href="{{ route('studio.admin.members.show', ['member' => $order->user_id]) }}">{{ $order->user->name }}</a>@else<span class="muted">{{ $order->customerLabel() }}</span>@endif
                     </td>
                 @endif
                 <td>
                     {{ $order->itemsLabel() }}
                     @if ($order->discount_cents > 0)<div class="small muted">Discount {{ \App\Support\Money::format($order->discount_cents, $order->currency) }}</div>@endif
-                    @if ($order->payment?->note)<div class="small muted">{{ $order->payment->note }}</div>@endif
+                    @if ($order->noteText())<div class="small muted">{{ $order->noteText() }}</div>@endif
                 </td>
                 <td class="small">
                     @if ($url = $order->stripeUrl())<a href="{{ $url }}" target="_blank" rel="noopener">{{ $order->methodLabel() }} ↗</a>@else{{ $order->methodLabel() }}@endif
@@ -24,8 +24,8 @@
                 <td class="right">
                     @if ($order->isVoid())
                         <span class="badge badge-muted">Void</span>
-                    @elseif ($order->payment && ! $order->payment->isVoided())
-                        <form method="post" action="{{ route('studio.admin.payments.void', ['payment' => $order->payment]) }}" class="inline" data-confirm="Void order #{{ $order->number }}? The plan it added is cancelled. Use this for mistakes.">
+                    @elseif ($order->channel === 'in_person')
+                        <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="inline" data-confirm="Void order #{{ $order->number }}? Plans it added are cancelled and products go back into stock. Use this for mistakes.">
                             @csrf
                             <button class="link link-danger small">Void</button>
                         </form>

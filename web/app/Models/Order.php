@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'studio_id', 'number', 'user_id', 'channel', 'method', 'status', 'currency', 'subtotal_cents', 'discount_cents',
     'tax_cents', 'total_cents', 'stripe_checkout_session_id', 'stripe_invoice_id', 'stripe_payment_intent_id',
-    'recorded_by_user_id', 'paid_at', 'voided_at', 'voided_by_user_id',
+    'recorded_by_user_id', 'paid_at', 'voided_at', 'voided_by_user_id', 'walk_in', 'note',
 ])]
 class Order extends Model
 {
@@ -33,6 +33,7 @@ class Order extends Model
             'total_cents' => 'integer',
             'paid_at' => 'datetime',
             'voided_at' => 'datetime',
+            'walk_in' => 'boolean',
         ];
     }
 
@@ -78,10 +79,22 @@ class Order extends Model
         return $this->method === 'stripe' ? 'Online (Stripe)' : (Payment::METHODS[$this->method] ?? $this->method);
     }
 
-    /** "5-Class Pack", or "Seasonal Tuition + Registration fee" */
+    /** "5-Class Pack", or "Studio Tee · M ×2 + Grip Aid" */
     public function itemsLabel(): string
     {
-        return $this->items->pluck('description')->join(' + ') ?: '—';
+        return $this->items->map(fn (OrderItem $i) => $i->description.($i->quantity > 1 ? ' ×'.$i->quantity : ''))->join(' + ') ?: '—';
+    }
+
+    /** Who bought it, for lists: their name, "Walk-in", or "Account deleted". */
+    public function customerLabel(): string
+    {
+        return $this->user?->name ?? ($this->walk_in ? 'Walk-in' : 'Account deleted');
+    }
+
+    /** The note staff added (on the sale, or on the payment record for plans added from a member's page). */
+    public function noteText(): ?string
+    {
+        return $this->note ?? $this->payment?->note;
     }
 
     /** A link to the payment in the studio's Stripe Dashboard, for online orders. */

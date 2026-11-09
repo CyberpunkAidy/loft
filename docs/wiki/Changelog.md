@@ -4,7 +4,16 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Orders ledger** (roadmap step 5)
+- **Merchandise and the point of sale** (roadmap step 6, first part)
+  - **Admin → Products:** merchandise with variants (sizes, colours), each with its own stock and optionally its own price; taxable or not; low stock flagged; hidden instead of deleted once sold.
+  - **Admin → Point of sale:** products and plans in one cart, for a member or a walk-in; paid in person (cash, check, card terminal…) or comped, with a note. Stock never goes below zero; plans are granted as in-person payments are; one order records it, with tax per line. Receipt email and a printable receipt.
+  - **Sales tax:** Settings → Merchandise, to three decimals; on taxable products only.
+  - **Voiding** an in-person sale (receipt, Sales, member page) cancels its plans and restocks its products. Admin → Payments now lists every in-person sale.
+  - **Database:** new tables `products` and `product_variants`; `order_items.product_variant_id` and `tax_cents`; `orders.walk_in` and `note`.
+
+## 2026-11-09
+
+- **Orders ledger** (roadmap step 5, [#19](https://github.com/CyberpunkAidy/loft-studio/pull/19))
   - **Every sale is an order** with items: each paid one-time checkout, each paid membership invoice (renewals and season registration fees included), and each payment taken in person (comps at no charge). Numbered per studio from #1001, recorded once each, with Stripe's actual amounts.
   - **Admin → Sales:** month by month, with totals (online and in person), every order and how it was paid, links to Stripe, and a CSV download. The dashboard shows sales this month.
   - **Members:** their purchases on their admin page (in-person ones can be voided there) and under Plans & billing.
