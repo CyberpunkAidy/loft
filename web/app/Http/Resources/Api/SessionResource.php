@@ -42,8 +42,11 @@ class SessionResource extends ApiResource
             'room' => $this->room ? ['id' => $this->room->id, 'name' => $this->room->name] : null,
             'drop_in_price_cents' => $this->price_cents ?? $program->dropin_price_cents,
             'currency' => $studio->currency,
+            'delivery' => $this->delivery, // in_person | online | hybrid
             'capacity' => $this->capacity,
             'spots_left' => $this->spotsLeft(),
+            'online_capacity' => $this->isHybrid() ? $this->online_capacity : null,
+            'online_spots_left' => $this->onlineSpotsLeft(), // hybrid with a limit; null otherwise
             'is_full' => $this->isFull(),
             'waitlist' => ['count' => $this->waitlistCount(), 'capacity' => $this->waitlist_capacity, 'is_full' => $this->waitlistIsFull()],
             'apparatus' => $this->apparatusSlots()->map(fn (ApparatusSlot $slot) => [

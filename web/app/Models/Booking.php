@@ -12,14 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'studio_id', 'class_session_id', 'attendee_id', 'user_id', 'entitlement_id', 'status', 'position',
-    'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at', 'apparatus_id', 'apparatus_item',
+    'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at', 'apparatus_id', 'apparatus_item', 'online_spot',
 ])]
 class Booking extends Model
 {
     use HasFactory;
 
     /** Column defaults, so new instances match what the database would store. */
-    protected $attributes = ['status' => 'booked', 'credit_consumed' => false, 'source' => 'web'];
+    protected $attributes = ['status' => 'booked', 'credit_consumed' => false, 'source' => 'web', 'online_spot' => false];
 
     /** Statuses that occupy a seat. */
     public const SEAT_STATUSES = ['booked', 'attended', 'no_show'];
@@ -42,6 +42,7 @@ class Booking extends Model
     protected function casts(): array
     {
         return [
+            'online_spot' => 'boolean',
             'credit_consumed' => 'boolean',
             'booked_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -100,5 +101,11 @@ class Booking extends Model
     public function statusLabel(): string
     {
         return self::STATUS_LABELS[$this->status] ?? $this->status;
+    }
+
+    /** Takes part online: the class is online, or they took a hybrid class's online spot. */
+    public function attendsOnline(): bool
+    {
+        return $this->online_spot || $this->classSession?->isOnline();
     }
 }

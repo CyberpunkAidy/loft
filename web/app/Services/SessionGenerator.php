@@ -54,6 +54,9 @@ class SessionGenerator
                 'price_cents' => $program->dropin_price_cents,
                 'room_id' => $program->room_id,
                 'waitlist_capacity' => $program->waitlist_capacity,
+                'delivery' => $program->delivery,
+                'online_capacity' => $program->online_capacity,
+                'meeting_url' => $program->meeting_url,
             ]);
             if ($allocation) {
                 $session->apparatus()->sync($allocation);
@@ -65,7 +68,8 @@ class SessionGenerator
     }
 
     /**
-     * Copy the program's capacity, room, waitlist limit and apparatus onto its upcoming sessions,
+     * Copy the program's capacity, room, waitlist limit, apparatus and where it happens (online spots,
+     * meeting link) onto its upcoming sessions,
      * replacing per-session edits. People already booked keep their spots; anyone a bigger class
      * now has room for moves in from the waitlist.
      *
@@ -80,6 +84,9 @@ class SessionGenerator
                 'capacity' => max(1, $program->capacity),
                 'room_id' => $program->room_id,
                 'waitlist_capacity' => $program->waitlist_capacity,
+                'delivery' => $program->delivery,
+                'online_capacity' => $program->online_capacity,
+                'meeting_url' => $program->meeting_url,
             ]);
             $session->apparatus()->sync($allocation);
             $bookings->promoteWaitlist($session);

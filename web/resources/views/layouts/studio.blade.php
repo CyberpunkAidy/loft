@@ -12,6 +12,9 @@
         <nav class="nav" aria-label="Studio">
             <a href="{{ route('studio.schedule') }}" @class(['active' => request()->routeIs('studio.schedule', 'studio.program', 'studio.book')])>Schedule</a>
             <a href="{{ route('studio.plans') }}" @class(['active' => request()->routeIs('studio.plans')])>Plans</a>
+            @if ($studio->videos()->inLibrary()->exists())
+                <a href="{{ route('studio.videos') }}" @class(['active' => request()->routeIs('studio.videos*')])>Videos</a>
+            @endif
             @if ($studio->products()->where('active', true)->exists())
                 <a href="{{ route('studio.shop') }}" @class(['active' => request()->routeIs('studio.shop*')])>Shop</a>
             @endif

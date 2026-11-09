@@ -50,6 +50,7 @@
                 <div class="grid-2">
                     <x-select name="instructor_id" label="Instructor" :options="$instructors->mapWithKeys(fn ($u) => [$u->id => $u->name])->all()" :value="$program->instructor_id" placeholder="—" hint="Add instructors under Staff." />
                     <x-field name="waitlist_capacity" label="Waitlist limit" type="number" min="0" max="500" :value="$program->waitlist_capacity" hint="Empty for no limit; 0 for no waitlist." />
+                    @include('admin._delivery-fields', ['model' => $program])
                 </div>
             </fieldset>
 
@@ -105,7 +106,7 @@
                 <x-checkbox name="is_published" label="Show on the schedule" :checked="$program->is_published" />
             </fieldset>
             @if ($program->exists)
-                <x-checkbox name="apply_upcoming" label="Apply to upcoming sessions" hint="Copies the capacity, waitlist limit, room and apparatus to every upcoming session, replacing changes made to single sessions. People already booked keep their spots." />
+                <x-checkbox name="apply_upcoming" label="Apply to upcoming sessions" hint="Copies the capacity, waitlist limit, room, apparatus, where it happens and the meeting link to every upcoming session, replacing changes made to single sessions. People already booked keep their spots." />
             @endif
             <button class="btn btn-block">{{ $program->exists ? 'Save program' : 'Create program' }}</button>
             <p class="small muted">Saving creates any missing sessions and removes future sessions that no longer fit the schedule (only if nobody booked them).</p>

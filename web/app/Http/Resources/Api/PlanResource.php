@@ -26,6 +26,7 @@ class PlanResource extends ApiResource
             'credit_validity_days' => $this->credit_validity_days,
             'weekly_limit' => $this->weekly_limit,
             'registration_fee_cents' => $this->registration_fee_cents,
+            'includes_videos' => $this->includes_videos,
             'season' => $season ? ['id' => $season->id, 'name' => $season->name, 'starts_on' => $season->starts_on->toDateString(), 'ends_on' => $season->ends_on->toDateString()] : null,
             'can_buy_online' => $this->studio->stripeReady() && $this->isStripeReady() && ! ($season && $season->ends_on->copy()->endOfDay()->isPast()),
         ];

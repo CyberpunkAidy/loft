@@ -13,7 +13,10 @@
     <p class="small"><a href="{{ route('studio.schedule') }}">‹ Schedule</a></p>
     <div class="card mb">
         <h1 style="margin-bottom:.25rem">{{ $session->program->title }}</h1>
-        <p class="muted" style="margin:0">{{ $start->format('l, F j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}</p>
+        <p class="muted" style="margin:0">{{ $start->format('l, F j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}@if ($session->delivery !== 'in_person') · {{ $session->deliveryLabel() }}@endif</p>
+        @if ($session->isOnline())
+            <p class="small" style="margin:.5rem 0 0">This class is online. The link to join appears under <strong>My account</strong> {{ \App\Models\ClassSession::JOIN_OPENS_MINUTES }} minutes before it starts.</p>
+        @endif
         <p class="small" style="margin:.5rem 0 0">
             @if ($session->isFull() && $session->waitlistIsFull())
                 <span class="badge badge-full">Full</span>
@@ -58,6 +61,21 @@
             </div>
             @error('attendee_id')<small class="error-text">Choose who’s coming.</small>@enderror
 
+            @if ($session->isHybrid())
+                @php $onlineLeft = $session->onlineSpotsLeft(); $studioClosed = $session->isFull() && $session->waitlistIsFull(); @endphp
+                <h2>Where</h2>
+                <div class="list" role="radiogroup">
+                    <label @class(['pick', 'disabled' => $studioClosed])>
+                        <input type="radio" name="online" value="0" @checked(! old('online', $online)) @disabled($studioClosed)>
+                        <span class="grow"><strong>In the studio</strong><span class="muted small" style="display:block">{{ $studioClosed ? 'Full' : ($session->isFull() ? 'Full. You’ll join the waitlist.' : $session->spotsLeft().' '.($session->spotsLeft() === 1 ? 'spot' : 'spots').' left') }}</span></span>
+                    </label>
+                    <label @class(['pick', 'disabled' => $onlineLeft === 0])>
+                        <input type="radio" name="online" value="1" @checked(old('online', $online)) @disabled($onlineLeft === 0)>
+                        <span class="grow"><strong>Online</strong><span class="muted small" style="display:block">{{ $onlineLeft === 0 ? 'Full' : ($onlineLeft === null ? 'Join from home' : $onlineLeft.' '.($onlineLeft === 1 ? 'spot' : 'spots').' left') }}. The link appears {{ \App\Models\ClassSession::JOIN_OPENS_MINUTES }} minutes before class.</span></span>
+                    </label>
+                </div>
+            @endif
+
             @if ($slots->count() > 1)
                 @php $pick = (string) old('apparatus_id', $chosen ?? ''); @endphp
                 <h2>Apparatus</h2>
@@ -89,7 +107,7 @@
                 <p class="small muted" style="margin:0">On {{ $slots->first()->apparatus->name }}.</p>
             @endif
             <div class="actions">
-                <button class="btn" @disabled($bookable->isEmpty())>{{ $session->isFull() ? 'Join waitlist' : 'Book' }}</button>
+                <button class="btn" @disabled($bookable->isEmpty())>{{ $session->isFull() && ! $session->isHybrid() ? 'Join waitlist' : 'Book' }}</button>
                 <a class="link small" href="{{ route('studio.attendees.create', ['return' => $here]) }}">+ Add someone else</a>
             </div>
         </form>

@@ -37,10 +37,13 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 422 | `cancelled` | The class was cancelled |
 | 422 | `age` | Too young or too old for the class |
 | 422 | `apparatus_invalid`, `apparatus_full` | The chosen apparatus isn't in the class, or has no spots left |
+| 422 | `online_full` | Every online spot in a hybrid class is taken (the studio may still have room) |
+| 422 | `not_open_yet`, `ended`, `not_online`, `not_booked`, `no_link` | Joining an online class: too early (`opens_at`), over, a booking in the studio, a cancelled booking or class, or the studio hasn't added the link |
 | 409 | `already_booked` | Already in the class |
 | 422 | `waiver_not_in_force` | That waiver was replaced or switched off |
 | 422 | `checkout_unavailable` | The studio can't take online payments, or the plan isn't for sale |
 | 401 | `unauthenticated` (device routes) | The device token is wrong or the device was removed |
+| 503 | `video_unavailable` | Videos can't play right now (video is switched off on the server) |
 | 502 | `payment_provider_error` | Stripe didn't answer as expected: try again |
 | 409 | `request_in_progress`, 422 `idempotency_key_reused`, 400 `invalid_idempotency_key` | See below |
 | 429 | `rate_limited` | Wait for `Retry-After` seconds |
@@ -83,15 +86,17 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 |---|---|
 | `GET /studios/{slug}` | Name, time zone, currency, colour, contact email, website, whether it takes online payments, booking policies |
 | `GET /studios/{slug}/plans` | What it sells, with prices, labels, credits, season dates and `can_buy_online` |
-| `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`; with a token, `mine` lists the member's bookings in it |
+| `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` and `online_spots_left` (a hybrid class's online spots; `null` when there's no limit). With a token, `mine` lists the member's bookings in it |
 | `GET /studios/{slug}/sessions/{id}` | One class. With a member's token, `booking` says for each person on the account whether they can book, and if not, why (`reason` uses the error codes above, with `waiver_id` to sign) |
+| `GET /studios/{slug}/videos` | The video library: title, description, length, `access` (`members` or `plan`), a signed `thumbnail_url`; with a token, `can_watch` and `locked_reason` (`sign_in`, `not_a_member`, `needs_plan`). `meta.plans` lists the plans that include videos |
 
 ### Members of the studio
 
 | | | |
 |---|---|---|
-| `GET /studios/{slug}/bookings` | `when` = `upcoming` (default) or `past` | Their bookings, in class order |
-| `POST /studios/{slug}/sessions/{id}/bookings` | `attendee_id`, `apparatus_id`? | `201` booked or waitlisted (`status`, `position`), with a `message`. Idempotent |
+| `GET /studios/{slug}/bookings` | `when` = `upcoming` (default) or `past` | Their bookings, in class order. Each has `online` (they join online) and `join_opens_at` |
+| `POST /studios/{slug}/sessions/{id}/bookings` | `attendee_id`, `apparatus_id`?, `online`? | `201` booked or waitlisted (`status`, `position`), with a `message`. `online: true` takes one of a hybrid class's online spots (ignored for other classes; everyone in an online class is online). Idempotent |
+| `POST /studios/{slug}/bookings/{id}/join` | | `{url}`: the online class's meeting link, from 15 minutes before class until it ends. Checks them in. Otherwise `not_open_yet` (with `opens_at`), `ended`, `not_online`, `not_booked` or `no_link` |
 | `DELETE /studios/{slug}/bookings/{id}` | | Cancelled, with `credit_refunded` (late cancellations may keep the credit) |
 | `GET /studios/{slug}/attendees` | | The people on the account |
 | `POST /studios/{slug}/attendees` | `first_name`, `last_name`, `dob`?, `is_self`?, `emergency_contact`?, `medical_notes`? | `201`. Idempotent |
@@ -101,9 +106,10 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `POST /studios/{slug}/attendees/{id}/waiver-signatures` | `waiver_id`, `signed_name`, `agree` (true), `signature_png`? (a data URL) | `201`, with `next_waiver_id` to sign next (or `null`). A waitlist spot waiting on the waiver may go through. Idempotent |
 | `GET /studios/{slug}/entitlements` | | Memberships and credits, current ones first |
 | `GET /studios/{slug}/orders` | | Purchases, newest first |
-| `POST /studios/{slug}/checkouts` | `plan_id`, and to finish a booking once paid: `session_id`, `attendee_id`, `apparatus_id`? | `201` `{id, url, expires_at, return_url}`. Idempotent |
+| `POST /studios/{slug}/checkouts` | `plan_id`, and to finish a booking once paid: `session_id`, `attendee_id`, `apparatus_id`?, `online`? | `201` `{id, url, expires_at, return_url}`. Idempotent |
 | `GET /studios/{slug}/checkouts/{id}` | | `status`, `payment_status`, `fulfilled`, the `entitlement` and `booking` it made, or `booking_error` |
 | `GET /studios/{slug}/attendees/{id}/check-in-code` | | `{code, expires_at, refresh_in}`: show `code` as a QR code, and fetch a new one after `refresh_in` seconds |
+| `POST /studios/{slug}/videos/{id}/playback` | | `{video_id, playback_id, tokens: {playback, thumbnail, storyboard}, stream_url, expires_at}` to play it ([below](#videos)). `needs_plan` (with `plans`) if their plan doesn't include videos. Counts as a view |
 
 ### Check-in devices
 
@@ -126,6 +132,20 @@ Kiosks and readers sign in with their own **device token** (`loftdev_…`, from 
 3. On `waiver_required`: show the waiver (`GET …/waivers`), sign it (`POST …/attendees/{id}/waiver-signatures`), then book again with a new key.
 4. On `needs_plan`: show `error.plans`, then buy one with the class attached (`POST …/checkouts` with `session_id` and `attendee_id`), so the booking finishes once paid.
 
+## Online classes
+
+- A class's `delivery` says where it happens. For a `hybrid` class, ask each person **In the studio** or **Online** and book with `online: true` for online. Online spots don't use apparatus and have no waitlist; `online_full` means try the studio instead.
+- When `join_opens_at` has passed, show **Join**: `POST …/bookings/{id}/join` and open the `url` (Zoom or Meet usually opens its own app). Call it each time rather than keeping the link: it's only given out while the class is on, and joining is what checks them in.
+- Kiosks and tags don't check in people booked online.
+
+## Videos
+
+Videos are on Mux, with signed playback ([decision 33](Decisions)):
+1. `GET /studios/{slug}/videos` for the library. Show `locked_reason` on locked ones: sign in, join the studio, or one of `meta.plans`.
+2. `POST …/videos/{id}/playback` when they press play.
+3. Play it with Mux's player SDK (`playback_id` and `tokens.playback`; `tokens.thumbnail` and `tokens.storyboard` for the poster and scrubbing previews), or any HLS player with `stream_url`.
+4. Tokens work until `expires_at` (a few hours). Ask again for a new one, not before each view.
+
 ## Buying a plan
 
 Plans are paid on Stripe's own Checkout page, opened in an in-app browser (`ASWebAuthenticationSession`, Custom Tabs):
@@ -134,7 +154,7 @@ Plans are paid on Stripe's own Checkout page, opened in an in-app browser (`ASWe
 3. `GET /studios/{slug}/checkouts/{id}` records the purchase straight away if Stripe's webhook hasn't yet (it's recorded once either way), and returns the plan and the booking it finished.
 4. Bank payments can show `payment_status: unpaid` for a few days; the plan appears when they clear.
 
-Classes, memberships and packs are services used in person, so they aren't Apple or Google in-app purchases. Selling on-demand video would be: check the stores' current rules first ([Roadmap](Roadmap#api-for-a-native-mobile-app)).
+Classes, memberships and packs are services used in person, so they aren't Apple or Google in-app purchases. Video is digital content, so **the app plays videos members already have access to, and doesn't sell plans that include videos** (`includes_videos`). In the US the app may link to the studio's plans page on the website instead; elsewhere, check the stores' rules before showing even a link ([decision 33](Decisions)).
 
 ## Changes
 

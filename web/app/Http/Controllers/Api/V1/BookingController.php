@@ -8,6 +8,8 @@ use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Services\Bookings;
+use App\Services\OnlineClasses;
+use App\Support\ApiException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -44,17 +46,33 @@ class BookingController extends Controller
     public function store(Request $request, Studio $studio, ClassSession $session, Bookings $bookings): JsonResponse
     {
         abort_unless($session->program->is_published, 404);
-        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'apparatus_id' => ['nullable', 'integer']]);
+        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'apparatus_id' => ['nullable', 'integer'], 'online' => ['nullable', 'boolean']]);
         $attendee = $studio->attendees()->where('user_id', $request->user()->id)->where('status', 'active')->find($data['attendee_id'])
             ?? throw ValidationException::withMessages(['attendee_id' => 'That person isn’t on your account.']);
 
-        $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: ($data['apparatus_id'] ?? null) ? (int) $data['apparatus_id'] : null);
+        $online = $session->isHybrid() && $request->boolean('online');
+        $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: ! $online && ($data['apparatus_id'] ?? null) ? (int) $data['apparatus_id'] : null, online: $online);
         $booking->load(['attendee', 'apparatus', 'classSession.program', 'classSession.room'])->classSession->setRelation('studio', $studio);
-        $message = $booking->status === 'waitlisted'
-            ? "That class is full, so {$attendee->first_name} is #{$booking->position} on the waitlist. We’ll email you if a spot opens."
-            : "{$attendee->first_name} is booked for {$session->program->title}!";
+        $message = match (true) {
+            $booking->status === 'waitlisted' => "That class is full, so {$attendee->first_name} is #{$booking->position} on the waitlist. We’ll email you if a spot opens.",
+            $booking->attendsOnline() => "{$attendee->first_name} is booked online for {$session->program->title}! Join from ".ClassSession::JOIN_OPENS_MINUTES.' minutes before class.',
+            default => "{$attendee->first_name} is booked for {$session->program->title}!",
+        };
 
         return (new BookingResource($booking))->additional(['message' => $message])->response()->setStatusCode(201);
+    }
+
+    /** An online class's meeting link, from shortly before class until it ends. Joining checks them in. */
+    public function join(Request $request, Studio $studio, Booking $booking, OnlineClasses $online): JsonResponse
+    {
+        abort_unless((int) $booking->user_id === (int) $request->user()->id, 404);
+        $result = $online->join($booking);
+        if (! $result['url']) {
+            throw new ApiException($result['reason'], $result['message'], 422,
+                $result['reason'] === 'not_open_yet' ? ['opens_at' => $booking->classSession->joinOpensAt()->utc()->format('Y-m-d\TH:i:s\Z')] : []);
+        }
+
+        return response()->json(['data' => ['url' => $result['url']]]);
     }
 
     public function destroy(Request $request, Studio $studio, Booking $booking, Bookings $bookings): JsonResponse

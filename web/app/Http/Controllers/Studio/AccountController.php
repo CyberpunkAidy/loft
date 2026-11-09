@@ -9,6 +9,7 @@ use App\Models\StudioUser;
 use App\Services\AccountDeletion;
 use App\Services\Bookings;
 use App\Services\Consent;
+use App\Services\OnlineClasses;
 use App\Services\Stripe\StripeException;
 use App\Services\Waivers;
 use Illuminate\Http\RedirectResponse;
@@ -22,12 +23,13 @@ use Illuminate\View\View;
 /** The member's account (the plugin's [loft_account] tabs). */
 class AccountController extends Controller
 {
-    public function upcoming(Request $request, Studio $studio, Bookings $bookings): View
+    public function upcoming(Request $request, Studio $studio, Bookings $bookings, OnlineClasses $online): View
     {
+        // Checked in stays here until class ends: someone in an online class may need to join again.
         $list = $studio->bookings()
             ->with(['classSession.program', 'classSession.room', 'attendee', 'apparatus'])
             ->where('user_id', $request->user()->id)
-            ->whereIn('status', Booking::ACTIVE_STATUSES)
+            ->whereIn('status', [...Booking::ACTIVE_STATUSES, 'attended'])
             ->whereHas('classSession', fn ($q) => $q->where('ends_at', '>=', now()))
             ->get()
             ->sortBy(fn (Booking $b) => $b->classSession->starts_at)
@@ -37,6 +39,7 @@ class AccountController extends Controller
         return view('studio.account.upcoming', [
             'bookings' => $list,
             'late' => $list->mapWithKeys(fn (Booking $b) => [$b->id => $b->status === 'booked' && $bookings->isLate($b->classSession)]),
+            'joinable' => $list->mapWithKeys(fn (Booking $b) => [$b->id => $online->joinable($b)]),
         ]);
     }
 

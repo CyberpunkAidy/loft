@@ -189,6 +189,11 @@ class Studio extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function videos(): HasMany
+    {
+        return $this->hasMany(Video::class);
+    }
+
     public function accessDevices(): HasMany
     {
         return $this->hasMany(AccessDevice::class);

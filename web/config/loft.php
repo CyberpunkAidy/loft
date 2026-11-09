@@ -21,6 +21,22 @@ return [
     ],
 
     /*
+    | Mux, for on-demand video (decision 33). Loft's own Mux account hosts every studio's videos.
+    | token_id/token_secret: an access token with Mux Video read and write. signing_key_id and
+    | signing_key: a URL signing key (Settings → Signing keys); the key is the base64 private key
+    | Mux shows once. Playback is always signed, so videos only play for people Loft lets in.
+    | studio_minutes caps each studio's stored video (Loft pays for storage and streaming).
+    */
+    'mux' => [
+        'token_id' => env('MUX_TOKEN_ID'),
+        'token_secret' => env('MUX_TOKEN_SECRET'),
+        'signing_key_id' => env('MUX_SIGNING_KEY_ID'),
+        'signing_key' => env('MUX_SIGNING_KEY'),
+        'studio_minutes' => (int) env('LOFT_VIDEO_MINUTES_PER_STUDIO', 600),
+        'token_hours' => (int) env('LOFT_VIDEO_TOKEN_HOURS', 6),
+    ],
+
+    /*
     | Consumers of the domain event outbox (App\Contracts\DomainEventHandler). Each new event is
     | relayed to every handler here; with none, events are simply kept as history.
     */

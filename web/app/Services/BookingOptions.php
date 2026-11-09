@@ -33,10 +33,7 @@ class BookingOptions
     public function for(Studio $studio, ClassSession $session, User $user): array
     {
         if (! isset($session->booked_count)) {
-            $session->loadCount([
-                'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES),
-                'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
-            ]);
+            $session->loadCount(ClassSession::seatCounts());
         }
 
         [$closed, $code] = [null, null];
@@ -45,7 +42,7 @@ class BookingOptions
         } catch (BookingException $e) {
             [$closed, $code] = [$e->getMessage(), $e->reason];
         }
-        if (! $closed && $session->isFull() && $session->waitlistIsFull()) {
+        if (! $closed && $session->isFull() && $session->waitlistIsFull() && ! ($session->isHybrid() && $session->onlineSpotsLeft() !== 0)) {
             [$closed, $code] = [$session->waitlist_capacity === 0 ? 'This class is full.' : 'This class and its waitlist are full.', 'full'];
         }
 

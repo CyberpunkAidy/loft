@@ -12,6 +12,7 @@ use App\Events\SessionBookingCancelled;
 use App\Events\WaitlistPromoted;
 use App\Mail\StudioMessage;
 use App\Models\Booking;
+use App\Models\ClassSession;
 use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Models\User;
@@ -152,7 +153,7 @@ class StudioEmails
             'Class' => $session->program->title,
             'When' => $start->format('D, M j').' · '.$start->format('g:i').' – '.$end->format('g:i A'),
             'Attendee' => $b->attendee->name,
-        ];
+        ] + ($b->attendsOnline() ? ['Where' => 'Online. The link to join is in your account from '.ClassSession::JOIN_OPENS_MINUTES.' minutes before class.'] : []);
     }
 
     private function send(?User $user, StudioMessage $message, ?string $dedupeKey = null): void

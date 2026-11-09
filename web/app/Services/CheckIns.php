@@ -109,7 +109,8 @@ class CheckIns
         return Booking::with('classSession.program')
             ->where('studio_id', $attendee->studio_id)->where('attendee_id', $attendee->id)
             ->whereIn('status', ['booked', 'attended', 'waitlisted'])
-            ->whereHas('classSession', fn ($q) => $q->where('status', 'scheduled')
+            ->where('online_spot', false) // online people join from home, not at the door
+            ->whereHas('classSession', fn ($q) => $q->where('status', 'scheduled')->where('delivery', '!=', 'online')
                 ->where('starts_at', '<=', $at->copy()->addMinutes(self::OPENS_MINUTES_BEFORE))
                 ->where('ends_at', '>=', $at))
             ->get()

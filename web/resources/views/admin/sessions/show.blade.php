@@ -8,7 +8,7 @@
 <div class="page-head">
     <div>
         <h1>{{ $session->program->title }}</h1>
-        <p>{{ $start->format('l, F j, Y · g:i') }} – {{ $studio->local($session->ends_at)->format('g:i A') }}@if ($session->room) · {{ $session->room->name }}@endif · {{ $session->bookedCount() }}/{{ $session->capacity }} booked · {{ $session->waitlistCount() }}{{ $session->waitlist_capacity !== null ? '/'.$session->waitlist_capacity : '' }} waitlisted</p>
+        <p>{{ $start->format('l, F j, Y · g:i') }} – {{ $studio->local($session->ends_at)->format('g:i A') }}@if ($session->room && ! $session->isOnline()) · {{ $session->room->name }}@endif @if ($session->delivery !== 'in_person') · {{ $session->deliveryLabel() }}@endif · {{ $session->bookedCount() }}/{{ $session->capacity }} {{ $session->isOnline() ? 'online' : 'booked' }}@if ($session->isHybrid()) · {{ $session->onlineCount().($session->online_capacity !== null ? '/'.$session->online_capacity : '').' online' }}@endif · {{ $session->waitlistCount() }}{{ $session->waitlist_capacity !== null ? '/'.$session->waitlist_capacity : '' }} waitlisted</p>
     </div>
     <div class="actions">
         @if ($session->isCancelled())
@@ -61,6 +61,7 @@
                         <tr>
                             <td>
                                 <strong>{{ $b->attendee->name }}</strong>@if ($b->attendee->age() !== null) <span class="muted">({{ $b->attendee->age() }})</span>@endif
+                                @if ($b->online_spot)<span class="badge badge-info">Online</span>@endif
                                 @unless ($waiverOk[$b->id])<span class="badge badge-full">No waiver</span>@endunless
                                 @if ($b->attendee->medical_notes)<div class="medical small">⚠ {{ $b->attendee->medical_notes }}</div>@endif
                             </td>
@@ -130,6 +131,7 @@
             @csrf @method('patch')
             <x-field name="capacity" label="Capacity" type="number" min="1" max="500" :value="$session->capacity" required hint="Raising it moves people in from the waitlist." />
             <x-field name="waitlist_capacity" label="Waitlist limit" type="number" min="0" max="500" :value="$session->waitlist_capacity" hint="Empty for no limit; 0 for no waitlist." />
+            @include('admin._delivery-fields', ['model' => $session])
             @if ($rooms->isNotEmpty())
                 <x-select name="room_id" label="Room" :options="$rooms->mapWithKeys(fn ($r) => [$r->id => $r->name.' (holds '.$r->max_capacity.')'])->all()" :value="$session->room_id" placeholder="No room" />
                 @include('admin._apparatus-fields', ['rooms' => $rooms, 'current' => $session->apparatus->mapWithKeys(fn ($a) => [$a->id => ['quantity' => $a->pivot->quantity, 'max_per_item' => $a->pivot->max_per_item]])->all()])

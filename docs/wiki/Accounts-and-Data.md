@@ -30,7 +30,7 @@ A studio must always have an owner.
 - **Making another owner:** owners can make another staff member an owner at any time (Admin → Staff → **Make owner**). Only owners can do this.
 - **Deleting an owner's account:** if the person is the **only** owner of a studio, the delete form asks what happens to it:
   - **Hand it over:** one of its admins or instructors becomes the owner. The studio carries on.
-  - **Close it:** members' renewing memberships at that studio are cancelled in Stripe, then the studio is deleted with everything in it (classes, plans, bookings, signed waivers, recorded payments, signature drawings). Members keep their Loft accounts and their other studios, and the owner's Stripe account stays theirs. The form tells the owner to **download the signed waivers first** (Admin → Waivers).
+  - **Close it:** members' renewing memberships at that studio are cancelled in Stripe, then the studio is deleted with everything in it (classes, plans, bookings, signed waivers, recorded payments, signature drawings, and its videos, which are deleted from Mux too). Members keep their Loft accounts and their other studios, and the owner's Stripe account stays theirs. The form tells the owner to **download the signed waivers first** (Admin → Waivers).
 - **After a close:** the owner lands on the Loft home page. Emails still queued for the closed studio are dropped.
 
 ## Where personal data lives
@@ -43,6 +43,7 @@ A studio must always have an owner.
 | Marketing email consent: when, where, unsubscribed | `studio_users` (per studio) |
 | Activity history and the email log | `domain_events`, `message_deliveries`: IDs and facts, no names or addresses |
 | Nightly activity snapshots | `member_snapshots` (deleted with the account) |
+| Videos watched | `video_views`: which video, who, which day (deleted with the account). Mux sees playback only by video, with no cookies and no member details |
 | Card details | Never in Loft; only in Stripe |
 | Studio customer records, charges, invoices | The studio's own Stripe account |
 

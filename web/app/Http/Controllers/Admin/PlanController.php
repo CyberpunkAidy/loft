@@ -122,6 +122,7 @@ class PlanController extends Controller
             'scope' => ['nullable', 'array'],
             'scope.*' => [Rule::in($tagSlugs)],
             'active' => ['nullable', 'boolean'],
+            'includes_videos' => ['nullable', 'boolean'],
             'sort' => ['nullable', 'integer', 'between:-1000,1000'],
         ], [
             'credits.required_if' => 'How many classes are in the pack?',
@@ -149,6 +150,7 @@ class PlanController extends Controller
             'registration_fee_cents' => $kind === 'season' ? (int) Money::toCents($data['registration_fee'] ?? 0) : 0,
             'program_scope' => $request->boolean('scope_all') || empty($data['scope']) ? null : array_values($data['scope']),
             'active' => $request->boolean('active'),
+            'includes_videos' => $request->boolean('includes_videos'),
             'sort' => (int) ($data['sort'] ?? 0),
         ];
     }

@@ -25,8 +25,9 @@ class CheckoutController extends Controller
             'session_id' => ['nullable', 'integer'],
             'attendee_id' => ['nullable', 'integer'],
             'apparatus_id' => ['nullable', 'integer'],
+            'online' => ['nullable', 'boolean'],
         ]);
-        $context = $checkout->bookingContext($studio, $request->user(), $data['session_id'] ?? null, $data['attendee_id'] ?? null, $data['apparatus_id'] ?? null);
+        $context = $checkout->bookingContext($studio, $request->user(), $data['session_id'] ?? null, $data['attendee_id'] ?? null, $data['apparatus_id'] ?? null, $request->boolean('online'));
         $return = route('studio.checkout.return', ['studio' => $studio->slug]);
         $cs = $checkout->start($studio, $request->user(), $studio->plans()->findOrFail($data['plan_id']), $context,
             $return.'?session_id={CHECKOUT_SESSION_ID}', $return.'?cancelled=1');

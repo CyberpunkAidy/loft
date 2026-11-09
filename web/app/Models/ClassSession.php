@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -22,14 +23,24 @@ use Illuminate\Support\Collection;
  */
 #[Fillable([
     'studio_id', 'program_id', 'season_id', 'starts_at', 'ends_at', 'capacity', 'status', 'instructor_id', 'price_cents', 'notes',
-    'room_id', 'waitlist_capacity',
+    'room_id', 'waitlist_capacity', 'delivery', 'online_capacity', 'meeting_url',
 ])]
 class ClassSession extends Model
 {
     use HasFactory;
 
     /** Column defaults, so new instances match what the database would store. */
-    protected $attributes = ['status' => 'scheduled', 'capacity' => 10];
+    protected $attributes = ['status' => 'scheduled', 'capacity' => 10, 'delivery' => 'in_person'];
+
+    /** Where a class happens. Online ones use capacity for online spots; hybrid ones add online_capacity. */
+    public const DELIVERIES = [
+        'in_person' => 'In the studio',
+        'online' => 'Online',
+        'hybrid' => 'In the studio and online',
+    ];
+
+    /** People booked online can join from this many minutes before class until it ends. */
+    public const JOIN_OPENS_MINUTES = 15;
 
     protected $table = 'class_sessions';
 
@@ -41,6 +52,7 @@ class ClassSession extends Model
             'capacity' => 'integer',
             'price_cents' => 'integer',
             'waitlist_capacity' => 'integer',
+            'online_capacity' => 'integer',
         ];
     }
 
@@ -130,18 +142,58 @@ class ClassSession extends Model
         return $this->apparatusSlots()->isNotEmpty();
     }
 
-    /** Adds booked_count (seats taken) and waitlist_count. */
+    /** Adds booked_count (seats taken), online_count (a hybrid class's online spots taken) and waitlist_count. */
     public function scopeWithSeatCounts(Builder $query): Builder
     {
-        return $query->withCount([
-            'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES),
-            'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
-        ]);
+        return $query->withCount(self::seatCounts());
     }
 
+    /** @return array<string, \Closure> the counts withSeatCounts adds, for loadCount() on one session */
+    public static function seatCounts(): array
+    {
+        return [
+            'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', false),
+            'bookings as online_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', true),
+            'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
+        ];
+    }
+
+    /** Seats taken: everyone in the studio (or, for an online class, everyone). A hybrid class's online spots are counted apart. */
     public function bookedCount(): int
     {
-        return (int) ($this->booked_count ?? $this->bookings()->whereIn('status', Booking::SEAT_STATUSES)->count());
+        return (int) ($this->booked_count ?? $this->bookings()->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', false)->count());
+    }
+
+    public function onlineCount(): int
+    {
+        return (int) ($this->online_count ?? $this->bookings()->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', true)->count());
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->delivery === 'online';
+    }
+
+    public function isHybrid(): bool
+    {
+        return $this->delivery === 'hybrid';
+    }
+
+    public function deliveryLabel(): string
+    {
+        return self::DELIVERIES[$this->delivery] ?? self::DELIVERIES['in_person'];
+    }
+
+    /** A hybrid class's online spots left: null when there's no limit. */
+    public function onlineSpotsLeft(): ?int
+    {
+        return $this->isHybrid() && $this->online_capacity !== null ? max(0, $this->online_capacity - $this->onlineCount()) : null;
+    }
+
+    /** When people booked online can start joining. */
+    public function joinOpensAt(): Carbon
+    {
+        return $this->starts_at->copy()->subMinutes(self::JOIN_OPENS_MINUTES);
     }
 
     public function waitlistCount(): int

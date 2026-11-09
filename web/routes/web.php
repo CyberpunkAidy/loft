@@ -54,6 +54,8 @@ Route::prefix('{studio}')
         Route::post('/shop/cart', [Studio\ShopController::class, 'add'])->middleware('throttle:60,1')->name('shop.add');
         Route::get('/shop/cart', [Studio\ShopController::class, 'cart'])->name('shop.cart');
         Route::post('/shop/cart/{variant}', [Studio\ShopController::class, 'update'])->whereNumber('variant')->name('shop.update');
+        Route::get('/videos', [Studio\VideoController::class, 'index'])->name('videos');
+        Route::get('/videos/{video}', [Studio\VideoController::class, 'show'])->whereNumber('video')->name('videos.show');
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
         Route::view('/checkout/return', 'studio.checkout-return')->name('checkout.return'); // the app's purchases end here
@@ -91,6 +93,7 @@ Route::prefix('{studio}')
             Route::get('/book/{session}', [Studio\BookingController::class, 'create'])->name('book');
             Route::post('/book/{session}', [Studio\BookingController::class, 'store'])->name('book.store');
             Route::post('/bookings/{booking}/cancel', [Studio\BookingController::class, 'cancel'])->name('bookings.cancel');
+            Route::get('/bookings/{booking}/join', [Studio\BookingController::class, 'join'])->name('bookings.join');
 
             Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->name('checkout');
             Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware('throttle:20,1')->name('shop.checkout');
@@ -148,6 +151,8 @@ Route::prefix('{studio}')
                 Route::patch('staff/{studioUser}', [Admin\StaffController::class, 'update'])->name('staff.update');
                 Route::delete('staff/{studioUser}', [Admin\StaffController::class, 'destroy'])->name('staff.destroy');
 
+                Route::resource('videos', Admin\VideoController::class)->except(['show', 'create']);
+                Route::get('videos/{video}/status', [Admin\VideoController::class, 'status'])->name('videos.status');
                 Route::resource('products', Admin\ProductController::class)->except('show');
                 Route::get('pos', [Admin\PointOfSaleController::class, 'show'])->name('pos');
                 Route::post('pos/items', [Admin\PointOfSaleController::class, 'add'])->name('pos.add');

@@ -8,6 +8,7 @@ use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Models\StudioUser;
 use App\Models\User;
+use App\Models\Video;
 use App\Services\Stripe\StripeClient;
 use App\Services\Stripe\StripeException;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,7 +22,8 @@ use InvalidArgumentException;
  * Deletes a user's account at every studio. The schema cascades from users, so their memberships,
  * family members, passes and bookings go with it; classes they taught stay, without an instructor.
  * Signed waivers stay with each studio, unlinked from the account (decision 20), and so do payments
- * recorded in person. Payment history stays in each studio's Stripe account.
+ * recorded in person. Payment history stays in each studio's Stripe account. A closed studio's
+ * videos are deleted from Mux too.
  *
  * A studio the user is the only owner of can't be left without one: they either hand it to one of
  * its staff, or close it, which deletes the studio and everything in it.
@@ -33,6 +35,7 @@ class AccountDeletion
     public function __construct(
         private readonly StripeClient $stripe,
         private readonly Bookings $bookings,
+        private readonly Videos $videos,
     ) {}
 
     /**
@@ -89,6 +92,9 @@ class AccountDeletion
             ->where('starts_at', '>', now())
             ->get();
 
+        // Closed studios' videos, to remove from Mux once the studio is gone.
+        $videos = $closing->isEmpty() ? collect() : Video::whereIn('studio_id', $closing->pluck('id'))->get();
+
         DB::transaction(function () use ($user, $successors, $closing) {
             foreach ($successors as $studioId => $userId) {
                 StudioUser::where('studio_id', $studioId)->where('user_id', $userId)->update(['role' => 'owner']);
@@ -104,6 +110,7 @@ class AccountDeletion
 
         $disk = Storage::disk('local');
         $closing->each(fn (Studio $studio) => $disk->deleteDirectory("signatures/{$studio->id}"));
+        $this->videos->purgeFromMux($videos);
         foreach ($sessions as $session) {
             rescue(fn () => $this->bookings->promoteWaitlist($session)); // the account is gone either way
         }

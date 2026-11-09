@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\AttendeeResource;
 use App\Http\Resources\Api\SessionResource;
-use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Services\BookingOptions;
@@ -58,10 +57,7 @@ class SessionController extends Controller
     public function show(Request $request, Studio $studio, ClassSession $session, BookingOptions $options): JsonResponse
     {
         abort_unless($session->program->is_published, 404);
-        $session->loadCount([
-            'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES),
-            'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
-        ])->load(['program.categories', 'instructor', 'room'])->setRelation('studio', $studio);
+        $session->loadCount(ClassSession::seatCounts())->load(['program.categories', 'instructor', 'room'])->setRelation('studio', $studio);
         $user = $request->user('sanctum');
         $this->attachMine($request, $studio, collect([$session]));
 
