@@ -31,8 +31,21 @@ Values aren't recorded here. Secrets live only in Render's dashboard.
 | `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | `sync: false` in the Blueprint. The secret key starts with `sk_`, not `pk_`. |
 | `LOFT_PLATFORM_FEE_PERCENT` | `loft-web` | `0`: no platform fee |
 | `STRIPE_API_VERSION`, `STRIPE_V2_API_VERSION` | Optional | Default to `2024-06-20` and `2026-10-28.endive` ([Stripe](Stripe)) |
+| `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_KEY` | `loft-shared` group, **set in the dashboard** | On-demand video ([below](#video-mux)). In the group so the hourly job can follow uploads too. Without them, Admin → Videos says video isn't switched on |
+| `LOFT_VIDEO_MINUTES_PER_STUDIO`, `LOFT_VIDEO_TOKEN_HOURS` | Optional | Stored video allowed per studio (default `600` minutes), and how long playback tokens last (default `6` hours, to the end of the hour) |
 
 A Blueprint sync overwrites the keys it declares and leaves everything else as it is.
+
+## Video (Mux)
+
+Every studio's videos are on Loft's own Mux account ([decision 32](Decisions)); studios set nothing up.
+
+1. In Mux, use a **Production** environment.
+2. **Settings → Access Tokens:** a token with **Mux Video** read and write. Its ID and secret are `MUX_TOKEN_ID` and `MUX_TOKEN_SECRET`.
+3. **Settings → Signing Keys:** a key for video. Its ID is `MUX_SIGNING_KEY_ID`; the private key, exactly as Mux shows it (base64, shown once), is `MUX_SIGNING_KEY`.
+4. Add all four to the `loft-shared` group in Render's dashboard. The services redeploy.
+
+There's no Mux webhook to set up: Loft asks Mux about videos still processing. Browsers upload straight to Mux, which only accepts uploads from `APP_URL` (`https://loftstudio.app`), so add videos from there, not from `loft-web.onrender.com`. Every asset is created with **signed** playback and **basic** quality (no encoding charge); Mux bills Loft for storage and streaming, which `LOFT_VIDEO_MINUTES_PER_STUDIO` caps. Mux Data is on without cookies.
 
 ## Domain and DNS (Porkbun)
 

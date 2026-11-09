@@ -67,6 +67,7 @@ Admin → Automations: emails a studio sets up once that then go out by themselv
 - **Fonts:** the web fonts load only where the email app allows it, such as Apple Mail. For that, Apache sends `Access-Control-Allow-Origin: *` on `.woff2` files, and CI checks it. Other apps use the system font.
 - **Readable colors:** button text and links use the studio's readable colors ([Design System](Design-System)).
 - **Plain text:** every email has a plain-text version too.
+- **Class details:** booking, waitlist and reminder emails list the class, when, and who. For someone booked online they add **Where: Online**, and that the link to join is in their account from 15 minutes before class. The meeting link itself is never emailed, so a forwarded email doesn't let anyone in.
 
 ## Password and invitation email
 

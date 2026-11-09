@@ -4,16 +4,26 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Churn scoring** (roadmap step 9)
+- **Video and live classes** (roadmap step 10)
+  - **Online and hybrid classes:** programs and sessions say where a class happens: in the studio, online, or both. For a class that's both, members choose **In the studio** or **Online**; online spots are separate from the studio's seats (their own limit, no apparatus, no waitlist), and the schedule shows **Studio full · online open**. The choice carries through waivers and checkout.
+  - **Joining:** people booked online get **Join online** under Upcoming from 15 minutes before class until it ends. It opens the studio's Zoom or Meet link, which isn't shown anywhere else, and checks them in. Booking emails say where. Rosters mark who's online; kiosks don't check them in. A class can't stop being hybrid while people hold online spots.
+  - **Admin → Videos:** upload a file (straight to Mux) or add one from a link, follow it to **Ready**, preview it, choose who can watch (everyone with an account, or members whose plan includes videos), publish, delete. Each studio has 600 minutes of stored video.
+  - **Videos for members:** a library page and a player (Mux Player, signed tokens, no tracking cookies). Locked videos say why and link to sign in, join, or the plans that include videos. Views are counted once a day and appear on the member's activity.
+  - **Plans:** **Includes the video library**.
+  - **API:** sessions say where they happen and how many online spots are left; bookings and checkouts take `online`; `POST …/bookings/{id}/join` returns the meeting link; `GET …/videos` and `POST …/videos/{id}/playback` ([API](API)).
+  - **Decision 32**, including why the app won't sell plans that include videos. Roadmap step 10 is built.
+  - **Database:** new tables `videos` and `video_views`; `delivery`, `online_capacity` and `meeting_url` on `programs` and `class_sessions`; `bookings.online_spot`; `plans.includes_videos`.
+  - **Setup:** Mux keys in Render ([Deployment](Deployment#video-mux)).
+
+## 2026-11-09
+
+- **Churn scoring** (roadmap step 9, [#25](https://github.com/CyberpunkAidy/loft-studio/pull/25))
   - **Risk scores each night:** right after the member snapshot, every member gets a churn risk (0 to 100: high, medium, low, or lapsed) from rules a studio would recognise (time since their last class, coming less, nothing booked, a failed payment, no plan left), with the reasons in plain words and the model version (`rules-v1`).
   - **Members → At risk of leaving:** high and medium, riskiest first, and a risk column for everyone. Each member's page shows their score, why, and the nights before. The dashboard counts members at high risk.
   - **At risk of leaving automation:** a check-in email the day a member turns high; at most once a month, not right after a win-back email; marketing, so opted-in members only.
   - **Training export:** `loft:churn-export` writes the snapshots with pseudonymous members and a 30-day churn label, for a trained model later.
   - **Decision 31.** Roadmap step 9 is built with rules; the demo studio is scored when seeded.
   - **Database:** new table `member_risk_scores`.
-
-## 2026-11-09
-
 - **Contactless check-in** (roadmap step 8, [#24](https://github.com/CyberpunkAidy/loft-studio/pull/24))
   - **Admin → Check-in devices:** add kiosks and readers (each gets a device code, shown once), remove them, and see every scan, allowed or not, and why.
   - **The kiosk** (`/{studio}/kiosk`): any browser, set up once with a device code. Works with USB or Bluetooth NFC readers and QR scanners that type what they read. Shows a big welcome, or why not and to see the front desk.

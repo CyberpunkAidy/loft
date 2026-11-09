@@ -28,7 +28,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger, merchandise, the point of sale with card readers, the online shop, the mobile API, contactless check-in, and churn scoring. Next: video and live classes |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger, merchandise, the point of sale with card readers, the online shop, the mobile API, contactless check-in, churn scoring, and video and live classes |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -58,10 +58,10 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | | |
 |---|---|
 | `/` | Marketing page, `/signup` (start a studio), `/login`, `/studios` (my studios) |
-| `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/shop` (and its cart; checkout for members), `/join`, `/login`, `/kiosk` (the check-in kiosk, set up with a device code) |
+| `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/shop` (and its cart; checkout for members), `/videos` (the on-demand library), `/join`, `/login`, `/kiosk` (the check-in kiosk, set up with a device code) |
 | `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile, deleting the account |
 | `/{studio}/book/{session}` | Booking: choose who's coming (and the apparatus, if the class uses several) → waiver → membership/credit check → checkout if needed |
-| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, automations, plans, point of sale, products, sales, payments and card readers, waivers, check-in devices, staff, settings |
+| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, videos, members, automations, plans, point of sale, products, sales, payments and card readers, waivers, check-in devices, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
 | `/api/v1/…` | The mobile app's JSON API: Sanctum tokens, per-studio schedule, bookings, family, waivers, purchases and checkout ([API](https://github.com/CyberpunkAidy/loft-studio/wiki/API)) |
 
@@ -102,6 +102,8 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 - **Orders ledger** (`App\Services\Orders`, Admin → Sales): every sale is an order with items: each paid one-time checkout, each paid membership invoice, each payment taken in person. Numbered per studio, recorded once each, with Stripe's actual amounts; CSV download per month.
 - **Point of sale** (`App\Services\PointOfSale`, Admin → Point of sale and Products): products with variants and stock, and plans, in one cart for a member or a walk-in; sales tax on taxable products; paid in person or comped. Stock never goes below zero; voiding restocks and cancels plans.
 - **Churn scoring** (`App\Services\ChurnScores`, Members → At risk of leaving): each night's snapshot scored with rules (`rules-v1`) into `member_risk_scores` with reasons; the **At risk of leaving** automation reads only the scores; `loft:churn-export` writes pseudonymised training data.
+- **Online and hybrid classes** (`App\Services\OnlineClasses`): `delivery` on programs and sessions (`in_person`, `online`, `hybrid`); a hybrid class's online spots are counted apart from its seats (`bookings.online_spot`); the studio's meeting link is handed out by `/bookings/{id}/join` only to people booked online, from 15 minutes before class, and joining checks them in.
+- **Video** (`App\Services\Videos`, `VideoLibrary`, `Mux\MuxClient`, Admin → Videos, `/{studio}/videos`): Loft's Mux account; uploads go from the browser straight to Mux; signed playback tokens for people allowed to watch (everyone with an account, or plans that include videos); each studio's stored minutes are capped. Keys: `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_KEY` in the `loft-shared` group.
 - **Contactless check-in** (`App\Services\CheckIns`, `CheckInCodes`, Admin → Check-in devices, `/{studio}/kiosk`): kiosks and readers with their own tokens; NFC/RFID tags (stored as keyed hashes) and members' QR codes (signed, rotating every 30 seconds); a scan checks the person in to their class now, waivers enforced; every scan logged.
 - **Mobile API** (`routes/api.php`, `App\Http\Controllers\Api\V1`): `/api/v1` with Sanctum bearer tokens, one per install. The same services as the website (`Bookings`, `BookingOptions`, `Waivers`, `PlanCheckout`, `Memberships`), errors with stable codes, `Idempotency-Key` on writes that matter, cursor pages. Documented in the wiki's API page.
 - **Card readers** (`App\Services\CardReaders`, `App\Services\ReaderPayments`, Payments → Card readers): Stripe Terminal readers paired on the studio's account; the point of sale charges the cart on one, waits for the card on a page that refreshes itself, and records the sale when it's paid. Refunds go back to the card. Housekeeping settles sales left open.
@@ -201,7 +203,7 @@ Use card `4242 4242 4242 4242`. Test-mode and live-mode objects don't mix, so st
 |---|---|
 | `loft-web` (web service) | Apache serving the app. Migrations run before each deploy, and `/up` is the health check. A 1 GB disk keeps waiver signature drawings. |
 | `loft-worker` (background worker) | `queue:work`, which sends the queued emails |
-| `loft-housekeeping` (cron job, hourly) | `loft:housekeeping`: class reminders, credit-expiry warnings, expiring credits, member snapshots and churn scores, shop checkouts and card reader sales to settle |
+| `loft-housekeeping` (cron job, hourly) | `loft:housekeeping`: class reminders, credit-expiry warnings, expiring credits, member snapshots and churn scores, shop checkouts and card reader sales to settle, videos still processing on Mux |
 | `loft-db` (Postgres 16) | The database |
 
 All four are paid Render plans. Workers, cron jobs, disks and pre-deploy commands aren't available on Render's free tier.
@@ -225,6 +227,7 @@ All four are paid Render plans. Workers, cron jobs, disks and pre-deploy command
 
    Studio emails use the studio's name as the sender name and its contact address as Reply-To. The key and `MAIL_MAILER` live only in the dashboard, not in `render.yaml`, so Blueprint syncs leave them alone.
 6. **Stripe.** Point the Connect webhook at `https://loftstudio.app/stripe/webhook`.
+7. **Video, with Mux.** Add `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_SIGNING_KEY_ID` and `MUX_SIGNING_KEY` to the **loft-shared** group. Until then, Admin → Videos says video isn't switched on. Steps: the wiki's [Deployment](https://github.com/CyberpunkAidy/loft-studio/wiki/Deployment#video-mux) page.
 
 How the image works:
 - One image (`web/Dockerfile`, PHP 8.3 + Apache) serves every role. `web/docker/start.sh` picks the role: `web`, `worker`, `housekeeping` or `migrate`.
@@ -255,7 +258,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 163 tests. They cover:
+There are 179 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
@@ -266,6 +269,8 @@ There are 163 tests. They cover:
 - card readers: pairing and syncing with Stripe, charging the till's cart, declines and retries, cancelling (and paying at the same moment), offline and busy readers, refunds, the hourly sweep
 - the mobile API: signing in and out, registering and joining, token revocation (password change or reset, deleting the account), push tokens, the schedule and cursor pages, booking with stable error codes and idempotency keys, the family, waivers, purchases, buying a plan, rate limits, and that nobody reaches another member's or studio's records
 - contactless check-in: devices and their codes, pairing the kiosk, tags (one person at a time, taken back), rotating QR codes, the check-in window, waivers and waitlists, offline scans, the device API, and that member and device tokens don't cross over
+- online and hybrid classes: online spots apart from the studio's seats and waitlist, joining (the window, check-in, someone else's booking, no link), checkout with an online spot, the door refusing online bookings, staff settings and the guard against stranding online spots, the API
+- video: direct uploads and imports against faked Mux, following them to ready, failures, the minutes cap, deleting from Mux (and when a studio closes), who can watch (members, plans, packs, staff), signed tokens checked against the key, views, the API
 - churn scoring: each rule and level, scoring after the nightly snapshot, the at-risk email (the crossing, consent, cooldown, after win-back, stale scores), the members list, dashboard and member page, and the pseudonymised export
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
@@ -292,6 +297,6 @@ CI (`.github/workflows/web.yml`) runs both, and builds and starts the Docker ima
 - **Studio subdomains and custom domains.** URLs are path-based today; a host-based resolver can go in front of the same routes.
 - **Billing studios for the platform itself.** A subscription per studio, or the existing application fee.
 - **Importing an existing WordPress plugin install.** Its tables map almost one-to-one.
-- **A JSON API** for the planned mobile app (React Native with Expo). See the wiki's [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap).
+- **The mobile app** (React Native with Expo), against the API that's built. See the wiki's [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap).
 - **SMS reminders.** Listen to the same events the emails do.
 - **Email verification, and a platform-operator admin.**

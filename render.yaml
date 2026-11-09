@@ -43,6 +43,9 @@ envVarGroups:
       # Email is off until you turn it on in Render's dashboard (loft-shared group), so that a
       # Blueprint sync never overwrites it: add RESEND_API_KEY and set MAIL_MAILER=resend.
       # Without MAIL_MAILER the app writes emails to the log. See web/README.md.
+      # Video is off until you add the Mux keys here, in the dashboard (loft-shared group, so the
+      # hourly job can follow uploads too): MUX_TOKEN_ID, MUX_TOKEN_SECRET, MUX_SIGNING_KEY_ID and
+      # MUX_SIGNING_KEY. See the wiki's Deployment page.
 
 services:
   - type: web

@@ -61,13 +61,15 @@ Elsewhere in the repository:
 | `categories` | Age groups, levels and plan tags |
 | `rooms` | A studio's rooms, each with a capacity limit (`max_capacity`) |
 | `apparatus` | What's rigged in a room: how many (`quantity`) and the most people on each (`max_per_item`) |
-| `programs` | A class or one-off event: weekday and time, duration, capacity, age limits, price, instructor, and the room and waitlist limit for new sessions |
-| `class_sessions` | Each dated occurrence of a program, with its own capacity, waitlist limit (`waitlist_capacity`, null = none), room, instructor and status |
+| `programs` | A class or one-off event: weekday and time, duration, capacity, age limits, price, instructor, and the room, waitlist limit and delivery (below) for new sessions |
+| `class_sessions` | Each dated occurrence of a program, with its own capacity, waitlist limit (`waitlist_capacity`, null = none), room, instructor and status, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` (a hybrid class's online spots, null = no limit) and `meeting_url` |
 | `program_apparatus`, `session_apparatus` | The apparatus a class uses (`quantity`, `max_per_item`): a program's default, copied to each new session, which can change it |
 | `attendees` | The people who come to class: the account holder and their children, with date of birth, medical notes and emergency contact |
-| `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin` |
+| `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin`; `includes_videos` opens videos for members with the plan |
 | `entitlements` | What an account holds: a live membership or a credit balance, with scope and weekly limits |
 | `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended`. With apparatus: which one (`apparatus_id`; for a waitlist entry, the one asked for, or null for any) and which item (`apparatus_item`, "Silks 3") |
+| `bookings.online_spot` | A hybrid class's online spot: not one of the studio's seats, with no apparatus or waitlist |
+| `videos`, `video_views` | The on-demand library: each video's Mux upload, asset and signed playback IDs, status (`uploading`, `processing`, `ready`, `errored`), length, who can watch (`members` or `plan`) and whether it's in the library; and one view per person, video and day |
 | `waivers`, `waiver_versions`, `program_waiver` | Waivers (for every class or for attached programs, with optional validity), and the exact text of every published version |
 | `waiver_signatures` | Who signed which version for whom: names, relationship, a hash of the text, IP address, browser, optional drawing. Kept, unlinked, when accounts are deleted |
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
@@ -91,9 +93,11 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 
 - **`CheckIns`** and **`CheckInCodes`:** contactless check-in. A scan (a signed, rotating QR code or a tag's UID) finds the person's class now and checks them in through `Bookings::mark`, like the front desk; every scan is logged. Devices sign in with their own tokens (`AuthenticateDevice`).
 - **`BookingOptions`**, **`PlanCheckout`** and **`Memberships`:** what each person can do in a class, buying a plan (with a booking to finish), and joining a studio. The website's controllers and the API both call them, so the rules are the same on both ([decision 29](Decisions)).
-- **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. A booking needs room in the class and, when the class uses apparatus, a spot on the apparatus; waitlists can be capped. Promotion re-checks the waiting person's plan, waiver and apparatus before giving them the seat. Staff can move a booking to another apparatus.
+- **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. A booking needs room in the class and, when the class uses apparatus, a spot on the apparatus; waitlists can be capped. A hybrid class's online spots are counted apart from its seats. Promotion re-checks the waiting person's plan, waiver and apparatus before giving them the seat. Staff can move a booking to another apparatus.
+- **`OnlineClasses`:** joining an online class: the meeting link, only for someone booked online, from 15 minutes before class until it ends; joining checks them in through `Bookings::mark`.
+- **`Videos`**, **`VideoLibrary`** and **`MuxClient`:** on-demand video on Loft's Mux account ([decision 32](Decisions)). `Videos` creates direct uploads and imports, follows them until they're ready (when staff look, while the uploader waits, and hourly; there's no Mux webhook), deletes them from Mux and enforces each studio's stored minutes. `VideoLibrary` decides who can watch and makes the signed playback, thumbnail and storyboard tokens (RS256 JWTs from the signing key), and counts views.
 - **`Entitlements`:** finds the plan that can pay for a class (scope, weekly limit, credits), uses and refunds credits, and grants plans.
-- **`SessionGenerator`:** creates a program's sessions across its season, with the program's room, apparatus and waitlist limit. It's daylight-saving safe. It can also copy those settings to upcoming sessions.
+- **`SessionGenerator`:** creates a program's sessions across its season, with the program's room, apparatus, waitlist limit and delivery. It's daylight-saving safe. It can also copy those settings to upcoming sessions.
 - **`Rooms`:** room clashes for staff: other classes in the same room at the same time, and apparatus used by more classes at once than are rigged. A warning, not a booking rule.
 - **`Waivers`:** which waivers a class needs, whether an attendee has signed them, signing a version, overrides, and saving text without editing a signed version.
 - **`WaiverDownload`:** a studio's signed waivers as a ZIP.
@@ -112,7 +116,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`ChurnScores`:** scores each snapshot for churn risk (rules, version `rules-v1`) into `member_risk_scores`.
 - **`Automations`:** sends the automated emails: first-class follow-ups from the outbox (through `AutomationTriggers`, the registered handler), birthdays and win-backs from housekeeping ([Email](Email#automations)).
 
-Controllers stay thin and call these services. The planned mobile API will call the same services ([Roadmap](Roadmap)).
+Controllers stay thin and call these services. The mobile API calls the same services ([API](API)).
 
 ## Events and email
 
