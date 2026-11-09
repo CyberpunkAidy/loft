@@ -94,6 +94,29 @@ class Waivers
         return $this->statusFor($studio, $attendee, $program)['missing']->first();
     }
 
+    /**
+     * The first waiver in force that $attendee hasn't signed and needs: one for every class, or one for
+     * a program they're booked into. Signing goes from one to the next until this is null.
+     */
+    public function nextToSign(Studio $studio, Attendee $attendee): ?Waiver
+    {
+        foreach ($studio->activeWaivers() as $waiver) {
+            if (! $this->statusOf($studio, $attendee, $waiver)['signed'] && $this->needs($attendee, $waiver)) {
+                return $waiver;
+            }
+        }
+
+        return null;
+    }
+
+    /** Whether $attendee needs $waiver now: it's for every class, or for a program they're booked into. */
+    public function needs(Attendee $attendee, Waiver $waiver): bool
+    {
+        return $waiver->appliesToEveryClass() || $attendee->bookings()->whereIn('status', ['booked', 'waitlisted'])
+            ->whereHas('classSession', fn ($q) => $q->where('starts_at', '>', now())->whereIn('program_id', $waiver->programs->pluck('id')))
+            ->exists();
+    }
+
     /** Whether a booking's attendee may attend: everything its class needs is signed, or staff let them in. */
     public function clears(Booking $booking): bool
     {

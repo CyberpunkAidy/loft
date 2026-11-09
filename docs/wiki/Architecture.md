@@ -17,8 +17,9 @@
 | Path | What's there |
 |---|---|
 | `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation`, `Order`, `OrderItem`, `Product`, `ProductVariant` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, `CardReaders`, `ReaderPayments`, `Shop`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
-| `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
+| `app/Services` | The business rules: `Bookings`, `BookingOptions`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `PlanCheckout`, `Memberships`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, `CardReaders`, `ReaderPayments`, `Shop`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `Api/V1/*` (the mobile app's API, `routes/api.php`), `PlatformController`, `StripeWebhookController` |
+| `app/Http/Resources/Api` | The API's JSON shapes; `app/Http/ApiErrors.php` renders every API error with a stable code ([API](API)) |
 | `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
 | `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox), and the `RelayDomainEvents` and `SendAutomatedMessage` jobs |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
@@ -72,6 +73,7 @@ Elsewhere in the repository:
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
 | `orders`, `order_items` | The ledger: every sale (online checkout, membership invoice, in person, point of sale, online shop), numbered per studio when paid (shop orders are pending, unnumbered, while the member pays), with its items (plans, products with their tax), amounts, how it was paid, Stripe IDs, for in-person sales a note or a walk-in flag, and for shop orders whether they've been picked up ([Payments](Payments#the-orders-ledger)) |
 | `products`, `product_variants` | Merchandise, and its sizes or colours, each with its own stock (null = not tracked) and optional price |
+| `personal_access_tokens`, `user_devices` | The mobile app's sign-ins (Sanctum tokens, one per install) and each install's push token |
 | `card_readers` | The studio's Stripe Terminal readers (Stripe's reader ID, a name, model and serial number); the Terminal Location is `studios.stripe_terminal_location_id`. A sale charged on one records it in `orders.card_reader_id` |
 | `payments` | Payments staff recorded by hand, and comps, each linked to its order ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
@@ -85,6 +87,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 
 ## Services
 
+- **`BookingOptions`**, **`PlanCheckout`** and **`Memberships`:** what each person can do in a class, buying a plan (with a booking to finish), and joining a studio. The website's controllers and the API both call them, so the rules are the same on both ([decision 29](Decisions)).
 - **`Bookings`:** books, waitlists, cancels and promotes. Every seat change locks the session row, so two people can't take the last seat. A booking needs room in the class and, when the class uses apparatus, a spot on the apparatus; waitlists can be capped. Promotion re-checks the waiting person's plan, waiver and apparatus before giving them the seat. Staff can move a booking to another apparatus.
 - **`Entitlements`:** finds the plan that can pay for a class (scope, weekly limit, credits), uses and refunds credits, and grants plans.
 - **`SessionGenerator`:** creates a program's sessions across its season, with the program's room, apparatus and waitlist limit. It's daylight-saving safe. It can also copy those settings to upcoming sessions.
@@ -161,3 +164,4 @@ Each night, after 2 AM in the studio's time zone, housekeeping saves every membe
 - **Forms:** use CSRF tokens. Destructive actions ask for confirmation.
 - **Proxy:** the app trusts Render's proxy (`TRUSTED_PROXIES=*`), so it sees HTTPS and the real client IP. Session cookies are secure-only in production.
 - **Waiver signatures:** the drawn signature images are stored on a private disk, not in the web root.
+- **The API** takes bearer tokens only (Sanctum's session guard is off), so a signed-in browser can't be used against it and it needs no CSRF tokens. Tokens are stored hashed, revoked on password change or reset and account deletion, and rate-limited; studio routes are scoped like the website's ([API](API)).

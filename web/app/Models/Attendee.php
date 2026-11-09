@@ -16,6 +16,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['studio_id', 'user_id', 'first_name', 'last_name', 'dob', 'is_self', 'medical_notes', 'emergency_contact', 'status'])]
 class Attendee extends Model
 {
+    /** @return array<string, mixed> what a member can set on someone in their family (website and app) */
+    public static function rules(): array
+    {
+        return [
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'dob' => ['nullable', 'date', 'before_or_equal:today', 'after:1900-01-01'],
+            'emergency_contact' => ['nullable', 'string', 'max:190'],
+            'medical_notes' => ['nullable', 'string', 'max:2000'],
+            'is_self' => ['nullable', 'boolean'],
+        ];
+    }
+
     use HasFactory;
 
     /** Column defaults, so new instances match what the database would store. */

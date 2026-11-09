@@ -98,6 +98,7 @@ class AccountDeletion
             if (config('session.driver') === 'database') {
                 DB::table((string) config('session.table'))->where('user_id', $user->id)->delete(); // signed in elsewhere
             }
+            $user->tokens()->delete(); // app sign-ins (devices go with the user)
             $user->delete();
         });
 

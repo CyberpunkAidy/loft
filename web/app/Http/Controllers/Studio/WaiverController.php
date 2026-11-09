@@ -22,7 +22,7 @@ class WaiverController extends Controller
     public function show(Request $request, Studio $studio, Attendee $attendee, Waivers $waivers): View|RedirectResponse
     {
         $this->authorizeAttendee($request, $attendee);
-        $waiver = $this->chosen($request, $studio) ?? $this->nextFor($studio, $attendee, $waivers);
+        $waiver = $this->chosen($request, $studio) ?? $waivers->nextToSign($studio, $attendee);
         if (! $waiver) {
             return redirect(ReturnPath::from($request) ?? route('studio.account.waivers'))->with('success', "{$attendee->first_name} has signed everything needed.");
         }
@@ -58,7 +58,7 @@ class WaiverController extends Controller
 
         // More to sign? Carry on to the next one, then back to where they came from.
         $return = ReturnPath::from($request);
-        if ($next = $this->nextFor($studio, $attendee, $waivers)) {
+        if ($next = $waivers->nextToSign($studio, $attendee)) {
             return redirect()->route('studio.waiver', array_filter(['attendee' => $attendee, 'waiver' => $next->id, 'return' => $return]))
                 ->with('success', "Signed “{$waiver->title}” for {$attendee->first_name}. One more to go.");
         }
@@ -74,24 +74,5 @@ class WaiverController extends Controller
     private function chosen(Request $request, Studio $studio): ?Waiver
     {
         return $request->filled('waiver') ? $studio->activeWaivers()->firstWhere('id', $request->integer('waiver')) : null;
-    }
-
-    /** The first waiver in force (any class, or a program this attendee is booked into) not yet signed. */
-    private function nextFor(Studio $studio, Attendee $attendee, Waivers $waivers): ?Waiver
-    {
-        foreach ($studio->activeWaivers() as $waiver) {
-            if (! $waivers->statusOf($studio, $attendee, $waiver)['signed'] && ($waiver->appliesToEveryClass() || $this->bookedInto($attendee, $waiver))) {
-                return $waiver;
-            }
-        }
-
-        return null;
-    }
-
-    private function bookedInto(Attendee $attendee, Waiver $waiver): bool
-    {
-        return $attendee->bookings()->whereIn('status', ['booked', 'waitlisted'])
-            ->whereHas('classSession', fn ($q) => $q->where('starts_at', '>', now())->whereIn('program_id', $waiver->programs->pluck('id')))
-            ->exists();
     }
 }

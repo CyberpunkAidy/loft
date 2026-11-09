@@ -13,7 +13,7 @@ Members delete their own account under **My account → Profile → Delete accou
 1. **Billing stops first.** Renewing memberships are cancelled in each studio's Stripe account, so nobody is charged again. Payments already made aren't refunded, and the form says so. If Stripe can't be reached, nothing is deleted and the member is asked to try again.
 2. **The database removes their records:** studio memberships, family members, passes and memberships, and bookings.
 3. **Waiver signatures stay** with each studio, unlinked from the account: the names, the version and hash of the exact text, and the drawing ([decision 20](Decisions)).
-4. **They're signed out** on every device, and their password-reset tokens are removed.
+4. **They're signed out** on every device, including the mobile app (its tokens and push tokens are deleted), and their password-reset tokens are removed.
 5. **Seats they held** in upcoming classes go to the waitlist.
 6. **Their nightly activity snapshots are deleted.** Their activity history (`domain_events`) and email log (`message_deliveries`) are unlinked: they hold IDs and facts, no names or addresses, so what's left is anonymous.
 

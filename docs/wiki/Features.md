@@ -5,7 +5,8 @@
 - **Home page:** what Loft does, with a way to start a studio.
 - **Start your studio** (`/signup`): creates the studio with its name, web address (slug), time zone and currency. The person who signs up becomes its owner.
 - **Signing in:** one login for every studio someone belongs to. **My studios** (`/studios`) lists them, with links to each schedule, account and studio admin.
-- **Password reset:** also used to invite new staff (see [Email](Email)).
+- **Password reset:** also used to invite new staff (see [Email](Email)). Changing or resetting a password signs the mobile app out.
+- **Mobile API** (`/api/v1`): what the mobile app will use. Members sign in or register, see the schedule and their bookings, book and cancel (with the same rules and stable error codes), manage their family, sign waivers, see their plans and purchases, and buy plans through Stripe Checkout. See [API](API).
 
 ## Members (`/{studio}`)
 

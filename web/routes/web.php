@@ -56,6 +56,7 @@ Route::prefix('{studio}')
         Route::post('/shop/cart/{variant}', [Studio\ShopController::class, 'update'])->whereNumber('variant')->name('shop.update');
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
+        Route::view('/checkout/return', 'studio.checkout-return')->name('checkout.return'); // the app's purchases end here
         Route::post('/join', [Studio\JoinController::class, 'store'])->middleware('throttle:10,1')->name('join.store');
         // Signed links from marketing emails; no sign-in needed. CSRF is off for these (see bootstrap/app.php).
         Route::get('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'show'])->middleware('signed')->name('unsubscribe');

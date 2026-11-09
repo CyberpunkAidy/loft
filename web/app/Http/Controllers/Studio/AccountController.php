@@ -128,6 +128,9 @@ class AccountController extends Controller
             $user->password = Hash::make($data['password']);
         }
         $user->save();
+        if (! empty($data['password'])) {
+            $user->tokens()->delete(); // the app signs in again with the new password
+        }
         if ($membership = StudioUser::where('studio_id', $studio->id)->where('user_id', $user->id)->first()) {
             $consent->setMarketingEmail($membership, $request->boolean('marketing_email'), 'profile');
         }

@@ -5,70 +5,54 @@ namespace App\Http\Controllers\Studio;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\Studio;
+use App\Services\PlanCheckout;
 use App\Services\Stripe\StripeClient;
 use App\Services\Stripe\StripeException;
-use App\Services\Stripe\StripeWebhooks;
+use App\Support\CheckoutException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /** Stripe Checkout and the customer portal, on the studio's connected Stripe account. */
 class CheckoutController extends Controller
 {
-    public function start(Request $request, Studio $studio, Plan $plan, StripeClient $stripe): RedirectResponse
+    public function start(Request $request, Studio $studio, Plan $plan, PlanCheckout $checkout): RedirectResponse
     {
         abort_unless($plan->active, 404);
-        if (! $studio->stripeReady()) {
-            return back()->with('error', 'Online payments aren’t set up for this studio yet. Please contact the studio.');
-        }
-        if ($plan->kind === 'season' && $plan->season && $plan->season->ends_on->endOfDay()->isPast()) {
-            return back()->with('error', 'That season has ended.');
-        }
-
-        // A booking to finish once payment completes (both must be this member's and this studio's).
-        $session = $request->integer('session_id') ? $studio->sessions()->find($request->integer('session_id')) : null;
-        $attendee = $request->integer('attendee_id')
-            ? $studio->attendees()->where('user_id', $request->user()->id)->find($request->integer('attendee_id'))
-            : null;
-        $context = $session && $attendee ? ['session_id' => $session->id, 'attendee_id' => $attendee->id] : [];
-        if ($context && $session->apparatusSlots()->has($request->integer('apparatus_id'))) {
-            $context['apparatus_id'] = $request->integer('apparatus_id');
-        }
-
+        // A booking to finish once payment completes.
+        $context = $checkout->bookingContext($studio, $request->user(), $request->integer('session_id') ?: null,
+            $request->integer('attendee_id') ?: null, $request->integer('apparatus_id') ?: null);
         try {
-            $checkout = $stripe->createCheckout(
-                $studio,
-                $request->user(),
-                $plan,
+            $session = $checkout->start($studio, $request->user(), $plan, $context,
                 route('studio.checkout.complete').'?session_id={CHECKOUT_SESSION_ID}',
-                $context ? route('studio.book', ['session' => $session]) : route('studio.plans'),
-                $context,
-            );
+                $context ? route('studio.book', ['session' => $context['session_id']]) : route('studio.plans'));
+        } catch (CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (StripeException $e) {
             report($e);
 
             return back()->with('error', 'We couldn’t start checkout: '.$e->getMessage());
         }
 
-        return redirect()->away($checkout['url']);
+        return redirect()->away($session['url']);
     }
 
     /** Stripe sends the member back here; fulfil now rather than wait for the webhook. */
-    public function complete(Request $request, Studio $studio, StripeClient $stripe, StripeWebhooks $webhooks): RedirectResponse
+    public function complete(Request $request, Studio $studio, PlanCheckout $checkout): RedirectResponse
     {
         $id = (string) $request->query('session_id', '');
         if (! str_starts_with($id, 'cs_')) {
             return redirect()->route('studio.account.billing');
         }
         try {
-            $cs = $stripe->retrieveCheckoutSession($studio, $id);
-            $meta = $cs['metadata'] ?? [];
-            abort_unless((int) ($meta['loft_user_id'] ?? 0) === (int) $request->user()->id && (int) ($meta['loft_studio_id'] ?? 0) === (int) $studio->id, 404);
-            $result = $webhooks->fulfillCheckout($studio, $cs);
+            $confirmed = $checkout->confirm($studio, $request->user(), $id);
         } catch (StripeException $e) {
             report($e);
 
             return redirect()->route('studio.account.billing')->with('success', 'Payment received — thank you! Your plan will appear here in a moment.');
         }
+        abort_unless($confirmed !== null, 404);
+        ['cs' => $cs, 'result' => $result] = $confirmed;
+        $meta = $cs['metadata'] ?? [];
 
         if (! $result->entitlement && ($cs['status'] ?? '') === 'complete' && ($cs['payment_status'] ?? '') === 'unpaid') {
             // A delayed method, like a bank debit: fulfilled by the async_payment_succeeded webhook.

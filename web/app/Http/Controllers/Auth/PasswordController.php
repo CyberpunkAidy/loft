@@ -45,6 +45,7 @@ class PasswordController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
                 $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
+                $user->tokens()->delete(); // the app signs in again with the new password
                 event(new PasswordReset($user));
             },
         );
