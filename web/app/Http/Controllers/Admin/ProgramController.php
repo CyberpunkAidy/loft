@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Category;
+use App\Models\ClassSession;
 use App\Models\Program;
 use App\Models\Studio;
 use App\Models\StudioUser;
@@ -15,6 +17,7 @@ use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /** Classes and events (the plugin's loft_program post type and its meta box). */
@@ -70,6 +73,13 @@ class ProgramController extends Controller
     public function update(Request $request, Studio $studio, Program $program, SessionGenerator $generator, Bookings $bookings, Rooms $rooms): RedirectResponse
     {
         [$data, $allocation] = $this->validated($request, $studio);
+        if ($request->boolean('apply_upcoming') && $data['delivery'] !== 'hybrid') {
+            $stranded = $program->sessions()->where('status', 'scheduled')->where('starts_at', '>', now())
+                ->whereHas('bookings', fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', true))->count();
+            if ($stranded) {
+                throw ValidationException::withMessages(['delivery' => ($stranded === 1 ? '1 upcoming class has' : "{$stranded} upcoming classes have").' people booked online. Keep it in the studio and online, or don’t apply the change to upcoming sessions.']);
+            }
+        }
         $program->update($data);
         $program->apparatus()->sync($allocation);
         $this->syncCategories($request, $studio, $program);
@@ -155,13 +165,18 @@ class ProgramController extends Controller
             'capacity' => ['required', 'integer', 'between:1,500', ApparatusAllocation::capacityRule($room)],
             'room_id' => ['nullable', Rule::exists('rooms', 'id')->where('studio_id', $studio->id)],
             'waitlist_capacity' => ['nullable', 'integer', 'between:0,500'],
+            'delivery' => ['nullable', Rule::in(array_keys(ClassSession::DELIVERIES))],
+            'online_capacity' => ['nullable', 'integer', 'between:1,1000'],
+            'meeting_url' => ['nullable', 'url:https,http', 'max:500'],
             'dropin_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'instructor_id' => ['nullable', Rule::in($staffIds)],
             'min_age' => ['nullable', 'integer', 'between:0,120'],
             'max_age' => ['nullable', 'integer', 'between:0,120', 'gte:min_age'],
             'members_only' => ['nullable', 'boolean'],
             'is_published' => ['nullable', 'boolean'],
-        ], ['weekday.required_if' => 'Pick the weekday this class meets.', 'event_date.required_if' => 'Pick the event date.'], ['waitlist_capacity' => 'waitlist limit']);
+        ], ['weekday.required_if' => 'Pick the weekday this class meets.', 'event_date.required_if' => 'Pick the event date.'], ['waitlist_capacity' => 'waitlist limit', 'online_capacity' => 'online spots']);
+        $data['delivery'] ??= 'in_person';
+        $data['online_capacity'] = $data['delivery'] === 'hybrid' ? ($data['online_capacity'] ?? null) : null;
         $allocation = ApparatusAllocation::fromRequest($request, $room);
 
         $data['dropin_price_cents'] = Money::toCents($data['dropin_price'] ?? null);

@@ -40,6 +40,8 @@ class Bookings
      * signed every waiver the class needs, and records who decided that and why.
      * $apparatusId picks the apparatus when the class uses some; null takes whichever has the most
      * spots free. A waitlist entry remembers it, and is promoted only when that apparatus has a spot.
+     * $online takes one of a hybrid class's online spots instead of a seat in the studio: those have
+     * their own limit, no apparatus and no waitlist. (Everyone in an online class is online already.)
      *
      * @param  array{staff: User, reason: string}|null  $waiverOverride
      *
@@ -54,8 +56,10 @@ class Bookings
         bool $skipEntitlement = false,
         ?array $waiverOverride = null,
         ?int $apparatusId = null,
+        bool $online = false,
     ): Booking {
         $studio = $session->studio;
+        $online = $online && $session->isHybrid();
 
         if ((int) $attendee->user_id !== $userId || (int) $attendee->studio_id !== (int) $studio->id || $attendee->status !== 'active') {
             throw new BookingException('forbidden', 'That attendee is not on your account.');
@@ -69,7 +73,7 @@ class Bookings
             throw new BookingException('waiver', "{$attendee->first_name} needs to sign “{$unsigned->title}” before booking.", ['attendee' => $attendee, 'waiver' => $unsigned]);
         }
         $this->assertAge($session, $attendee);
-        if ($apparatusId !== null && ! $session->apparatusSlots()->has($apparatusId)) {
+        if (! $online && $apparatusId !== null && ! $session->apparatusSlots()->has($apparatusId)) {
             throw new BookingException('apparatus', 'Choose apparatus this class uses.');
         }
 
@@ -81,15 +85,22 @@ class Bookings
             }
         }
 
-        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride, $apparatusId) {
+        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride, $apparatusId, $online) {
             $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($this->existing($locked, $attendee)) {
                 throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
             }
 
-            $slots = $locked->apparatusSlots(refresh: true);
-            $slot = $this->pickSlot($slots, $apparatusId);
-            $full = $this->seatsTaken($locked) >= $locked->capacity || ($slots->isNotEmpty() && (! $slot || $slot->isFull()));
+            if ($online) {
+                if ($locked->online_capacity !== null && $locked->onlineCount() >= $locked->online_capacity) {
+                    throw new BookingException('online_full', 'Every online spot is taken. Book a spot in the studio, or try another class.');
+                }
+                [$slots, $slot, $full] = [collect(), null, false];
+            } else {
+                $slots = $locked->apparatusSlots(refresh: true);
+                $slot = $this->pickSlot($slots, $apparatusId);
+                $full = $this->seatsTaken($locked) >= $locked->capacity || ($slots->isNotEmpty() && (! $slot || $slot->isFull()));
+            }
             if ($full && $locked->waitlist_capacity !== null && $this->waitlistTaken($locked) >= $locked->waitlist_capacity) {
                 throw new BookingException('waitlist_full', $locked->waitlist_capacity === 0
                     ? 'This class is full.'
@@ -117,6 +128,7 @@ class Bookings
                 // Booked: the spot taken. Waitlisted: the apparatus asked for (null = any).
                 'apparatus_id' => $full ? ($apparatusId ?? ($slots->count() === 1 ? $slot->apparatus->id : null)) : $slot?->apparatus->id,
                 'apparatus_item' => $slot && ! $full ? $this->nextFreeItem($locked, $slot) : null,
+                'online_spot' => $online,
             ]);
             if ($unsigned && $waiverOverride) {
                 $this->waivers->override($booking, $waiverOverride['staff'], $waiverOverride['reason']);
@@ -128,6 +140,7 @@ class Bookings
                 'entitlement_id' => $booking->entitlement_id,
                 'credit_consumed' => $creditConsumed,
                 'apparatus_id' => $booking->apparatus_id,
+                'online' => $online || $locked->isOnline() ? true : null,
                 'waiver_override' => $unsigned && $waiverOverride ? true : null,
             ], fn ($v) => $v !== null));
 
@@ -487,9 +500,10 @@ class Bookings
         );
     }
 
+    /** Seats in the studio (or an online class's spots): a hybrid class's online spots don't count. */
     private function seatsTaken(ClassSession $session): int
     {
-        return $session->bookings()->whereIn('status', Booking::SEAT_STATUSES)->count();
+        return $session->bookings()->whereIn('status', Booking::SEAT_STATUSES)->where('online_spot', false)->count();
     }
 
     private function waitlistTaken(ClassSession $session): int

@@ -50,6 +50,7 @@
                 <div class="grid-2">
                     <x-select name="instructor_id" label="Instructor" :options="$instructors->mapWithKeys(fn ($u) => [$u->id => $u->name])->all()" :value="$program->instructor_id" placeholder="—" hint="Add instructors under Staff." />
                     <x-field name="waitlist_capacity" label="Waitlist limit" type="number" min="0" max="500" :value="$program->waitlist_capacity" hint="Empty for no limit; 0 for no waitlist." />
+                    @include('admin._delivery-fields', ['model' => $program])
                 </div>
             </fieldset>
 

@@ -26,9 +26,9 @@ class PlanCheckout
      * A booking to finish once the plan is paid for: the class and the person must be this studio's
      * and this member's; the apparatus must be one the class uses. Empty when there's no booking.
      *
-     * @return array{session_id?: int, attendee_id?: int, apparatus_id?: int}
+     * @return array{session_id?: int, attendee_id?: int, apparatus_id?: int, online?: int}
      */
-    public function bookingContext(Studio $studio, User $member, ?int $sessionId, ?int $attendeeId, ?int $apparatusId): array
+    public function bookingContext(Studio $studio, User $member, ?int $sessionId, ?int $attendeeId, ?int $apparatusId, bool $online = false): array
     {
         $session = $sessionId ? $studio->sessions()->find($sessionId) : null;
         $attendee = $attendeeId ? $studio->attendees()->where('user_id', $member->id)->find($attendeeId) : null;
@@ -36,7 +36,9 @@ class PlanCheckout
             return [];
         }
         $context = ['session_id' => $session->id, 'attendee_id' => $attendee->id];
-        if ($apparatusId && $session->apparatusSlots()->has($apparatusId)) {
+        if ($online && $session->isHybrid()) {
+            $context['online'] = 1; // a hybrid class's online spot
+        } elseif ($apparatusId && $session->apparatusSlots()->has($apparatusId)) {
             $context['apparatus_id'] = $apparatusId;
         }
 

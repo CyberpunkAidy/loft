@@ -16,14 +16,14 @@ use Illuminate\Support\Collection;
 #[Fillable([
     'studio_id', 'title', 'excerpt', 'description', 'type', 'season_id', 'weekday', 'start_time', 'duration_min',
     'event_date', 'capacity', 'dropin_price_cents', 'instructor_id', 'min_age', 'max_age', 'members_only', 'is_published',
-    'room_id', 'waitlist_capacity',
+    'room_id', 'waitlist_capacity', 'delivery', 'online_capacity', 'meeting_url',
 ])]
 class Program extends Model
 {
     use HasFactory;
 
     /** Column defaults, so new instances match what the database would store. */
-    protected $attributes = ['type' => 'class', 'is_published' => true, 'members_only' => false, 'capacity' => 10, 'duration_min' => 60];
+    protected $attributes = ['type' => 'class', 'is_published' => true, 'members_only' => false, 'capacity' => 10, 'duration_min' => 60, 'delivery' => 'in_person'];
 
     public const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 0 => 'Sunday'];
 
@@ -40,6 +40,7 @@ class Program extends Model
             'max_age' => 'integer',
             'dropin_price_cents' => 'integer',
             'waitlist_capacity' => 'integer',
+            'online_capacity' => 'integer',
         ];
     }
 

@@ -254,6 +254,9 @@ class StripeClient
         if (! empty($context['apparatus_id'])) {
             $metadata['apparatus_id'] = (int) $context['apparatus_id'];
         }
+        if (! empty($context['online'])) {
+            $metadata['online'] = 1;
+        }
         $params = [
             'customer' => $this->ensureCustomer($studio, $user),
             'mode' => $plan->isRecurring() ? 'subscription' : 'payment',

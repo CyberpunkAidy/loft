@@ -20,11 +20,11 @@ class CheckoutController extends Controller
         abort_unless($plan->active, 404);
         // A booking to finish once payment completes.
         $context = $checkout->bookingContext($studio, $request->user(), $request->integer('session_id') ?: null,
-            $request->integer('attendee_id') ?: null, $request->integer('apparatus_id') ?: null);
+            $request->integer('attendee_id') ?: null, $request->integer('apparatus_id') ?: null, $request->boolean('online'));
         try {
             $session = $checkout->start($studio, $request->user(), $plan, $context,
                 route('studio.checkout.complete').'?session_id={CHECKOUT_SESSION_ID}',
-                $context ? route('studio.book', ['session' => $context['session_id']]) : route('studio.plans'));
+                $context ? route('studio.book', array_filter(['session' => $context['session_id'], 'online' => $context['online'] ?? null])) : route('studio.plans'));
         } catch (CheckoutException $e) {
             return back()->with('error', $e->getMessage());
         } catch (StripeException $e) {

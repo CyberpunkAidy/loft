@@ -15,7 +15,7 @@
 @else
     <div class="plans">
         @foreach ($plans as $plan)
-            @include('studio._plan-card', ['plan' => $plan, 'session' => $session, 'attendee' => $attendee, 'apparatusId' => $apparatusId ?? null])
+            @include('studio._plan-card', ['plan' => $plan, 'session' => $session, 'attendee' => $attendee, 'apparatusId' => $apparatusId ?? null, 'online' => $online ?? false])
         @endforeach
     </div>
 @endif

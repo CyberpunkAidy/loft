@@ -10,11 +10,12 @@
     <div class="session-time">
         {{ $start->format('g:i') }} – {{ $end->format('g:i A') }}
         @if ($s->instructor)<span class="muted"> · {{ $s->instructor->first_name }}</span>@endif
-        @if ($s->relationLoaded('room') && $s->room)<span class="muted"> · {{ $s->room->name }}</span>@endif
+        @if (! $s->isOnline() && $s->relationLoaded('room') && $s->room)<span class="muted"> · {{ $s->room->name }}</span>@endif
     </div>
     <h3><a href="{{ route('studio.program', ['program' => $program]) }}">{{ $program->title }}</a></h3>
-    @if ($labels->isNotEmpty() || $program->isEvent() || $program->ageLabel())
+    @if ($labels->isNotEmpty() || $program->isEvent() || $program->ageLabel() || $s->delivery !== 'in_person')
         <div class="tags">
+            @if ($s->isOnline())<span class="badge badge-info">Online</span>@elseif ($s->isHybrid())<span class="badge badge-info">In studio or online</span>@endif
             @if ($program->isEvent())<span class="badge badge-info">Event</span>@endif
             @foreach ($labels as $label)<span class="tag">{{ $label->name }}</span>@endforeach
             @if ($program->ageLabel())<span class="tag">{{ $program->ageLabel() }}</span>@endif
@@ -31,7 +32,9 @@
         </div>
     @endif
     <div class="session-foot">
-        @if ($s->isFull())
+        @if ($s->isFull() && $s->isHybrid() && $s->onlineSpotsLeft() !== 0)
+            <span class="badge badge-low">Studio full · online open</span>
+        @elseif ($s->isFull())
             <span class="badge badge-full">Full{{ $s->waitlistCount() ? ' · '.$s->waitlistCount().' waiting' : '' }}</span>
         @else
             <span @class(['badge', 'badge-low' => $spots <= 2])>{{ $spots }} {{ $spots === 1 ? 'spot' : 'spots' }} left</span>

@@ -8,6 +8,7 @@ use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Services\BookingOptions;
 use App\Services\Bookings;
+use App\Services\OnlineClasses;
 use App\Support\BookingException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,28 +31,30 @@ class BookingController extends Controller
             'needs_waiver' => $o['waiver'] !== null,
         ]])->all();
         $closed = $found['closed'];
-        $slots = $session->apparatusSlots();
+        $slots = $session->isOnline() ? collect() : $session->apparatusSlots();
         $chosen = $slots->has($request->integer('apparatus')) ? $request->integer('apparatus') : null;
+        $online = $session->isHybrid() && ($request->boolean('online') || ($session->isFull() && $session->waitlistIsFull()));
 
-        return view('studio.book', compact('session', 'attendees', 'states', 'closed', 'slots', 'chosen'));
+        return view('studio.book', compact('session', 'attendees', 'states', 'closed', 'slots', 'chosen', 'online'));
     }
 
     public function store(Request $request, Studio $studio, ClassSession $session, Bookings $bookings): View|RedirectResponse
     {
-        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'apparatus_id' => ['nullable', 'integer']]);
+        $data = $request->validate(['attendee_id' => ['required', 'integer'], 'apparatus_id' => ['nullable', 'integer'], 'online' => ['nullable', 'boolean']]);
         $attendee = $studio->attendees()->where('user_id', $request->user()->id)->findOrFail($data['attendee_id']);
-        $apparatusId = ($data['apparatus_id'] ?? null) ? (int) $data['apparatus_id'] : null;
+        $online = $session->isHybrid() && $request->boolean('online');
+        $apparatusId = ! $online && ($data['apparatus_id'] ?? null) ? (int) $data['apparatus_id'] : null;
 
         try {
-            $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: $apparatusId);
+            $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: $apparatusId, online: $online);
         } catch (BookingException $e) {
             return match ($e->reason) {
                 'waiver' => redirect()->route('studio.waiver', [
                     'attendee' => $attendee,
                     'waiver' => $e->context['waiver']->id,
-                    'return' => route('studio.book', array_filter(['session' => $session, 'apparatus' => $apparatusId]), false),
+                    'return' => route('studio.book', array_filter(['session' => $session, 'apparatus' => $apparatusId, 'online' => $online ? 1 : null]), false),
                 ])->with('warning', $e->getMessage()),
-                'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans'], 'apparatusId' => $apparatusId]),
+                'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans'], 'apparatusId' => $apparatusId, 'online' => $online]),
                 default => back()->withInput()->with('error', $e->getMessage()),
             };
         }
@@ -60,10 +63,20 @@ class BookingController extends Controller
         $message = match (true) {
             $booking->status === 'waitlisted' && $apparatus && $apparatusId => "Every {$apparatus->name} spot is taken, so {$attendee->first_name} is #{$booking->position} on the waitlist for one. We'll email you if a spot opens.",
             $booking->status === 'waitlisted' => "That class is full, so {$attendee->first_name} is #{$booking->position} on the waitlist. We'll email you if a spot opens.",
+            $booking->attendsOnline() => "{$attendee->first_name} is booked online for {$session->program->title}! The link to join appears under Upcoming ".ClassSession::JOIN_OPENS_MINUTES.' minutes before class.',
             default => "{$attendee->first_name} is booked for {$session->program->title}".($apparatus ? " ({$booking->apparatusLabel()})" : '').'!',
         };
 
         return redirect()->route('studio.account')->with('success', $message);
+    }
+
+    /** Join an online class: from shortly before it starts until it ends. Joining checks them in. */
+    public function join(Request $request, Studio $studio, Booking $booking, OnlineClasses $online): RedirectResponse
+    {
+        abort_unless((int) $booking->user_id === (int) $request->user()->id, 404);
+        $result = $online->join($booking);
+
+        return $result['url'] ? redirect()->away($result['url']) : redirect()->route('studio.account')->with('warning', $result['message']);
     }
 
     public function cancel(Request $request, Studio $studio, Booking $booking, Bookings $bookings): RedirectResponse

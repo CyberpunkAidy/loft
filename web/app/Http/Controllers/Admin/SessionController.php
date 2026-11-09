@@ -17,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /** Session list, rosters, capacity, cancellations and staff bookings. */
@@ -45,10 +46,7 @@ class SessionController extends Controller
 
     public function show(Request $request, Studio $studio, ClassSession $session, Waivers $waivers, Rooms $rooms): View
     {
-        $session->loadCount([
-            'bookings as booked_count' => fn ($q) => $q->whereIn('status', Booking::SEAT_STATUSES),
-            'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
-        ]);
+        $session->loadCount(ClassSession::seatCounts());
         $roster = $session->bookings()->with(['attendee', 'user', 'entitlement.plan', 'apparatus'])->whereNot('status', 'cancelled')
             ->orderByRaw("case status when 'waitlisted' then 2 when 'late_cancelled' then 3 else 1 end")
             ->orderBy('position')->orderBy('booked_at')->get();
@@ -84,9 +82,17 @@ class SessionController extends Controller
             'capacity' => ['required', 'integer', 'between:1,500', ApparatusAllocation::capacityRule($room)],
             'room_id' => ['nullable', Rule::exists('rooms', 'id')->where('studio_id', $studio->id)],
             'waitlist_capacity' => ['nullable', 'integer', 'between:0,500'],
+            'delivery' => ['nullable', Rule::in(array_keys(ClassSession::DELIVERIES))],
+            'online_capacity' => ['nullable', 'integer', 'between:1,1000'],
+            'meeting_url' => ['nullable', 'url:https,http', 'max:500'],
             'instructor_id' => ['nullable', Rule::in($staffIds)],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], [], ['waitlist_capacity' => 'waitlist limit']);
+        ], [], ['waitlist_capacity' => 'waitlist limit', 'online_capacity' => 'online spots']);
+        $data['delivery'] ??= 'in_person';
+        $data['online_capacity'] = $data['delivery'] === 'hybrid' ? ($data['online_capacity'] ?? null) : null;
+        if ($session->isHybrid() && $data['delivery'] !== 'hybrid' && ($online = $session->onlineCount())) {
+            throw ValidationException::withMessages(['delivery' => ($online === 1 ? '1 person is' : "{$online} people are").' booked online. Keep this class in the studio and online, or remove them first.']);
+        }
         $allocation = ApparatusAllocation::fromRequest($request, $room);
 
         $session->update($data);

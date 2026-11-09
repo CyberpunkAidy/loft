@@ -17,6 +17,7 @@
             @isset($session)<input type="hidden" name="session_id" value="{{ $session->id }}">@endisset
             @isset($attendee)<input type="hidden" name="attendee_id" value="{{ $attendee->id }}">@endisset
             @if (! empty($apparatusId))<input type="hidden" name="apparatus_id" value="{{ $apparatusId }}">@endif
+            @if (! empty($online))<input type="hidden" name="online" value="1">@endif
             <button class="btn btn-block">Choose</button>
         </form>
     @else

@@ -91,6 +91,7 @@ Route::prefix('{studio}')
             Route::get('/book/{session}', [Studio\BookingController::class, 'create'])->name('book');
             Route::post('/book/{session}', [Studio\BookingController::class, 'store'])->name('book.store');
             Route::post('/bookings/{booking}/cancel', [Studio\BookingController::class, 'cancel'])->name('bookings.cancel');
+            Route::get('/bookings/{booking}/join', [Studio\BookingController::class, 'join'])->name('bookings.join');
 
             Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->name('checkout');
             Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware('throttle:20,1')->name('shop.checkout');

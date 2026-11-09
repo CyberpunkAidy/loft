@@ -39,6 +39,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('bookings', [V1\BookingController::class, 'index'])->name('bookings.index');
                 Route::post('sessions/{session}/bookings', [V1\BookingController::class, 'store'])->middleware('idempotent')->name('bookings.store');
                 Route::delete('bookings/{booking}', [V1\BookingController::class, 'destroy'])->name('bookings.destroy');
+                Route::post('bookings/{booking}/join', [V1\BookingController::class, 'join'])->name('bookings.join');
 
                 Route::get('attendees', [V1\AttendeeController::class, 'index'])->name('attendees.index');
                 Route::post('attendees', [V1\AttendeeController::class, 'store'])->middleware('idempotent')->name('attendees.store');

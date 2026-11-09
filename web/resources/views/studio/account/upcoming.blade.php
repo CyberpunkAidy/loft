@@ -25,12 +25,20 @@
             <div class="card item">
                 <div>
                     <strong>{{ $b->classSession->program->title }}</strong>
-                    <div class="muted small">{{ $start->format('D, M j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }} · {{ $b->attendee->name }}@if ($b->apparatusLabel()) · {{ $b->status === 'waitlisted' ? 'waiting for '.$b->apparatusLabel() : $b->apparatusLabel() }}@endif @if ($b->classSession->room) · {{ $b->classSession->room->name }}@endif</div>
+                    <div class="muted small">{{ $start->format('D, M j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }} · {{ $b->attendee->name }}@if ($b->apparatusLabel()) · {{ $b->status === 'waitlisted' ? 'waiting for '.$b->apparatusLabel() : $b->apparatusLabel() }}@endif @if ($b->attendsOnline()) · <strong>Online</strong>@elseif ($b->classSession->room) · {{ $b->classSession->room->name }}@endif</div>
+                    @if ($b->attendsOnline() && ! $joinable[$b->id] && $b->status !== 'waitlisted' && ! $b->classSession->isCancelled())
+                        <div class="small muted">The link to join appears here at {{ $studio->local($b->classSession->joinOpensAt())->format('g:i A') }}.</div>
+                    @endif
                     @if ($b->classSession->isCancelled())<div class="error-text small">The studio cancelled this class.</div>@endif
                 </div>
                 <div class="item-actions">
+                    @if ($joinable[$b->id])
+                        <a class="btn btn-small" href="{{ route('studio.bookings.join', ['booking' => $b]) }}" target="_blank" rel="noopener">Join online</a>
+                    @endif
                     @if ($b->status === 'waitlisted')
                         <span class="badge badge-warn">Waitlist #{{ $b->position }}</span>
+                    @elseif ($b->status === 'attended')
+                        <span class="badge">Checked in</span>
                     @else
                         <span class="badge badge-mine">Booked</span>
                     @endif
