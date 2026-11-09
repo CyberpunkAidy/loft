@@ -121,6 +121,15 @@ class DatabaseSeeder extends Seeder
                 .'I release Skyline Aerial Arts, its owners and staff from liability for injury arising from ordinary participation, except where caused by gross negligence.',
         ]);
 
+        // Merchandise for the point of sale, with a sales tax rate.
+        $studio->update(['settings' => ['sales_tax_milli' => 7250] + ($studio->settings ?? [])]);
+        $tee = $studio->products()->create(['name' => 'Studio Tee', 'description' => 'Soft cotton, Skyline logo.', 'price_cents' => 2500]);
+        foreach (['Small' => 6, 'Medium' => 2, 'Large' => 0] as $size => $stock) {
+            $tee->variants()->create(['studio_id' => $studio->id, 'name' => $size, 'stock' => $stock, 'sort' => $tee->variants()->count()]);
+        }
+        $grip = $studio->products()->create(['name' => 'Grip Aid', 'price_cents' => 1200]);
+        $grip->variants()->create(['studio_id' => $studio->id, 'name' => 'One size']);
+
         // Automations: the first-class follow-up is on; birthday and win-back are ready to turn on.
         foreach (array_keys(Automation::TRIGGERS) as $trigger) {
             $studio->automations()->create(['trigger' => $trigger, 'active' => $trigger === 'first_class'] + Automation::defaults($trigger));

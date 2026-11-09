@@ -45,6 +45,8 @@ class OrdersTest extends TestCase
 
         $this->actingAs($owner)->post("/{$studio->slug}/admin/payments/{$cash->id}/void")->assertSessionHas('success');
         $this->assertSame(['void', $owner->id], [$order->fresh()->status, $order->fresh()->voided_by_user_id]);
+        $this->assertNotNull($cash->fresh()->voided_at);
+        $this->assertSame([null, 'paid'], [$comp->fresh()->voided_at, $comp->order->fresh()->status], 'only that sale');
         $this->assertSame(['order.paid', 'order.paid', 'order.voided'], DomainEvent::where('type', 'like', 'order.%')->orderBy('id')->pluck('type')->all());
         $this->assertSame('Paid $140.00 for 10-Class Pack (#1001)', DomainEvent::where('type', 'order.paid')->first()->label());
     }

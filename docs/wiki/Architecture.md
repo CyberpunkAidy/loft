@@ -16,13 +16,13 @@
 
 | Path | What's there |
 |---|---|
-| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation`, `Order`, `OrderItem` |
-| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
+| `app/Models` | Eloquent models: `Studio`, `StudioUser`, `User`, `Season`, `Category`, `Room`, `Apparatus`, `Program`, `ClassSession`, `Attendee`, `Plan`, `Entitlement`, `Booking`, `Waiver`, `WaiverVersion`, `WaiverSignature`, `WaiverOverride`, `Payment`, `StripeEvent`, `DomainEvent`, `MessageDelivery`, `MemberSnapshot`, `Automation`, `Order`, `OrderItem`, `Product`, `ProductVariant` |
+| `app/Services` | The business rules: `Bookings`, `Entitlements`, `SessionGenerator`, `Rooms`, `Waivers`, `WaiverDownload`, `AccountDeletion`, `OfflinePayments`, `DomainEvents`, `Messages`, `Consent`, `MemberSnapshots`, `Automations`, `AutomationTriggers`, `Orders`, `PointOfSale`, and `Stripe/StripeClient` and `Stripe/StripeWebhooks` |
 | `app/Http/Controllers` | `Admin/*` (staff), `Studio/*` (members and the public), `Auth/*`, `PlatformController`, `StripeWebhookController` |
 | `app/Events`, `app/Listeners` | In-process events and the `StudioEmails` listener that sends member emails |
 | `app/Contracts`, `app/Jobs` | `DomainEventHandler` (consumers of the outbox), and the `RelayDomainEvents` and `SendAutomatedMessage` jobs |
 | `app/Mail` | `StudioMessage`, the queued mailable behind every studio email |
-| `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException`, `ApparatusSlot` (one apparatus's spots in a session), `ApparatusAllocation` (the apparatus fields on the program and session forms), `Csv` (spreadsheet-safe CSV) |
+| `app/Support` | Helpers: `Color` (readable brand colors), `Icon`, `Money`, `Search`, `Timezones`, `ReturnPath`, `BookingException`, `ApparatusSlot` (one apparatus's spots in a session), `ApparatusAllocation` (the apparatus fields on the program and session forms), `Csv` (spreadsheet-safe CSV), `CheckoutException` (a point-of-sale sale that can't go through) |
 | `app/Console/Commands` | `loft:housekeeping`, run hourly |
 | `resources/views` | Blade templates: `layouts`, `platform`, `auth`, `studio`, `admin`, `mail`, `components` |
 | `resources/icons` | A subset of Lucide icons (ISC license) |
@@ -70,7 +70,8 @@ Elsewhere in the repository:
 | `waivers`, `waiver_versions`, `program_waiver` | Waivers (for every class or for attached programs, with optional validity), and the exact text of every published version |
 | `waiver_signatures` | Who signed which version for whom: names, relationship, a hash of the text, IP address, browser, optional drawing. Kept, unlinked, when accounts are deleted |
 | `waiver_overrides` | Staff letting someone into a class without a signature, and why |
-| `orders`, `order_items` | The ledger: every sale (online checkout, membership invoice, in person), numbered per studio, with its items, amounts, how it was paid and Stripe IDs ([Payments](Payments#the-orders-ledger)) |
+| `orders`, `order_items` | The ledger: every sale (online checkout, membership invoice, in person, point of sale), numbered per studio, with its items (plans, products with their tax), amounts, how it was paid, Stripe IDs, and for in-person sales a note or a walk-in flag ([Payments](Payments#the-orders-ledger)) |
+| `products`, `product_variants` | Merchandise, and its sizes or colours, each with its own stock (null = not tracked) and optional price |
 | `payments` | Payments staff recorded by hand, and comps, each linked to its order ([Payments](Payments)) |
 | `stripe_events` | Every Stripe webhook received, for deduplication and retries |
 | `domain_events` | The outbox and history: every booking, check-in, plan, payment failure, waiver signature and consent change, with IDs and facts only ([below](#events-and-email)) |
@@ -93,7 +94,8 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`StripeWebhooks`:** verifies, deduplicates and processes Stripe events, and fulfils checkouts.
 - **`AccountDeletion`:** deletes a user everywhere, and hands over or closes studios they solely own.
 - **`OfflinePayments`:** records and voids payments taken in person.
-- **`Orders`:** the ledger. Records an order for each paid one-time checkout, each paid membership invoice, and each payment taken in person; voids them.
+- **`Orders`:** the ledger. Records an order for each paid one-time checkout, each paid membership invoice, each payment taken in person and each point-of-sale sale; voids in-person sales (cancelling their plans and restocking their products).
+- **`PointOfSale`:** the front-desk till: prices the cart (with sales tax), then in one transaction takes stock, grants plans and records the order; emails the receipt.
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.

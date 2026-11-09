@@ -6,6 +6,7 @@ use App\Models\Entitlement;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\ProductVariant;
 use App\Models\Studio;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -144,13 +145,38 @@ class Orders
         return $order;
     }
 
+    /** A sale at the point of sale (App\Services\PointOfSale), already priced and fulfilled. */
+    public function recordSale(Studio $studio, array $attributes, array $items): Order
+    {
+        return $this->create($studio, $attributes, $items);
+    }
+
+    /**
+     * Undo an in-person sale made by mistake: the order stays, marked void; plans it granted are
+     * cancelled, products go back into stock, and its payment record (if any) is voided too. Online
+     * sales are refunded in Stripe instead.
+     */
     public function void(Order $order, User $staff): void
     {
-        if ($order->isVoid()) {
+        if ($order->isVoid() || $order->channel !== 'in_person') {
             return;
         }
         DB::transaction(function () use ($order, $staff) {
             $order->update(['status' => 'void', 'voided_at' => now(), 'voided_by_user_id' => $staff->id]);
+            foreach ($order->items()->with(['entitlement.plan'])->get() as $item) {
+                $entitlement = $item->entitlement;
+                if ($entitlement && in_array($entitlement->status, ['active', 'past_due'], true)) {
+                    $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
+                    $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'voided']);
+                }
+                if ($item->product_variant_id) {
+                    ProductVariant::whereKey($item->product_variant_id)->whereNotNull('stock')->increment('stock', $item->quantity);
+                }
+            }
+            $payment = $order->payment;
+            if ($payment && ! $payment->isVoided()) {
+                $payment->update(['voided_at' => now(), 'voided_by_user_id' => $staff->id]);
+            }
             $this->events->record('order.voided', $order->studio_id, ['order_id' => $order->id, 'number' => $order->number], $order->user_id);
         });
     }

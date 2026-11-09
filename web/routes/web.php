@@ -130,6 +130,16 @@ Route::prefix('{studio}')
                 Route::patch('staff/{studioUser}', [Admin\StaffController::class, 'update'])->name('staff.update');
                 Route::delete('staff/{studioUser}', [Admin\StaffController::class, 'destroy'])->name('staff.destroy');
 
+                Route::resource('products', Admin\ProductController::class)->except('show');
+                Route::get('pos', [Admin\PointOfSaleController::class, 'show'])->name('pos');
+                Route::post('pos/items', [Admin\PointOfSaleController::class, 'add'])->name('pos.add');
+                Route::post('pos/items/{line}', [Admin\PointOfSaleController::class, 'quantity'])->whereNumber('line')->name('pos.quantity');
+                Route::post('pos/customer', [Admin\PointOfSaleController::class, 'customer'])->name('pos.customer');
+                Route::post('pos/clear', [Admin\PointOfSaleController::class, 'clear'])->name('pos.clear');
+                Route::post('pos/checkout', [Admin\PointOfSaleController::class, 'checkout'])->name('pos.checkout');
+                Route::get('pos/orders/{order}', [Admin\PointOfSaleController::class, 'receipt'])->name('pos.receipt');
+                Route::post('orders/{order}/void', [Admin\PointOfSaleController::class, 'void'])->name('orders.void');
+
                 Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
                 Route::get('sales/export', [Admin\SalesController::class, 'export'])->name('sales.export');
 

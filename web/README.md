@@ -27,7 +27,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger. Next: point of sale, mobile API, check-in kiosks, churn |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger, merchandise and the point of sale. Next: online shop, card readers, mobile API, check-in kiosks, churn |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -60,7 +60,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/join`, `/login` |
 | `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile, deleting the account |
 | `/{studio}/book/{session}` | Booking: choose who's coming (and the apparatus, if the class uses several) → waiver → membership/credit check → checkout if needed |
-| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, automations, plans, sales, payments, waivers, staff, settings |
+| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, automations, plans, point of sale, products, sales, payments, waivers, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
 
 ### Look and feel
@@ -98,6 +98,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - **Snapshots:** housekeeping saves each member's activity nightly (`member_snapshots`), for churn scoring later.
   - **Automations** (`App\Services\Automations`, Admin → Automations): after a first class (from the outbox), birthdays and we-miss-you emails (from housekeeping). Marketing email: only to members who opted in, once each.
 - **Orders ledger** (`App\Services\Orders`, Admin → Sales): every sale is an order with items: each paid one-time checkout, each paid membership invoice, each payment taken in person. Numbered per studio, recorded once each, with Stripe's actual amounts; CSV download per month.
+- **Point of sale** (`App\Services\PointOfSale`, Admin → Point of sale and Products): products with variants and stock, and plans, in one cart for a member or a walk-in; sales tax on taxable products; paid in person or comped. Stock never goes below zero; voiding restocks and cancels plans.
 - **Users are global.** One login can be a member of one studio and staff at another. The role in each studio lives in `studio_users` (`member < instructor < admin < owner`) and is enforced by the `studio.role:` middleware. `tests/Feature/TenancyTest.php` covers both.
 - **Deleting an account** (Profile → Delete account) removes the user at every studio, with their family members, bookings and passes (`App\Services\AccountDeletion`). Signed waivers stay with each studio, unlinked from the account. Also:
   - Renewing memberships are cancelled in Stripe first, so the person isn't charged again. If Stripe can't be reached, nothing is deleted.
@@ -247,12 +248,13 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 134 tests. They cover:
+There are 138 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
 - automations: first-class follow-ups through the outbox, birthdays (leap days too), win-back once per absence, and the admin screens
 - the orders ledger: checkouts, membership invoices and renewals, in-person payments and voids, numbering, the Sales page and CSV
+- merchandise and the point of sale: products and variants, stock that never goes negative, sales tax, walk-ins and comps, voids that restock
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles

@@ -1,6 +1,6 @@
 # Payments
 
-There are three ways money comes in. All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
+There are three ways money comes in, plus the front-desk [point of sale](#4-the-point-of-sale) for merchandise. All of them end the same way: an **entitlement** (a membership or credits) on the member's account, and an **order** in the ledger ([below](#the-orders-ledger)).
 
 ## 1. Online, through Stripe Checkout
 
@@ -39,9 +39,20 @@ At the front desk (cash, a check, a card terminal, a bank transfer, a payment ap
 - **Receipt:** for paid methods the member gets the purchase email, with **Paid** (amount and method) and **Date** rows.
 - **Record:** each one is saved in `payments` with the amount, currency, method, date, note and who recorded it (`App\Services\OfflinePayments`).
 - **Void:** for mistakes. The record stays, marked void, with who voided it and when, and the plan it granted is cancelled. Comps are recorded too, so they can be voided as well.
-- **Reporting:** the member's page lists their recorded payments. **Admin → Payments** lists every record, with the total taken in person this month (voids and comps excluded).
+- **Reporting:** the member's page lists their recorded payments. **Admin → Payments** lists everything taken in person (these records and point-of-sale sales), with this month's total (voids and comps excluded).
 - **Deleted accounts:** if a member deletes their account, the record stays in the studio's books, unlinked from the person ([Accounts and Data](Accounts-and-Data)). Signed waivers are kept the same way.
 - **Who:** admins and owners only.
+
+## 4. The point of sale
+
+Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`), for admins and owners:
+- **What it sells:** products (Admin → **Products**: each with variants such as sizes, each variant with its own stock and optionally its own price) and plans, in one cart.
+- **Who it's for:** a member (found by name or email), or a **walk-in** with no account. Plans need a member.
+- **Paying:** cash, check, card on the studio's own terminal, transfer, payment app, other, or comp, with an optional note. Card readers connected to Stripe come later.
+- **Sales tax:** the studio's rate (Settings → Merchandise, to three decimals, such as 8.875%) is added to products marked taxable. Plans aren't taxed. The studio is responsible for the right rate.
+- **What happens:** in one transaction, stock is taken (it never goes below zero: if another sale took the last one, the sale is refused), plans are granted as if paid in person, and one order records everything, with tax per line. The member gets a receipt email; the till shows a printable receipt.
+- **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock.
+- **The cart** lives in the staff member's session, one per studio. Every button is a plain form, so it works without JavaScript.
 
 ## The orders ledger
 
@@ -52,6 +63,7 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 | One-time online checkout (pack, drop-in) | One per paid Checkout Session, with what Stripe charged after promotion codes and tax |
 | Membership or seasonal tuition | One per paid invoice: the first payment (with a season's registration fee as its own item) and every renewal |
 | Taken in person, or comped | One per recorded payment (comps at no charge), dated the day received (noon, studio time, for earlier days). Voiding the payment voids the order |
+| Point of sale | One per sale, with an item per product variant (with its tax) and per plan; a walk-in has no account on it |
 
 - **Numbers:** per studio, from #1001.
 - **Once each:** orders are keyed on the Stripe Checkout Session or invoice ID, so retried webhooks and the checkout return page can't record a sale twice.
@@ -62,6 +74,7 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 
 ## Not supported yet
 
-- **Merchandise and a shared cart:** products, one checkout for several items, a front-desk point of sale with Stripe Terminal. Planned next, on top of the orders ledger ([Roadmap](Roadmap)).
+- **An online shop:** buying products online (a cart paid through Stripe Checkout, picked up at the studio). Planned next ([Roadmap](Roadmap)).
+- **Card readers:** Stripe Terminal at the point of sale. Planned after the online shop.
 - **Stripe refunds:** refunds don't take back what they paid for, and don't change the order. Remove the plan by hand.
 - **Other payment providers:** PayPal checkout, Square, or Loft collecting money and paying studios out. Deliberately not planned ([Decisions](Decisions)).

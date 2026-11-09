@@ -41,6 +41,11 @@
         <x-checkbox name="no_show_consumes_credit" label="No-shows use their credit" :checked="$settings['no_show_consumes_credit']" hint="Untick to hand the credit back when you mark a no-show." />
         <x-checkbox name="waitlist_auto_promote" label="Move the next person off the waitlist automatically when a spot opens" :checked="$settings['waitlist_auto_promote']" />
     </fieldset>
+
+    <fieldset class="fieldset form">
+        <legend>Merchandise</legend>
+        <x-field name="sales_tax_percent" label="Sales tax on products (%)" type="number" min="0" max="30" step="0.001" :value="rtrim(rtrim(number_format(($settings['sales_tax_milli'] ?? 0) / 1000, 3, '.', ''), '0'), '.')" hint="Added at the point of sale to products marked taxable. Classes and plans aren’t taxed. Check the rate for your area; 0 for none." />
+    </fieldset>
     <div class="actions"><button class="btn">Save settings</button></div>
 </form>
 @endsection

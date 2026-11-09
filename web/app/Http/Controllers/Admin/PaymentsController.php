@@ -26,16 +26,17 @@ class PaymentsController extends Controller
             }
         }
 
-        $monthStart = $studio->localNow()->startOfMonth()->toDateString();
-        $thisMonth = $studio->payments()->whereNull('voided_at')->where('method', '!=', 'comp')
-            ->where('paid_on', '>=', $monthStart)->where('currency', $studio->currency);
+        // Everything taken in person: plans added from a member's page and point-of-sale sales.
+        $inPerson = $studio->orders()->where('channel', 'in_person');
+        $thisMonth = (clone $inPerson)->where('status', 'paid')->where('method', '!=', 'comp')->where('currency', $studio->currency)
+            ->where('paid_at', '>=', $studio->localNow()->startOfMonth()->utc());
 
         return view('admin.payments', [
             'configured' => $stripe->configured(),
             'error' => $error,
             'webhookUrl' => route('stripe.webhook'),
-            'payments' => $studio->payments()->with(['user', 'plan', 'recordedBy'])->latest('paid_on')->latest('id')->paginate(25),
-            'monthTotal' => (int) (clone $thisMonth)->sum('amount_cents'),
+            'orders' => (clone $inPerson)->with(['items', 'user', 'payment', 'studio'])->latest('paid_at')->latest('id')->paginate(25),
+            'monthTotal' => (int) (clone $thisMonth)->sum('total_cents'),
             'monthCount' => (clone $thisMonth)->count(),
         ]);
     }

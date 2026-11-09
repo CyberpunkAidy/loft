@@ -40,12 +40,14 @@ class SettingsController extends Controller
             'reminder_hours_before' => ['required', 'integer', 'between:0,168'],
             'minor_age' => ['required', 'integer', 'between:1,25'],
             'schedule_weeks' => ['required', 'integer', 'between:1,4'],
+            'sales_tax_percent' => ['nullable', 'numeric', 'between:0,30', 'decimal:0,3'],
         ]);
 
         $settings = [];
         foreach (Studio::DEFAULT_SETTINGS as $key => $default) {
             $settings[$key] = is_bool($default) ? $request->boolean($key) : (int) ($data[$key] ?? $default);
         }
+        $settings['sales_tax_milli'] = (int) round(1000 * (float) ($data['sales_tax_percent'] ?? 0));
 
         $studio->update([
             'name' => $data['name'],

@@ -37,18 +37,18 @@
     <div class="page-head" style="margin-bottom:1rem">
         <div>
             <h2 style="margin:0">Payments recorded in person</h2>
-            <p>Cash, checks, card terminals, transfers and payment apps, plus comps. Record one from a member’s page. Every sale, online and in person, is under <a href="{{ route('studio.admin.sales.index') }}">Sales</a>.</p>
+            <p>Cash, checks, card terminals, transfers and payment apps, plus comps: from the <a href="{{ route('studio.admin.pos') }}">point of sale</a>, or “Add a plan” on a member’s page. Every sale, online and in person, is under <a href="{{ route('studio.admin.sales.index') }}">Sales</a>.</p>
         </div>
     </div>
     <div class="stats">
         <div class="stat"><strong>{{ \App\Support\Money::format($monthTotal, $studio->currency) }}</strong><span>Taken in person this month</span></div>
-        <div class="stat"><strong>{{ $monthCount }}</strong><span>{{ \Illuminate\Support\Str::plural('Payment', $monthCount) }} this month</span></div>
+        <div class="stat"><strong>{{ $monthCount }}</strong><span>{{ \Illuminate\Support\Str::plural('Sale', $monthCount) }} in person this month</span></div>
     </div>
-    @if ($payments->isEmpty())
-        <div class="card empty">No payments recorded yet. Open a member and use “Add a plan” to record one.</div>
+    @if ($orders->isEmpty())
+        <div class="card empty">Nothing taken in person yet. Use the point of sale, or “Add a plan” on a member’s page.</div>
     @else
-        @include('admin.payments._table', ['payments' => $payments, 'showMember' => true])
-        {{ $payments->links() }}
+        @include('admin.orders._table', ['orders' => $orders, 'showMember' => true])
+        {{ $orders->links() }}
     @endif
 </section>
 @endsection

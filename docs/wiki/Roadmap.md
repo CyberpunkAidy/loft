@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 5 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 5 are built (step 4 by email; SMS waits on carrier registration), and step 6 is under way; the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -296,8 +296,11 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16)): settles the booking model before anything depends on it.
 3. [x] **Event backbone** (built 2026-11-08, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
 4. [x] **Automations, email first** (built 2026-11-08, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18)): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early. Each studio will connect its own Twilio account ([decision 24](Decisions)).
-5. [x] **Orders ledger** (built 2026-11-08): plan checkouts, membership invoices and recorded payments all go through `orders`.
-6. [ ] **Merchandise and point of sale:** products, a shared cart, Stripe Terminal at the front desk.
+5. [x] **Orders ledger** (built 2026-11-09, [#19](https://github.com/CyberpunkAidy/loft-studio/pull/19)): plan checkouts, membership invoices and recorded payments all go through `orders`.
+6. [ ] **Merchandise and point of sale:**
+   - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions)).
+   - [ ] An online shop: a cart of products (and a plan) paid through Stripe Checkout, picked up at the studio.
+   - [ ] Stripe Terminal card readers at the point of sale.
 7. [ ] **API v1:** services first, then Sanctum, schedule, bookings, account, waivers, push tokens.
 8. [ ] **Contactless check-in:** devices, credentials and the check-in endpoint, QR and NFC first.
 9. [ ] **Churn scoring v1:** rules over the snapshots, feeding automations. A trained model after about six months of labelled history.
