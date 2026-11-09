@@ -31,6 +31,8 @@ Values aren't recorded here. Secrets live only in Render's dashboard.
 | `STRIPE_SECRET` | `loft-web` and `loft-housekeeping`, **set in the dashboard** | The same key on both. `sync: false` in the Blueprint. The secret key starts with `sk_`, not `pk_`. Without it on `loft-housekeeping`, shop checkouts and card reader sales nobody finished stay pending and keep their stock, and its logs show `Stripe is not configured. Set STRIPE_SECRET.` |
 | `STRIPE_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | `sync: false` in the Blueprint |
 | `LOFT_PLATFORM_FEE_PERCENT` | `loft-web` | `0`: no platform fee |
+| `STRIPE_BILLING_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | The billing webhook's signing secret, for studios' Loft subscriptions ([Loft Subscription](Loft-Subscription#setting-it-up-once)). `sync: false` in the Blueprint |
+| `LOFT_MONTHLY_PRICE_CENTS`, `LOFT_BILLING_CURRENCY`, `LOFT_TRIAL_DAYS`, `LOFT_BILLING_GRACE_DAYS`, `LOFT_BILLING_AUTOMATIC_TAX` | Optional, `loft-shared` group | The Loft subscription: `4900`, `usd`, `30` days, `7` days and `false` by default |
 | `STRIPE_API_VERSION`, `STRIPE_V2_API_VERSION` | Optional | Default to `2024-06-20` and `2026-10-28.endive` ([Stripe](Stripe)) |
 | `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_KEY` | `loft-shared` group, **set in the dashboard** | On-demand video ([below](#video-mux)). In the group so the hourly job can follow uploads too. Without them, Admin → Videos says video isn't switched on |
 | `LOFT_VIDEO_MINUTES_PER_STUDIO`, `LOFT_VIDEO_TOKEN_HOURS` | Optional | Stored video allowed per studio (default `600` minutes), and how long playback tokens last (default `6` hours, to the end of the hour) |
@@ -80,3 +82,4 @@ The app logs to stderr, which Render captures per service. Search for `productio
 
 1. Switch `STRIPE_SECRET` (on `loft-web` and `loft-housekeeping`) and `STRIPE_WEBHOOK_SECRET` to live-mode values. Create a separate live-mode webhook with the same events ([Stripe](Stripe)).
 2. Test-mode and live-mode Stripe objects don't mix. Each studio reconnects Stripe, and plans are synced to Stripe again.
+3. Create the billing webhook again in live mode ([Loft Subscription](Loft-Subscription#setting-it-up-once)) and switch `STRIPE_BILLING_WEBHOOK_SECRET`. Studios that subscribed in test mode subscribe again.

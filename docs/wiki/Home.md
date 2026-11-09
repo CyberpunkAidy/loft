@@ -18,6 +18,7 @@ This wiki covers the web app and the mobile app. The plugin is documented in `pl
 - **Payments:** Stripe Connect is built (studios connect their own Stripe accounts, created through Accounts v2), as are payments recorded in person. Setup in Stripe test mode is under way; [Stripe](Stripe) lists the remaining steps.
 - **Design:** the Loft logo and design system cover the site and the emails.
 - **Tests:** the web app's automated tests run on every change, on SQLite and Postgres, plus a check that the production Docker image builds and starts; the mobile app's are type-checked and tested too.
+- **Loft subscription:** $49 a month per studio after a 30-day free trial, billed on Loft's own Stripe account ([Loft Subscription](Loft-Subscription)). Studios that were already on Loft are free.
 - **Roadmap:** all ten steps are built ([Roadmap](Roadmap)). The mobile app's first version is built on the API ([Mobile App](Mobile-App)); it isn't in the stores yet.
 
 ## Pages
@@ -28,6 +29,7 @@ This wiki covers the web app and the mobile app. The plugin is documented in `pl
 - [Stripe](Stripe): Connect setup, webhooks, API versions and troubleshooting.
 - [Email](Email): Resend setup, the templates and troubleshooting.
 - [Payments](Payments): online, delayed (bank) and in-person payments.
+- [Loft Subscription](Loft-Subscription): what studios pay Loft: the trial, subscribing, grace and pausing, comps, and the Stripe setup.
 - [API](API): the mobile app's JSON API (v1): tokens, errors, endpoints.
 - [Mobile App](Mobile-App): the Loft app for iOS and Android: what it does, how it's built, getting it into the stores.
 - [Accounts and Data](Accounts-and-Data): deleting accounts, closing studios and what's kept.

@@ -21,9 +21,13 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    /**
+     * A studio in good standing with Loft: comped, so tests that travel months ahead don't find it
+     * paused for want of a subscription. Billing tests pass 'comped_at' => null.
+     */
     protected function studio(array $attributes = []): Studio
     {
-        $studio = Studio::factory()->create($attributes);
+        $studio = Studio::factory()->create($attributes + ['comped_at' => now()]);
         Category::seedDefaults($studio);
 
         return $studio;

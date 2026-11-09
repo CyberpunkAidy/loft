@@ -54,6 +54,7 @@ Admin → Automations: emails a studio sets up once that then go out by themselv
 |---|---|
 | `resources/views/mail/layout.blade.php` | The shell every HTML email uses |
 | `mail/studio-message` (+ `-text`) | Every studio email (`App\Mail\StudioMessage`) |
+| `mail/loft-notice` (+ `-text`) | Emails from Loft to a studio's owners about its Loft subscription (`App\Mail\LoftNotice`; [Loft Subscription](Loft-Subscription#emails-to-owners)) |
 | `mail/password` (+ `-text`) | Password resets and staff invitations (`ResetPassword::toMailUsing` in `AppServiceProvider`) |
 | `components/mail/button`, `components/mail/headline` | Shared pieces |
 

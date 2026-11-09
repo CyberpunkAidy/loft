@@ -27,6 +27,7 @@ class ApiErrors
         'duplicate' => ['already_booked', 409],
         'apparatus' => ['apparatus_invalid', 422],
         'forbidden' => ['forbidden', 403],
+        'paused' => ['studio_paused', 403],
     ];
 
     public static function render(Throwable $e): ?JsonResponse

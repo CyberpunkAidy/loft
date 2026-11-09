@@ -33,9 +33,10 @@
      - `account.updated`
      - `account.application.deauthorized`
 4. Put the webhook's signing secret into `STRIPE_WEBHOOK_SECRET`.
-5. In the studio: Admin → Payments → **Connect Stripe**, and complete Stripe's onboarding.
-6. Create a plan (Admin → Plans & pricing), then **Create in Stripe**.
-7. Make a test purchase with card `4242 4242 4242 4242`.
+5. For studios' own Loft subscriptions, add a second webhook for events on **your account**, at `/stripe/billing-webhook`, with its secret in `STRIPE_BILLING_WEBHOOK_SECRET` ([Loft Subscription](Loft-Subscription#setting-it-up-once)).
+6. In the studio: Admin → Payments → **Connect Stripe**, and complete Stripe's onboarding.
+7. Create a plan (Admin → Plans & pricing), then **Create in Stripe**.
+8. Make a test purchase with card `4242 4242 4242 4242`.
 
 Status in November 2026: the platform keys, Connect and the webhook are being set up in test mode. The two `async_payment` events were added to the app on 2026-11-08 and must be added to the webhook as well. `checkout.session.expired` was added on 2026-11-09; until it's on the webhook, abandoned shop checkouts wait for the hourly job, which needs `STRIPE_SECRET` on `loft-housekeeping`.
 

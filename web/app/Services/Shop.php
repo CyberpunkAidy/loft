@@ -61,6 +61,9 @@ class Shop
         if (! $studio->stripeReady()) {
             throw new CheckoutException('Online payments aren’t set up for this studio yet. Please ask at the front desk.');
         }
+        if ($studio->isPaused()) {
+            throw new CheckoutException($studio->name.' isn’t taking online payments right now. Please contact the studio.');
+        }
         $lines = $this->lines($studio, $cart);
         if ($lines->isEmpty()) {
             throw new CheckoutException('Your cart is empty.');

@@ -36,6 +36,7 @@ class AccountDeletion
         private readonly StripeClient $stripe,
         private readonly Bookings $bookings,
         private readonly Videos $videos,
+        private readonly StudioBilling $billing,
     ) {}
 
     /**
@@ -82,6 +83,7 @@ class AccountDeletion
         $this->cancelSubscriptions(Entitlement::where('user_id', $user->id));
         foreach ($closing as $studio) {
             $this->cancelSubscriptions(Entitlement::where('studio_id', $studio->id));
+            $this->billing->cancelForClosing($studio); // and the studio's own Loft subscription
         }
 
         // Seats they hold in upcoming classes, at studios that stay open, go to the waitlist.

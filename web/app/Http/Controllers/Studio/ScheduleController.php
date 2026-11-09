@@ -93,6 +93,7 @@ class ScheduleController extends Controller
         $closes = (int) $session->studio->setting('booking_closes_minutes_before');
 
         return match (true) {
+            $request->route('studio')->isPaused() => ['label' => 'Booking paused', 'url' => null, 'secondary' => true],
             $session->hasStarted() || ($closes > 0 && $session->starts_at->copy()->subMinutes($closes)->isPast()) => ['label' => 'Booking closed', 'url' => null, 'secondary' => true],
             $opensAt !== null && $opensAt->isFuture() => ['label' => 'Opens '.$session->studio->local($opensAt)->format('M j'), 'url' => null, 'secondary' => true],
             ! $request->user() => ['label' => 'Sign in to book', 'url' => route('studio.book', ['session' => $session]), 'secondary' => $session->isFull()],

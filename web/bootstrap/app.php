@@ -2,6 +2,7 @@
 
 use App\Http\ApiErrors;
 use App\Http\Middleware\AuthenticateDevice;
+use App\Http\Middleware\EnsureStudioActive;
 use App\Http\Middleware\Idempotency;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
@@ -22,12 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'studio' => ResolveStudio::class,
             'studio.role' => RequireStudioRole::class,
+            'studio.active' => EnsureStudioActive::class,
             'idempotent' => Idempotency::class,
             'device' => AuthenticateDevice::class,
         ]);
         // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
         // for one-click unsubscribe (RFC 8058) without a session.
-        $middleware->validateCsrfTokens(except: ['stripe/webhook', '*/unsubscribe/*']);
+        $middleware->validateCsrfTokens(except: ['stripe/webhook', 'stripe/billing-webhook', '*/unsubscribe/*']);
         // Behind a load balancer that terminates HTTPS (Render, Fly, Cloudflare…), trust its
         // X-Forwarded-* headers so URLs are https and client IPs are real. Off unless set:
         // TRUSTED_PROXIES=* or a comma-separated list of proxy IPs/CIDRs.

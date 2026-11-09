@@ -55,6 +55,9 @@ class PlanCheckout
         if (! $plan->active) {
             throw new CheckoutException('That plan isn’t for sale.');
         }
+        if ($studio->isPaused()) {
+            throw new CheckoutException($studio->name.' isn’t taking online payments right now. Please contact the studio.');
+        }
         if (! $studio->stripeReady()) {
             throw new CheckoutException('Online payments aren’t set up for this studio yet. Please contact the studio.');
         }

@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\Entitlements;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -533,6 +535,136 @@ class StripeClient
         $studio->update(['stripe_portal_configuration_id' => $config['id']]);
 
         return $config['id'];
+    }
+
+    /* ------------------------------------------------------------------ Loft's own billing (the platform account) */
+
+    /** The Stripe product every studio subscription is for, created on first use. */
+    public const LOFT_PRODUCT = 'loft_studio';
+
+    /** The studio as a customer of Loft, on the platform account (no Stripe-Account header). */
+    public function createBillingCustomer(Studio $studio, User $owner): string
+    {
+        return $this->post('customers', [
+            'name' => $studio->name,
+            'email' => $owner->email,
+            'metadata' => ['loft_studio_id' => $studio->id, 'loft_studio' => $studio->slug],
+        ], null, 'loft-billing-customer-'.$studio->id)['id'];
+    }
+
+    /**
+     * The monthly price for $cents, found by its lookup key or created (with Loft's product) the
+     * first time that amount is used. So the price follows config, and subscriptions already made
+     * keep theirs.
+     */
+    public function loftPrice(int $cents, string $currency): string
+    {
+        $key = "loft_studio_monthly_{$currency}_{$cents}";
+
+        return Cache::remember('stripe.price.'.$key, 86400, function () use ($key, $cents, $currency) {
+            $found = $this->get('prices', ['lookup_keys' => [$key], 'active' => true, 'limit' => 1]);
+            if ($id = $found['data'][0]['id'] ?? null) {
+                return $id;
+            }
+            try {
+                $this->get('products/'.self::LOFT_PRODUCT);
+            } catch (StripeException $e) {
+                if ($e->httpStatus !== 404) {
+                    throw $e;
+                }
+                $this->post('products', ['id' => self::LOFT_PRODUCT, 'name' => 'Loft', 'description' => 'Studio software: scheduling, memberships, waivers and payments.']);
+            }
+
+            return $this->post('prices', [
+                'product' => self::LOFT_PRODUCT,
+                'currency' => $currency,
+                'unit_amount' => $cents,
+                'recurring' => ['interval' => 'month'],
+                'tax_behavior' => 'exclusive',
+                'lookup_key' => $key,
+                'nickname' => 'Loft monthly',
+            ], null, 'loft-price-'.$key)['id'];
+        });
+    }
+
+    /**
+     * Checkout for a studio's subscription. A $trialEnd keeps the rest of Loft's free trial: the
+     * card is saved now and first charged then. Promotion codes are allowed, for launch offers.
+     */
+    public function createBillingCheckout(Studio $studio, string $customerId, string $priceId, ?Carbon $trialEnd, string $successUrl, string $cancelUrl, bool $automaticTax = false): array
+    {
+        $params = [
+            'mode' => 'subscription',
+            'customer' => $customerId,
+            'client_reference_id' => (string) $studio->id,
+            'line_items' => [['price' => $priceId, 'quantity' => 1]],
+            'allow_promotion_codes' => true,
+            'subscription_data' => [
+                'description' => 'Loft for '.$studio->name,
+                'metadata' => ['loft_studio_id' => $studio->id, 'loft_studio' => $studio->slug],
+                'trial_end' => $trialEnd?->getTimestamp(),
+            ],
+            'metadata' => ['loft_studio_id' => $studio->id],
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
+        ];
+        if ($automaticTax) {
+            $params += [
+                'automatic_tax' => ['enabled' => true],
+                'billing_address_collection' => 'required',
+                'customer_update' => ['address' => 'auto', 'name' => 'auto'],
+            ];
+        }
+
+        return $this->post('checkout/sessions', $params);
+    }
+
+    public function retrieveBillingCheckout(string $id): array
+    {
+        return $this->get('checkout/sessions/'.$id, ['expand' => ['subscription']]);
+    }
+
+    public function retrieveBillingSubscription(string $id): array
+    {
+        return $this->get('subscriptions/'.$id);
+    }
+
+    public function retrieveBillingInvoice(string $id): array
+    {
+        return $this->get('invoices/'.$id);
+    }
+
+    /** End a studio's Loft subscription now (the studio is closing). Gone or already cancelled counts as cancelled. */
+    public function cancelBillingSubscription(string $id): void
+    {
+        try {
+            $this->request('DELETE', 'subscriptions/'.$id);
+        } catch (StripeException $e) {
+            if ($e->httpStatus !== 404 && ($this->retrieveBillingSubscription($id)['status'] ?? null) !== 'canceled') {
+                throw $e;
+            }
+        }
+    }
+
+    /** The billing portal for a studio's Loft subscription: card, invoices, cancel at period end. */
+    public function createBillingPortal(string $customerId, string $returnUrl): string
+    {
+        $configuration = Cache::rememberForever('stripe.loft_portal_configuration', fn () => $this->post('billing_portal/configurations', [
+            'business_profile' => ['headline' => 'Your Loft subscription'],
+            'features' => [
+                'invoice_history' => ['enabled' => true],
+                'payment_method_update' => ['enabled' => true],
+                'customer_update' => ['enabled' => true, 'allowed_updates' => ['email', 'address', 'name']],
+                'subscription_cancel' => ['enabled' => true, 'mode' => 'at_period_end'],
+            ],
+            'metadata' => ['loft' => 'studio_billing'],
+        ])['id']);
+
+        return $this->post('billing_portal/sessions', [
+            'customer' => $customerId,
+            'return_url' => $returnUrl,
+            'configuration' => $configuration,
+        ])['url'];
     }
 
     /* ------------------------------------------------------------------ Webhooks */

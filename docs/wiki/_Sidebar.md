@@ -6,6 +6,7 @@
 - [Stripe](Stripe)
 - [Email](Email)
 - [Payments](Payments)
+- [Loft Subscription](Loft-Subscription)
 - [API](API)
 - [Mobile App](Mobile-App)
 - [Accounts and Data](Accounts-and-Data)

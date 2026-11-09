@@ -76,6 +76,10 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      # The billing webhook's secret: events on Loft's own Stripe account about studios' Loft
+      # subscriptions (/stripe/billing-webhook). Set it in loft-web → Environment.
+      - key: STRIPE_BILLING_WEBHOOK_SECRET
+        sync: false
       - key: LOFT_PLATFORM_FEE_PERCENT
         value: "0"
 

@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Studio;
+use App\Services\Stripe\StripeClient;
+use App\Services\Stripe\StripeException;
+use App\Services\StudioBilling;
+use App\Support\BillingState;
+use App\Support\CheckoutException;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+/**
+ * Admin → Subscription: the studio's own Loft subscription (decision 36). Every staff member can
+ * see where it stands (it's the one page left when the studio is paused); owners subscribe through
+ * Stripe Checkout and manage the card in Stripe's billing portal.
+ */
+class SubscriptionController extends Controller
+{
+    public function show(Request $request, Studio $studio, StudioBilling $billing, StripeClient $stripe): View
+    {
+        return view('admin.subscription', [
+            'state' => $billing->state($studio),
+            'price' => $billing->priceLabel(),
+            'graceDays' => $billing->graceDays(),
+            'isOwner' => $request->user()->hasRoleIn($studio, 'owner'),
+            'owners' => $billing->owners($studio),
+            'configured' => $stripe->configured(),
+        ]);
+    }
+
+    public function checkout(Request $request, Studio $studio, StudioBilling $billing): RedirectResponse
+    {
+        try {
+            $url = $billing->checkoutUrl(
+                $studio,
+                $request->user(),
+                route('studio.admin.subscription.complete').'?session_id={CHECKOUT_SESSION_ID}',
+                route('studio.admin.subscription'),
+            );
+        } catch (CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (StripeException $e) {
+            report($e);
+
+            return back()->with('error', 'Stripe: '.$e->getMessage());
+        }
+
+        return redirect()->away($url);
+    }
+
+    /** Back from Checkout. The webhook records it too; this just makes it show straight away. */
+    public function complete(Request $request, Studio $studio, StudioBilling $billing): RedirectResponse
+    {
+        $id = (string) $request->query('session_id', '');
+        try {
+            $done = $id !== '' && $billing->complete($studio, $id);
+        } catch (StripeException $e) {
+            report($e);
+            $done = false;
+        }
+        $state = $billing->state($studio->refresh());
+        if (! $done || $state->status !== BillingState::SUBSCRIBED) {
+            return redirect()->route('studio.admin.subscription')
+                ->with('warning', 'We couldn’t confirm your subscription yet. It should show here within a few minutes.');
+        }
+
+        return redirect()->route('studio.admin.subscription')->with('success', $state->inStripeTrial && $state->periodEndsAt
+            ? 'Thanks for subscribing! Your card is first charged on '.$studio->local($state->periodEndsAt)->format('F j').', when your trial ends.'
+            : 'Thanks for subscribing! Everything’s running.');
+    }
+
+    public function portal(Studio $studio, StudioBilling $billing): RedirectResponse
+    {
+        try {
+            return redirect()->away($billing->portalUrl($studio, route('studio.admin.subscription')));
+        } catch (CheckoutException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (StripeException $e) {
+            report($e);
+
+            return back()->with('error', 'Stripe: '.$e->getMessage());
+        }
+    }
+}

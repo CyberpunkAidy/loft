@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Studio;
 use App\Models\User;
+use App\Services\StudioBilling;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +20,9 @@ class StudioSignupController extends Controller
 {
     public const CURRENCIES = ['usd' => 'USD', 'cad' => 'CAD', 'gbp' => 'GBP', 'eur' => 'EUR', 'aud' => 'AUD', 'nzd' => 'NZD'];
 
-    public function create(): View
+    public function create(StudioBilling $billing): View
     {
-        return view('auth.signup', ['currencies' => self::CURRENCIES]);
+        return view('auth.signup', ['currencies' => self::CURRENCIES, 'trialDays' => $billing->trialDays(), 'price' => $billing->priceLabel()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -61,6 +62,7 @@ class StudioSignupController extends Controller
                 'currency' => $data['currency'],
                 'contact_email' => $user->email,
                 'email_from_name' => $data['studio_name'],
+                'trial_ends_at' => now()->addDays(app(StudioBilling::class)->trialDays()),
             ]);
             $studio->studioUsers()->create(['user_id' => $user->id, 'role' => 'owner']);
             Category::seedDefaults($studio);
