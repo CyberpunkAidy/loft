@@ -4,7 +4,12 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Refunds**
+- **The old email log is dropped**
+  - **Database:** the `sent_notifications` table is dropped. It was replaced by `message_deliveries` when the event backbone went live ([#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)), which copied its rows (class reminders and credit-expiry warnings already sent), and nothing has used it since. Rolling back brings the table back empty.
+
+## 2026-11-09
+
+- **Refunds** ([#28](https://github.com/CyberpunkAidy/loft-studio/pull/28))
   - **Refund from Loft:** **Refund** on Sales, a member's page or a card reader receipt opens a page that says what the refund does, then gives back what's left of the payment through Stripe. Online sales (packs, drop-ins, membership payments, shop orders) and card reader sales.
   - **What a full refund takes back:** packs and drop-ins are cancelled (classes already booked stay), products go back into stock, and a shop order no longer waits to be picked up. For a membership or season payment, staff choose **Refund this payment only** or **Refund and end the membership now** (cancelled in Stripe at once).
   - **Refunds made in the Stripe Dashboard** reach Loft by `charge.refunded` and are recorded the same way; a full one takes back the same things, but never ends a membership. Partial refunds are recorded only.
@@ -13,9 +18,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Decision 34.** The Stripe refunds gap on the roadmap is closed.
   - **Database:** `orders.refunded_cents`, `refunded_at` and `refunded_by_user_id`.
   - **Action needed:** add `charge.refunded` to the Stripe webhook's events.
-
-## 2026-11-09
-
 - **Video and live classes** (roadmap step 10, [#27](https://github.com/CyberpunkAidy/loft-studio/pull/27))
   - **Online and hybrid classes:** programs and sessions say where a class happens: in the studio, online, or both. For a class that's both, members choose **In the studio** or **Online**; online spots are separate from the studio's seats (their own limit, no apparatus, no waitlist), and the schedule shows **Studio full · online open**. The choice carries through waivers and checkout.
   - **Joining:** people booked online get **Join online** under Upcoming from 15 minutes before class until it ends. It opens the studio's Zoom or Meet link, which isn't shown anywhere else, and checks them in. Booking emails say where. Rosters mark who's online; kiosks don't check them in. A class can't stop being hybrid while people hold online spots.

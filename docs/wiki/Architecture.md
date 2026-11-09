@@ -85,7 +85,6 @@ Elsewhere in the repository:
 | `member_snapshots` | Each member's activity as of each night, for churn scoring |
 | `member_risk_scores` | Each member's churn risk each night: a score from 0 to 100, a level, the reasons in plain words, and the model version |
 | `automations` | Each studio's automated emails (one per trigger: first class, birthday, we miss you): text, timing, on or off |
-| `sent_notifications` | Replaced by `message_deliveries`, which it was copied into. No longer written; to be dropped in a later release |
 
 All datetimes are stored in UTC and shown in the studio's time zone. Money is stored in cents.
 
