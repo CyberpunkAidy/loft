@@ -30,6 +30,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('plans', [V1\StudioController::class, 'plans'])->name('plans');
         Route::get('sessions', [V1\SessionController::class, 'index'])->name('sessions.index');
         Route::get('sessions/{session}', [V1\SessionController::class, 'show'])->name('sessions.show');
+        Route::get('videos', [V1\VideoController::class, 'index'])->name('videos.index');
         Route::post('register', [V1\MembershipController::class, 'register'])->middleware('throttle:auth')->name('register');
 
         Route::middleware('auth:sanctum')->group(function () {
@@ -40,6 +41,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::post('sessions/{session}/bookings', [V1\BookingController::class, 'store'])->middleware('idempotent')->name('bookings.store');
                 Route::delete('bookings/{booking}', [V1\BookingController::class, 'destroy'])->name('bookings.destroy');
                 Route::post('bookings/{booking}/join', [V1\BookingController::class, 'join'])->name('bookings.join');
+                Route::post('videos/{video}/playback', [V1\VideoController::class, 'playback'])->whereNumber('video')->name('videos.playback');
 
                 Route::get('attendees', [V1\AttendeeController::class, 'index'])->name('attendees.index');
                 Route::post('attendees', [V1\AttendeeController::class, 'store'])->middleware('idempotent')->name('attendees.store');

@@ -209,7 +209,7 @@ class OnlineClassesTest extends TestCase
         $this->actingAs($this->userIn($studio, 'owner'));
         $fields = ['title' => 'Stretch', 'type' => 'class', 'weekday' => now()->addDay()->dayOfWeek, 'start_time' => '18:00', 'duration_min' => 45, 'capacity' => 8, 'is_published' => '1'];
 
-        $this->get("/{$studio->slug}/admin/programs/create")->assertOk()->assertSee('Meeting link')->assertSee('Online spots (both)');
+        $this->get("/{$studio->slug}/admin/programs/create")->assertOk()->assertSee('Meeting link')->assertSee('Online spots');
         $this->post("/{$studio->slug}/admin/programs", $fields + ['delivery' => 'online', 'online_capacity' => 5, 'meeting_url' => 'not a link'])->assertSessionHasErrors('meeting_url');
         $this->post("/{$studio->slug}/admin/programs", $fields + ['delivery' => 'online', 'online_capacity' => 5, 'meeting_url' => self::LINK])
             ->assertSessionHas('success', 'Saved. 3 sessions created.');

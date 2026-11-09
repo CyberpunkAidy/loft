@@ -54,6 +54,8 @@ Route::prefix('{studio}')
         Route::post('/shop/cart', [Studio\ShopController::class, 'add'])->middleware('throttle:60,1')->name('shop.add');
         Route::get('/shop/cart', [Studio\ShopController::class, 'cart'])->name('shop.cart');
         Route::post('/shop/cart/{variant}', [Studio\ShopController::class, 'update'])->whereNumber('variant')->name('shop.update');
+        Route::get('/videos', [Studio\VideoController::class, 'index'])->name('videos');
+        Route::get('/videos/{video}', [Studio\VideoController::class, 'show'])->whereNumber('video')->name('videos.show');
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
         Route::view('/checkout/return', 'studio.checkout-return')->name('checkout.return'); // the app's purchases end here
@@ -149,6 +151,8 @@ Route::prefix('{studio}')
                 Route::patch('staff/{studioUser}', [Admin\StaffController::class, 'update'])->name('staff.update');
                 Route::delete('staff/{studioUser}', [Admin\StaffController::class, 'destroy'])->name('staff.destroy');
 
+                Route::resource('videos', Admin\VideoController::class)->except(['show', 'create']);
+                Route::get('videos/{video}/status', [Admin\VideoController::class, 'status'])->name('videos.status');
                 Route::resource('products', Admin\ProductController::class)->except('show');
                 Route::get('pos', [Admin\PointOfSaleController::class, 'show'])->name('pos');
                 Route::post('pos/items', [Admin\PointOfSaleController::class, 'add'])->name('pos.add');

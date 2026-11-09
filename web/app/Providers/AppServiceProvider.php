@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\StudioEmails;
 use App\Models\Studio;
 use App\Services\Messages;
+use App\Services\Mux\MuxClient;
 use App\Services\Stripe\StripeClient;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
             (float) config('loft.stripe.platform_fee_percent'),
             (string) config('loft.stripe.v2_api_version'),
         ));
+        $this->app->bind(MuxClient::class, fn () => MuxClient::fromConfig());
     }
 
     public function boot(): void

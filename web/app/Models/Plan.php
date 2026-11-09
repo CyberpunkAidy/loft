@@ -16,14 +16,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'studio_id', 'name', 'description', 'kind', 'price_cents', 'currency', 'billing_interval', 'credits',
     'credit_validity_days', 'weekly_limit', 'season_id', 'registration_fee_cents', 'stripe_product_id',
-    'stripe_price_id', 'stripe_fee_price_id', 'program_scope', 'active', 'sort',
+    'stripe_price_id', 'stripe_fee_price_id', 'program_scope', 'active', 'sort', 'includes_videos',
 ])]
 class Plan extends Model
 {
     use HasFactory;
 
     /** Column defaults, so new instances match what the database would store. */
-    protected $attributes = ['active' => true, 'registration_fee_cents' => 0, 'sort' => 0, 'currency' => 'usd'];
+    protected $attributes = ['active' => true, 'registration_fee_cents' => 0, 'sort' => 0, 'currency' => 'usd', 'includes_videos' => false];
 
     public const KINDS = [
         'subscription' => 'Monthly membership',
@@ -37,6 +37,7 @@ class Plan extends Model
         return [
             'program_scope' => 'array',
             'active' => 'boolean',
+            'includes_videos' => 'boolean',
             'price_cents' => 'integer',
             'credits' => 'integer',
             'credit_validity_days' => 'integer',

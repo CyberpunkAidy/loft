@@ -64,6 +64,12 @@
     </fieldset>
 
     <fieldset class="fieldset form">
+        <legend>Videos</legend>
+        <x-checkbox name="includes_videos" label="Includes the video library" :checked="$plan->includes_videos"
+            hint="While it’s current, members can watch videos set to “Members whose plan includes videos”. Packs count until they expire or run out." />
+    </fieldset>
+
+    <fieldset class="fieldset form">
         <legend>Visibility</legend>
         <x-checkbox name="active" label="Members can buy this" :checked="$plan->active" />
         <x-field name="sort" label="Sort order" type="number" :value="$plan->sort" hint="Lower numbers show first." />
