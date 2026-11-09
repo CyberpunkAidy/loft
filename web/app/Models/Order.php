@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'tax_cents', 'total_cents', 'stripe_checkout_session_id', 'stripe_invoice_id', 'stripe_payment_intent_id',
     'recorded_by_user_id', 'paid_at', 'voided_at', 'voided_by_user_id', 'walk_in', 'note',
     'fulfillment_status', 'picked_up_at', 'picked_up_by_user_id', 'card_reader_id',
+    'refunded_cents', 'refunded_at', 'refunded_by_user_id',
 ])]
 class Order extends Model
 {
@@ -36,6 +37,8 @@ class Order extends Model
             'voided_at' => 'datetime',
             'walk_in' => 'boolean',
             'picked_up_at' => 'datetime',
+            'refunded_cents' => 'integer',
+            'refunded_at' => 'datetime',
         ];
     }
 
@@ -60,6 +63,11 @@ class Order extends Model
         return $this->hasOne(Payment::class);
     }
 
+    public function refundedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'refunded_by_user_id');
+    }
+
     public function recordedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by_user_id');
@@ -81,15 +89,59 @@ class Order extends Model
         return $this->status === 'void';
     }
 
+    /** Refunded in full through Stripe (from Loft or the Stripe Dashboard). */
+    public function isRefunded(): bool
+    {
+        return $this->status === 'refunded';
+    }
+
+    /** No longer a sale that counts: voided, or refunded in full. */
+    public function isUndone(): bool
+    {
+        return $this->isVoid() || $this->isRefunded();
+    }
+
+    /** What the studio kept: the total less refunds. */
+    public function netCents(): int
+    {
+        return $this->total_cents - $this->refunded_cents;
+    }
+
+    /**
+     * Can be refunded from Loft: a paid sale taken through Stripe (online, or on a card reader) with
+     * money left to give back.
+     */
+    public function canRefund(): bool
+    {
+        return $this->status === 'paid' && in_array($this->method, ['stripe', 'reader'], true)
+            && filled($this->stripe_payment_intent_id) && $this->refunded_cents < $this->total_cents;
+    }
+
+    /** Paid, Partly refunded, Refunded or Void. */
+    public function statusLabel(): string
+    {
+        return match (true) {
+            $this->isVoid() => 'Void',
+            $this->isRefunded() => 'Refunded',
+            $this->refunded_cents > 0 => 'Partly refunded',
+            default => 'Paid',
+        };
+    }
+
+    public function refundedLabel(): string
+    {
+        return Money::format($this->refunded_cents, $this->currency);
+    }
+
     public function awaitsPickup(): bool
     {
         return $this->status === 'paid' && $this->fulfillment_status === 'to_pick_up';
     }
 
-    /** Sales: paid or voided. Pending (unpaid) and released online orders aren't sales. */
+    /** Sales: paid, voided or refunded. Pending (unpaid) and released online orders aren't sales. */
     public function scopeSales($query)
     {
-        return $query->whereIn('status', ['paid', 'void']);
+        return $query->whereIn('status', ['paid', 'void', 'refunded']);
     }
 
     public function totalLabel(): string

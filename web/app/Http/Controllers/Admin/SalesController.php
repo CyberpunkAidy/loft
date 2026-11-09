@@ -10,6 +10,7 @@ use App\Support\Csv;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -27,13 +28,15 @@ class SalesController extends Controller
         [$from, $to] = $this->month($request, $studio);
         $orders = $this->orders($studio, $from, $to);
         $paid = (clone $orders)->where('status', 'paid')->where('currency', $studio->currency);
+        $net = DB::raw('total_cents - refunded_cents'); // what the studio kept
 
         return view('admin.sales.index', [
             'from' => $from,
             'orders' => (clone $orders)->with(['items', 'user', 'payment', 'studio'])->latest('paid_at')->latest('id')->paginate(50)->withQueryString(),
-            'total' => (int) (clone $paid)->sum('total_cents'),
-            'online' => (int) (clone $paid)->where('channel', 'online')->sum('total_cents'),
-            'inPerson' => (int) (clone $paid)->where('channel', 'in_person')->sum('total_cents'),
+            'total' => (int) (clone $paid)->sum($net),
+            'online' => (int) (clone $paid)->where('channel', 'online')->sum($net),
+            'inPerson' => (int) (clone $paid)->where('channel', 'in_person')->sum($net),
+            'refunds' => (int) (clone $orders)->whereIn('status', ['paid', 'refunded'])->where('currency', $studio->currency)->sum('refunded_cents'),
             'count' => (clone $paid)->where('method', '!=', 'comp')->count(),
             'comps' => (clone $paid)->where('method', 'comp')->count(),
             'toPickUp' => $toPickUp->count(),
@@ -61,7 +64,7 @@ class SalesController extends Controller
             $out = fopen('php://output', 'w');
             Csv::write($out, [[
                 'Order', 'Date', 'Time zone', 'Member', 'Email', 'Items', 'Channel', 'Paid by', 'Subtotal', 'Discount', 'Tax', 'Total',
-                'Currency', 'Status', 'Stripe payment',
+                'Refunded', 'Currency', 'Status', 'Stripe payment',
             ]]);
             foreach ($orders->lazy() as $order) {
                 Csv::write($out, [[
@@ -77,8 +80,9 @@ class SalesController extends Controller
                     number_format($order->discount_cents / 100, 2, '.', ''),
                     number_format($order->tax_cents / 100, 2, '.', ''),
                     number_format($order->total_cents / 100, 2, '.', ''),
+                    number_format($order->refunded_cents / 100, 2, '.', ''),
                     strtoupper($order->currency),
-                    $order->isVoid() ? 'Void' : 'Paid',
+                    $order->statusLabel(),
                     $order->stripe_payment_intent_id ?? $order->stripe_invoice_id ?? '',
                 ]]);
             }

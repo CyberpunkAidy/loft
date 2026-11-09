@@ -162,7 +162,7 @@ These are fixed here; the plugin still has them.
    - URL: `https://<your-domain>/stripe/webhook`
    - API version: any; the latest is fine. The app takes only the object's ID from each webhook and fetches the object from the API in the version it pins (`2024-06-20`).
    - Payload style: snapshot. These are v1 events; Stripe sends them for Accounts v2 accounts too.
-   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`, `account.application.deauthorized`.
 
    Put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 4. Each studio connects from **Admin → Payments**. The app creates the studio's Customer Portal configuration on first use.
@@ -176,6 +176,8 @@ Some methods take days to clear, bank debit (ACH) for example. For one-time purc
 - If the payment fails, `checkout.session.async_payment_failed` emails the member.
 
 Memberships report the same thing through `invoice.paid` and `invoice.payment_failed`.
+
+**Refunds.** **Refund** on Sales, a member's page or a card reader receipt gives a Stripe payment back (`App\Services\Refunds`); refunds made in the Stripe Dashboard arrive by `charge.refunded`. Either way the order records it, and a full refund takes back packs, drop-ins and products. A renewing membership keeps running unless staff choose to end it when refunding. See the wiki's [Payments](https://github.com/CyberpunkAidy/loft-studio/wiki/Payments#refunds) page.
 
 **Payments taken in person.** On a member's admin page, **Add a plan** records a payment taken at the front desk and gives the member that plan. The payment can be cash, check, a card terminal, a bank transfer, a payment app or other. The same form can also give a plan at no charge (a comp).
 - **What's saved:** each record (`payments` table, `App\Services\OfflinePayments`) keeps the amount, the date, a note and who recorded it.
@@ -260,12 +262,13 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 180 tests. They cover:
+There are 184 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
 - automations: first-class follow-ups through the outbox, birthdays (leap days too), win-back once per absence, and the admin screens
 - the orders ledger: checkouts, membership invoices and renewals, in-person payments and voids, numbering, the Sales page and CSV
+- refunds: from Loft and from the Stripe Dashboard, partial and full, what a full one takes back (packs, products, pickups) and what it doesn't (bookings, renewing memberships unless ended), ending a membership and when Stripe can't, late or repeated webhooks, other studios' payments, totals, the CSV and the API
 - merchandise and the point of sale: products and variants, stock that never goes negative, sales tax, walk-ins and comps, voids that restock
 - the online shop: the cart, stock held while paying and released when not, Stripe Checkout with tax, paid orders numbered with a pickup receipt, bank payments that fail, abandoned checkouts released when Stripe expires them, the hourly sweep, pickups
 - card readers: pairing and syncing with Stripe, charging the till's cart, declines and retries, cancelling (and paying at the same moment), offline and busy readers, refunds, the hourly sweep

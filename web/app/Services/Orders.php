@@ -153,32 +153,87 @@ class Orders
 
     /**
      * Undo an in-person sale made by mistake: the order stays, marked void; plans it granted are
-     * cancelled, products go back into stock, and its payment record (if any) is voided too. Online
-     * sales are refunded in Stripe instead.
+     * cancelled, products go back into stock, and its payment record (if any) is voided too. Sales
+     * paid through Stripe are refunded instead (Refunds).
      */
     public function void(Order $order, User $staff, array $details = []): void
     {
-        if ($order->isVoid() || $order->channel !== 'in_person') {
+        if ($order->isUndone() || $order->channel !== 'in_person') {
             return;
         }
         DB::transaction(function () use ($order, $staff, $details) {
             $order->update(['status' => 'void', 'voided_at' => now(), 'voided_by_user_id' => $staff->id]);
-            foreach ($order->items()->with(['entitlement.plan'])->get() as $item) {
-                $entitlement = $item->entitlement;
-                if ($entitlement && in_array($entitlement->status, ['active', 'past_due'], true)) {
-                    $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
-                    $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'voided']);
-                }
-                if ($item->product_variant_id) {
-                    ProductVariant::whereKey($item->product_variant_id)->whereNotNull('stock')->increment('stock', $item->quantity);
-                }
-            }
+            $this->takeBack($order, 'voided');
             $payment = $order->payment;
             if ($payment && ! $payment->isVoided()) {
                 $payment->update(['voided_at' => now(), 'voided_by_user_id' => $staff->id]);
             }
             $this->events->record('order.voided', $order->studio_id, ['order_id' => $order->id, 'number' => $order->number] + $details, $order->user_id);
         });
+    }
+
+    /**
+     * Stripe gave money back for a sale, from Loft or the Stripe Dashboard (decision 34).
+     * $refundedTotal is Stripe's running total for the payment, so a repeat or an out-of-order event
+     * changes nothing. A full refund marks the order refunded and takes back what it paid for: plans
+     * it granted are cancelled and products go back into stock. A renewing membership (a Stripe
+     * subscription) keeps running, since one payment back doesn't end it; staff can end it when they
+     * refund from Loft. A partial refund is recorded only.
+     *
+     * @return bool whether anything changed
+     */
+    public function refunded(Order $order, int $refundedTotal, ?User $staff = null, array $details = []): bool
+    {
+        return DB::transaction(function () use ($order, $refundedTotal, $staff, $details) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
+            $total = $locked ? min($refundedTotal, $locked->total_cents) : 0;
+            if (! $locked || ! in_array($locked->status, ['paid', 'refunded'], true) || $total <= $locked->refunded_cents) {
+                return false;
+            }
+            $amount = $total - $locked->refunded_cents;
+            $full = $total >= $locked->total_cents;
+            $locked->update([
+                'refunded_cents' => $total,
+                'refunded_at' => now(),
+                'refunded_by_user_id' => $staff?->id,
+            ] + ($full ? [
+                'status' => 'refunded',
+                'fulfillment_status' => $locked->fulfillment_status === 'to_pick_up' ? null : $locked->fulfillment_status,
+            ] : []));
+            if ($full) {
+                $this->takeBack($locked, 'refunded');
+            }
+            $this->events->record('order.refunded', $locked->studio_id, [
+                'order_id' => $locked->id,
+                'number' => $locked->number,
+                'amount_cents' => $amount,
+                'currency' => $locked->currency,
+                'full' => $full,
+                'by' => $staff ? 'staff' : 'stripe',
+            ] + $details, $locked->user_id);
+            $order->setRawAttributes($locked->getAttributes(), true);
+
+            return true;
+        });
+    }
+
+    /**
+     * Cancel the plans an undone sale granted and restock its products. When it was refunded, a
+     * renewing Stripe membership is left alone (Refunds ends it if staff ask).
+     */
+    private function takeBack(Order $order, string $reason): void
+    {
+        foreach ($order->items()->with(['entitlement.plan'])->get() as $item) {
+            $entitlement = $item->entitlement;
+            $renewing = $reason === 'refunded' && filled($entitlement?->stripe_subscription_id);
+            if ($entitlement && ! $renewing && in_array($entitlement->status, ['active', 'past_due'], true)) {
+                $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
+                $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => $reason]);
+            }
+            if ($item->product_variant_id) {
+                ProductVariant::whereKey($item->product_variant_id)->whereNotNull('stock')->increment('stock', $item->quantity);
+            }
+        }
     }
 
     /**

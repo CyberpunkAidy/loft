@@ -4,7 +4,7 @@
         <thead><tr><th>Date</th><th>Order</th>@if ($showMember)<th>Member</th>@endif<th>Items</th><th>Paid by</th><th class="right">Total</th><th></th></tr></thead>
         <tbody>
         @foreach ($orders as $order)
-            <tr @class(['is-cancelled' => $order->isVoid()])>
+            <tr @class(['is-cancelled' => $order->isUndone()])>
                 <td class="nowrap">{{ $studio->local($order->paid_at)->format('M j, Y') }}</td>
                 <td class="nowrap">@if ($order->channel === 'in_person')<a href="{{ route('studio.admin.pos.receipt', ['order' => $order]) }}">#{{ $order->number }}</a>@else#{{ $order->number }}@endif</td>
                 @if ($showMember)
@@ -28,16 +28,19 @@
                 <td class="small">
                     @if ($url = $order->stripeUrl())<a href="{{ $url }}" target="_blank" rel="noopener">{{ $order->methodLabel() }} ↗</a>@else{{ $order->methodLabel() }}@endif
                 </td>
-                <td class="right nowrap">{{ $order->totalLabel() }}</td>
+                <td class="right nowrap">
+                    {{ $order->totalLabel() }}
+                    @if ($order->refunded_cents > 0 && ! $order->isRefunded())<div class="small muted">−{{ $order->refundedLabel() }} refunded</div>@endif
+                </td>
                 <td class="right">
-                    @if ($order->isVoid())
-                        <span class="badge badge-muted">Void</span>
-                    @elseif ($order->channel === 'in_person')
-                        <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="inline" data-confirm="{{ $order->method === 'reader'
-                            ? "Refund order #{$order->number} to the card and void it? Plans it added are cancelled and products go back into stock."
-                            : "Void order #{$order->number}? Plans it added are cancelled and products go back into stock. Use this for mistakes." }}">
+                    @if ($order->isUndone())
+                        <span class="badge badge-muted">{{ $order->statusLabel() }}</span>
+                    @elseif ($order->canRefund())
+                        <a class="link link-danger small" href="{{ route('studio.admin.orders.refund', ['order' => $order, 'return' => request()->getRequestUri()]) }}">Refund</a>
+                    @elseif ($order->channel === 'in_person' && $order->status === 'paid')
+                        <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="inline" data-confirm="Void order #{{ $order->number }}? Plans it added are cancelled and products go back into stock. Use this for mistakes.">
                             @csrf
-                            <button class="link link-danger small">{{ $order->method === 'reader' ? 'Refund' : 'Void' }}</button>
+                            <button class="link link-danger small">Void</button>
                         </form>
                     @endif
                 </td>

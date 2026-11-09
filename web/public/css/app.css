@@ -530,6 +530,9 @@ form.inline { display: inline; }
 .codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
 .code-card { text-align: center; margin: 0 !important; }
 .code-card svg { width: 100%; max-width: 15rem; height: auto; display: block; margin: .6rem auto; background: #fff; border-radius: var(--radius); padding: .4rem; }
+/* Refunds */
+.refund-effects { margin: 0; padding-left: 1.1rem; display: grid; gap: .55rem; }
+.refund-effects li { line-height: 1.5; }
 /* Videos */
 .meter { height: .5rem; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); overflow: hidden; }
 .meter span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }

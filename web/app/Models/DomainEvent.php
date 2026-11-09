@@ -37,6 +37,7 @@ class DomainEvent extends Model
         'checkout.failed' => 'Payment didn’t go through',
         'order.paid' => 'Paid',
         'order.voided' => 'Payment voided',
+        'order.refunded' => 'Refunded',
         'order.picked_up' => 'Picked up an order',
         'waiver.signed' => 'Signed a waiver',
         'video.watched' => 'Watched a video',
@@ -93,11 +94,15 @@ class DomainEvent extends Model
             'entitlement.ended' => ($p['plan_name'] ?? 'Plan').' '.match ($p['reason'] ?? null) {
                 'expired' => 'expired',
                 'voided' => 'voided',
+                'refunded' => 'taken back (refunded)',
                 default => 'ended',
             },
             'order.paid' => 'Paid '.Money::format((int) ($p['total_cents'] ?? 0), $p['currency'] ?? 'usd')
                 .(! empty($p['items']) ? ' for '.implode(' + ', $p['items']) : '').(isset($p['number']) ? ' (#'.$p['number'].')' : ''),
             'order.voided' => 'Payment voided'.(isset($p['number']) ? ' (#'.$p['number'].')' : ''),
+            'order.refunded' => 'Refunded '.Money::format((int) ($p['amount_cents'] ?? 0), $p['currency'] ?? 'usd')
+                .(empty($p['full']) ? ' (part of the payment)' : '').(isset($p['number']) ? ' (#'.$p['number'].')' : '')
+                .(($p['by'] ?? null) === 'stripe' ? ' in Stripe' : ''),
             'video.watched' => 'Watched '.(isset($p['title']) ? '“'.$p['title'].'”' : 'a video'),
             'waiver.signed' => 'Signed '.($p['waiver_title'] ?? 'a waiver').(isset($p['version']) ? ' (v'.$p['version'].')' : ''),
             default => $label,

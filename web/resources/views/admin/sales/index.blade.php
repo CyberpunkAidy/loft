@@ -25,6 +25,7 @@
     <div class="stat"><strong>{{ \App\Support\Money::format($online, $studio->currency) }}</strong><span>Online</span></div>
     <div class="stat"><strong>{{ \App\Support\Money::format($inPerson, $studio->currency) }}</strong><span>In person</span></div>
     <div class="stat"><strong>{{ $count }}</strong><span>Number of sales{{ $comps ? ', plus '.$comps.' '.\Illuminate\Support\Str::plural('comp', $comps) : '' }}</span></div>
+    @if ($refunds)<div class="stat"><strong>−{{ \App\Support\Money::format($refunds, $studio->currency) }}</strong><span>Refunded</span></div>@endif
 </div>
 
 @if ($orders->isEmpty())
@@ -33,5 +34,5 @@
     @include('admin.orders._table', ['orders' => $orders, 'showMember' => true])
     {{ $orders->links() }}
 @endif
-<p class="small muted mt">Totals leave out voided sales. Online sales are listed from when the ledger began (November 2026); earlier ones are in your Stripe Dashboard. Refunds made in Stripe don't show here yet.</p>
+<p class="small muted mt">Totals are what you kept: voided sales and refunds are left out, and a refund counts in the month of the sale. Online sales are listed from when the ledger began (November 2026); earlier ones are in your Stripe Dashboard.</p>
 @endsection

@@ -250,17 +250,19 @@ class CardReaderTest extends TestCase
         $this->assertSame([$member->id, 10, $credits->id], [$credits->user_id, $credits->credits_remaining, $order->items->firstWhere('kind', 'plan')->fresh()->entitlement_id]);
         Mail::assertQueued(StudioMessage::class, fn (StudioMessage $m) => $m->kind === 'receipt' && $m->hasTo('pat@example.com') && $m->details['Total'] === '$164.13 · Card reader');
         $this->assertSame(1, Mail::queued(StudioMessage::class)->count());
-        $this->get($receipt)->assertOk()->assertSee('Paid by card reader')->assertSee('Refund to the card and void');
+        $this->get($receipt)->assertOk()->assertSee('Paid by card reader')->assertSee('Refund to the card');
         $this->get("/{$studio->slug}/admin/pos")->assertOk()->assertSee('Empty')->assertDontSee('Waiting for a card');
         $this->assertSame('Got 10-Class Pack (paid on a card reader)', DomainEvent::where('type', 'entitlement.granted')->sole()->label());
-        $this->get("/{$studio->slug}/admin/sales")->assertOk()->assertSee('Card reader')->assertSee('>Refund</button>', false);
+        $this->get("/{$studio->slug}/admin/sales")->assertOk()->assertSee('Card reader')->assertSee('>Refund</a>', false);
 
-        // Refunded to the card and voided.
-        $this->post("/{$studio->slug}/admin/orders/{$order->id}/void")
-            ->assertSessionHas('success', 'Sale #1001 refunded to the card and voided: plans it added were cancelled and products went back into stock.');
+        // Refunded to the card (voiding sends staff to the refund instead).
+        $this->post("/{$studio->slug}/admin/orders/{$order->id}/void")->assertRedirect("/{$studio->slug}/admin/orders/{$order->id}/refund");
+        $this->get("/{$studio->slug}/admin/orders/{$order->id}/refund")->assertOk()->assertSee('Refund $164.13')->assertSee('goes back to the card');
+        $this->post("/{$studio->slug}/admin/orders/{$order->id}/refund")
+            ->assertSessionHas('success', 'Sale #1001 refunded: $164.13 back to the customer; plans it added were cancelled, products went back into stock.');
         $this->assertSame(['pi_1'], $this->refunds);
-        $this->assertSame(['void', 'cancelled', 3], [$order->fresh()->status, $credits->fresh()->status, $tee->fresh()->stock]);
-        $this->assertTrue(DomainEvent::where('type', 'order.voided')->sole()->payload['refunded']);
+        $this->assertSame(['refunded', 16413, 'cancelled', 3], [$order->fresh()->status, $order->fresh()->refunded_cents, $credits->fresh()->status, $tee->fresh()->stock]);
+        $this->assertSame(['staff', true], [DomainEvent::where('type', 'order.refunded')->sole()->payload['by'], DomainEvent::where('type', 'order.refunded')->sole()->payload['full']]);
     }
 
     public function test_declines_retries_cancelling_and_readers_that_cannot_take_it(): void

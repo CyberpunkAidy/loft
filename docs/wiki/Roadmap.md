@@ -14,7 +14,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - Every version's text is kept, and signatures are hashed.
   - Enforced at booking, waitlist promotion, staff booking and check-in, with staff overrides recorded.
   - Signatures are kept when accounts are deleted, and can be downloaded.
-- **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. **Orders ledger (step 5, done):** every sale is an order with items ([Payments](Payments#the-orders-ledger)). No products or cart yet.
+- **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. **Orders ledger (step 5, done):** every sale is an order with items ([Payments](Payments#the-orders-ledger)). Refunds, from Loft or the Stripe Dashboard, are recorded on the sale and take back what it paid for ([decision 34](Decisions)).
 - **Event backbone (step 3, done):**
   - Every change records a domain event in the same transaction (the outbox), including `booking.attended` with a first-visit flag; a relay hands them to handlers. None are registered yet.
   - Every studio email is logged in `message_deliveries` with a dedupe key.
@@ -311,6 +311,5 @@ Steps 1 and 2 change rules members feel directly. Rooms are opt-in: a studio wit
 
 ## Known gaps (smaller)
 
-- **Stripe refunds:** a refund doesn't take back the credits or membership it paid for.
 - **An old table:** `sent_notifications` is no longer written (replaced by `message_deliveries`). Drop it in a release after the event backbone is live.
 - **Merged branches:** they need deleting by hand on GitHub.
