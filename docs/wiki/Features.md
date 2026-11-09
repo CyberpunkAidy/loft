@@ -22,7 +22,7 @@
 - **My account tabs:**
   - **Upcoming** and **History:** classes booked and attended.
   - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
-  - **Plans & billing:** memberships and credits, a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
+  - **Plans & billing:** memberships and credits, their purchases (with order numbers), a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
   - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
   - **Profile:** name, email, phone, password, news and offers from the studio (marketing email, opt-in), and **deleting the account** ([Accounts and Data](Accounts-and-Data)).
 - **Joining:** an optional, unticked box to get the studio's news and offers. Every marketing email has a one-click **Unsubscribe** link ([Email](Email#marketing-email-and-consent)).
@@ -39,8 +39,9 @@
 | Seasons | Date ranges for weekly classes | admin |
 | Rooms | Each room's capacity limit (such as its fire-code limit) and the apparatus rigged in it: how many, and the most people on each | admin |
 | Automations | Emails that go out by themselves: **after a first class** (a set number of hours after check-in), **birthdays** (members and their children, from 10 AM), and **we miss you** (a set number of days after the last class, if nothing is booked). Edit the subject and text with placeholders, see a preview, send yourself a test, turn each on or off; see how many went out | admin |
-| Members | Search; family, waivers, plans, upcoming and past classes; **Activity** (bookings, check-ins, plans, payment problems, waivers, consent, newest first); **Emails** (each email and whether it was sent, and marketing consent); **Add a plan** (record a payment taken in person, or comp); void recorded payments | admin |
+| Members | Search; family, waivers, plans, upcoming and past classes; **Activity** (bookings, check-ins, plans, payment problems, waivers, consent, newest first); **Emails** (each email and whether it was sent, and marketing consent); **Purchases** (every order, online or in person); **Add a plan** (record a payment taken in person, or comp); void payments taken in person | admin |
 | Plans & pricing | Memberships, seasonal tuition, packs and drop-ins; sync each plan to Stripe | admin |
+| Sales | The orders ledger: every sale (online checkouts, each membership payment, in person), a month at a time, with totals, links to Stripe and a CSV download | admin |
 | Payments | Connect Stripe; payments recorded in person and this month's total | admin |
 | Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |
 | Staff | Add instructors and admins (new people get an email to set a password); owners can make other owners | admin |

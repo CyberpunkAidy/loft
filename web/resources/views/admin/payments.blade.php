@@ -37,7 +37,7 @@
     <div class="page-head" style="margin-bottom:1rem">
         <div>
             <h2 style="margin:0">Payments recorded in person</h2>
-            <p>Cash, checks, card terminals, transfers and payment apps, plus comps. Record one from a member’s page.</p>
+            <p>Cash, checks, card terminals, transfers and payment apps, plus comps. Record one from a member’s page. Every sale, online and in person, is under <a href="{{ route('studio.admin.sales.index') }}">Sales</a>.</p>
         </div>
     </div>
     <div class="stats">

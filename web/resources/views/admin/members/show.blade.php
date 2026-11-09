@@ -59,10 +59,10 @@
             @endif
         </section>
 
-        @if ($payments->isNotEmpty())
+        @if ($orders->isNotEmpty())
             <section>
-                <h2>Payments recorded</h2>
-                @include('admin.payments._table', ['payments' => $payments, 'showMember' => false])
+                <h2>Purchases</h2>
+                @include('admin.orders._table', ['orders' => $orders, 'showMember' => false])
             </section>
         @endif
 

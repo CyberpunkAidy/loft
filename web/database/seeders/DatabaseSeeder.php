@@ -9,6 +9,7 @@ use App\Models\Studio;
 use App\Models\User;
 use App\Services\Bookings;
 use App\Services\Entitlements;
+use App\Services\OfflinePayments;
 use App\Services\SessionGenerator;
 use App\Services\Waivers;
 use Illuminate\Database\Seeder;
@@ -135,7 +136,8 @@ class DatabaseSeeder extends Seeder
 
         $plans = $studio->plans()->get()->keyBy('kind');
         $membership = $entitlements->grantFromPlan($plans['subscription'], $parent->id);
-        $pack = $entitlements->grantFromPlan($plans['pack'], $adult->id);
+        // Bought at the front desk, so the Sales page has a sale.
+        $pack = app(OfflinePayments::class)->record($plans['pack'], $adult, $owner, ['method' => 'card', 'paid_on' => $studio->localNow()->toDateString()])->entitlement;
 
         $next = fn (Program $p) => $p->sessions()->where('starts_at', '>', now())->orderBy('starts_at')->first();
         $bookings->book($next($kids), $maya, $parent->id, 'web', $membership);

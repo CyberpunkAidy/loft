@@ -130,6 +130,9 @@ Route::prefix('{studio}')
                 Route::patch('staff/{studioUser}', [Admin\StaffController::class, 'update'])->name('staff.update');
                 Route::delete('staff/{studioUser}', [Admin\StaffController::class, 'destroy'])->name('staff.destroy');
 
+                Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
+                Route::get('sales/export', [Admin\SalesController::class, 'export'])->name('sales.export');
+
                 Route::get('payments', [Admin\PaymentsController::class, 'show'])->name('payments');
                 Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->name('payments.connect');
                 Route::get('payments/return', [Admin\PaymentsController::class, 'return'])->name('payments.return');

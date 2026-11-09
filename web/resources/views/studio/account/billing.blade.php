@@ -32,6 +32,22 @@
     </div>
 @endif
 
+@if ($orders->isNotEmpty())
+    <h2 class="mt">Purchases</h2>
+    <div class="list">
+        @foreach ($orders as $order)
+            <div @class(['card', 'item', 'is-void' => $order->isVoid()])>
+                <div>
+                    <strong>{{ $order->itemsLabel() }}</strong>
+                    <div class="muted small">{{ $studio->local($order->paid_at)->format('M j, Y') }} · {{ $order->methodLabel() }} · Order #{{ $order->number }}</div>
+                </div>
+                <span @class(['badge', 'badge-muted' => $order->isVoid()])>{{ $order->isVoid() ? 'Void' : $order->totalLabel() }}</span>
+            </div>
+        @endforeach
+    </div>
+    <p class="small muted">Receipts for online payments are in the billing portal.</p>
+@endif
+
 <div class="actions mt">
     <a class="btn" href="{{ route('studio.plans') }}">Buy a plan or credits</a>
     @if ($canOpenPortal)

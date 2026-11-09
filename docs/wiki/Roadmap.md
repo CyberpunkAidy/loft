@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 4 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 5 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -14,7 +14,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - Every version's text is kept, and signatures are hashed.
   - Enforced at booking, waitlist promotion, staff booking and check-in, with staff overrides recorded.
   - Signatures are kept when accounts are deleted, and can be downloaded.
-- **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. No products, orders or cart.
+- **Billing:** Stripe Checkout, one plan per purchase, plus payments recorded in person. **Orders ledger (step 5, done):** every sale is an order with items ([Payments](Payments#the-orders-ledger)). No products or cart yet.
 - **Event backbone (step 3, done):**
   - Every change records a domain event in the same transaction (the outbox), including `booking.attended` with a first-visit flag; a relay hands them to handlers. None are registered yet.
   - Every studio email is logged in `message_deliveries` with a dedupe key.
@@ -295,8 +295,8 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 1. [x] **Waiver hardening** (built 2026-11-08, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15)): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
 2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16)): settles the booking model before anything depends on it.
 3. [x] **Event backbone** (built 2026-11-08, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
-4. [x] **Automations, email first** (built 2026-11-08): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early.
-5. [ ] **Orders ledger:** route plan checkouts and recorded payments through `orders`.
+4. [x] **Automations, email first** (built 2026-11-08, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18)): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early. Each studio will connect its own Twilio account ([decision 24](Decisions)).
+5. [x] **Orders ledger** (built 2026-11-08): plan checkouts, membership invoices and recorded payments all go through `orders`.
 6. [ ] **Merchandise and point of sale:** products, a shared cart, Stripe Terminal at the front desk.
 7. [ ] **API v1:** services first, then Sanctum, schedule, bookings, account, waivers, push tokens.
 8. [ ] **Contactless check-in:** devices, credentials and the check-in endpoint, QR and NFC first.

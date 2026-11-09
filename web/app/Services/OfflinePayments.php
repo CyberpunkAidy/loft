@@ -16,7 +16,11 @@ use Illuminate\Support\Facades\DB;
  */
 class OfflinePayments
 {
-    public function __construct(private readonly Entitlements $entitlements, private readonly DomainEvents $events) {}
+    public function __construct(
+        private readonly Entitlements $entitlements,
+        private readonly DomainEvents $events,
+        private readonly Orders $orders,
+    ) {}
 
     /**
      * Grant $plan to $member and record how it was paid. paid_on and ends_on are studio-local dates
@@ -42,7 +46,7 @@ class OfflinePayments
                 $entitlement->update(['expires_at' => $studio->parseLocal($data['paid_on'].' 23:59:59')->addMonthNoOverflow()]);
             }
 
-            return Payment::create([
+            $payment = Payment::create([
                 'studio_id' => $studio->id,
                 'user_id' => $member->id,
                 'plan_id' => $plan->id,
@@ -54,6 +58,9 @@ class OfflinePayments
                 'note' => $data['note'] ?? null,
                 'recorded_by_user_id' => $staff->id,
             ]);
+            $this->orders->recordInPerson($payment, $entitlement, $plan);
+
+            return $payment;
         });
 
         if (! $comp) {
@@ -72,6 +79,9 @@ class OfflinePayments
             if ($entitlement instanceof Entitlement && in_array($entitlement->status, ['active', 'past_due'], true)) {
                 $entitlement->update(['status' => 'cancelled', 'expires_at' => now()]);
                 $this->events->forEntitlement('entitlement.ended', $entitlement, ['reason' => 'voided']);
+            }
+            if ($payment->order) {
+                $this->orders->void($payment->order, $staff);
             }
         });
     }

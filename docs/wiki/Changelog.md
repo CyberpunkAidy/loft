@@ -4,14 +4,22 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Automations** (roadmap step 4)
+- **Orders ledger** (roadmap step 5)
+  - **Every sale is an order** with items: each paid one-time checkout, each paid membership invoice (renewals and season registration fees included), and each payment taken in person (comps at no charge). Numbered per studio from #1001, recorded once each, with Stripe's actual amounts.
+  - **Admin → Sales:** month by month, with totals (online and in person), every order and how it was paid, links to Stripe, and a CSV download. The dashboard shows sales this month.
+  - **Members:** their purchases on their admin page (in-person ones can be voided there) and under Plans & billing.
+  - **History:** `order.paid` and `order.voided` domain events. Payments already recorded in person become orders; earlier online sales stay in Stripe.
+  - **Decision 24:** SMS will use each studio's own Twilio account.
+  - **Database:** new tables `orders` and `order_items`; `payments.order_id`.
+
+## 2026-11-08
+
+- **Automations** (roadmap step 4, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18))
   - **Admin → Automations:** three emails that go out by themselves: after someone's first class (hours after check-in), birthdays (members and their children, from 10 AM studio time), and "we miss you" (days after a member's last class, if nothing is booked). Each is off until turned on.
   - **Editing:** subject and text with placeholders, a preview with sample names, and **Send me a test**.
   - **Marketing:** they go only to members who opted in, with the unsubscribe link, and each goes out once (dedupe keys). The delivery log records which automation sent each email.
   - **Outbox:** the first-class follow-up is the event relay's first consumer (`AutomationTriggers`).
   - **Database:** new table `automations`; `message_deliveries.automation_id`.
-
-## 2026-11-08
 
 - **Event backbone** (roadmap step 3, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17))
   - **Outbox and history:** every booking, check-in, plan, payment failure, waiver signature and consent change records a domain event in the same transaction as the change. A check-in records `booking.attended`, flagged when it's the attendee's first class. A relay hands events to handlers (none yet; automations come next).

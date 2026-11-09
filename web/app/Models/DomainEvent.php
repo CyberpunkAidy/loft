@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,6 +35,8 @@ class DomainEvent extends Model
         'entitlement.ended' => 'Plan ended',
         'payment.failed' => 'Membership payment failed',
         'checkout.failed' => 'Payment didn’t go through',
+        'order.paid' => 'Paid',
+        'order.voided' => 'Payment voided',
         'waiver.signed' => 'Signed a waiver',
         'consent.email_marketing_granted' => 'Opted in to marketing emails',
         'consent.email_marketing_withdrawn' => 'Opted out of marketing emails',
@@ -89,6 +92,9 @@ class DomainEvent extends Model
                 'voided' => 'voided',
                 default => 'ended',
             },
+            'order.paid' => 'Paid '.Money::format((int) ($p['total_cents'] ?? 0), $p['currency'] ?? 'usd')
+                .(! empty($p['items']) ? ' for '.implode(' + ', $p['items']) : '').(isset($p['number']) ? ' (#'.$p['number'].')' : ''),
+            'order.voided' => 'Payment voided'.(isset($p['number']) ? ' (#'.$p['number'].')' : ''),
             'waiver.signed' => 'Signed '.($p['waiver_title'] ?? 'a waiver').(isset($p['version']) ? ' (v'.$p['version'].')' : ''),
             default => $label,
         };
