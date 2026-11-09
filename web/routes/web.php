@@ -57,6 +57,11 @@ Route::prefix('{studio}')
         Route::get('/login', [LoginController::class, 'show'])->middleware('guest')->name('login');
         Route::get('/join', [Studio\JoinController::class, 'create'])->name('join');
         Route::view('/checkout/return', 'studio.checkout-return')->name('checkout.return'); // the app's purchases end here
+        // The check-in kiosk: a browser paired with a device code (no one signed in).
+        Route::get('/kiosk', [Studio\KioskController::class, 'show'])->name('kiosk');
+        Route::post('/kiosk', [Studio\KioskController::class, 'scan'])->middleware('throttle:120,1')->name('kiosk.scan');
+        Route::post('/kiosk/pair', [Studio\KioskController::class, 'pair'])->middleware('throttle:10,1')->name('kiosk.pair');
+        Route::post('/kiosk/unpair', [Studio\KioskController::class, 'unpair'])->name('kiosk.unpair');
         Route::post('/join', [Studio\JoinController::class, 'store'])->middleware('throttle:10,1')->name('join.store');
         // Signed links from marketing emails; no sign-in needed. CSRF is off for these (see bootstrap/app.php).
         Route::get('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'show'])->middleware('signed')->name('unsubscribe');
@@ -69,6 +74,7 @@ Route::prefix('{studio}')
             Route::get('/account/family', [Studio\AccountController::class, 'family'])->name('account.family');
             Route::get('/account/billing', [Studio\AccountController::class, 'billing'])->name('account.billing');
             Route::get('/account/waivers', [Studio\AccountController::class, 'waivers'])->name('account.waivers');
+            Route::get('/account/check-in', [Studio\CheckInCodeController::class, 'show'])->name('account.check-in');
             Route::get('/account/profile', [Studio\AccountController::class, 'profile'])->name('account.profile');
             Route::put('/account/profile', [Studio\AccountController::class, 'updateProfile'])->name('account.profile.update');
             Route::delete('/account', [Studio\AccountController::class, 'destroy'])->name('account.destroy');
@@ -127,6 +133,11 @@ Route::prefix('{studio}')
                 Route::get('members', [Admin\MemberController::class, 'index'])->name('members.index');
                 Route::get('members/{member}', [Admin\MemberController::class, 'show'])->name('members.show');
                 Route::post('members/{member}/plans', [Admin\MemberController::class, 'grant'])->name('members.grant');
+                Route::post('members/{member}/tags', [Admin\AccessController::class, 'storeTag'])->name('members.tags.store');
+                Route::post('tags/{accessCredential}/revoke', [Admin\AccessController::class, 'revokeTag'])->name('tags.revoke');
+                Route::get('access', [Admin\AccessController::class, 'index'])->name('access.index');
+                Route::post('access/devices', [Admin\AccessController::class, 'storeDevice'])->name('access.devices.store');
+                Route::post('access/devices/{accessDevice}/revoke', [Admin\AccessController::class, 'revokeDevice'])->name('access.devices.revoke');
 
                 Route::get('waivers/download', [Admin\WaiverController::class, 'download'])->name('waivers.download');
                 Route::resource('waivers', Admin\WaiverController::class)->except(['show', 'destroy']);

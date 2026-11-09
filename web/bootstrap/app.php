@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\ApiErrors;
+use App\Http\Middleware\AuthenticateDevice;
 use App\Http\Middleware\Idempotency;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'studio' => ResolveStudio::class,
             'studio.role' => RequireStudioRole::class,
             'idempotent' => Idempotency::class,
+            'device' => AuthenticateDevice::class,
         ]);
         // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
         // for one-click unsubscribe (RFC 8058) without a session.

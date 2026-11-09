@@ -49,6 +49,7 @@ class MemberController extends Controller
             'role' => $member->pivot->role,
             'attendees' => $attendees,
             'waiverStatus' => $attendees->mapWithKeys(fn ($a) => [$a->id => $waivers->statusFor($studio, $a)]),
+            'tags' => $studio->accessCredentials()->with('attendee')->whereIn('attendee_id', $attendees->pluck('id'))->whereNull('revoked_at')->orderBy('id')->get(),
             'entitlements' => $studio->entitlements()->with(['plan', 'payment'])->where('user_id', $member->id)->latest()->get(),
             'orders' => $studio->orders()->sales()->with(['items', 'payment', 'studio'])->where('user_id', $member->id)->latest('paid_at')->latest('id')->limit(25)->get(),
             'upcoming' => $studio->bookings()->with(['classSession.program', 'attendee'])->where('user_id', $member->id)

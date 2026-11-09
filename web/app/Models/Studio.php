@@ -189,6 +189,21 @@ class Studio extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function accessDevices(): HasMany
+    {
+        return $this->hasMany(AccessDevice::class);
+    }
+
+    public function accessCredentials(): HasMany
+    {
+        return $this->hasMany(AccessCredential::class);
+    }
+
+    public function accessEvents(): HasMany
+    {
+        return $this->hasMany(AccessEvent::class);
+    }
+
     public function cardReaders(): HasMany
     {
         return $this->hasMany(CardReader::class)->orderBy('label');

@@ -38,6 +38,37 @@
         </section>
 
         <section>
+            <h2>Check-in tags</h2>
+            <div class="card">
+                @if ($tags->isNotEmpty())
+                    <div class="pos-lines" style="margin-bottom:1rem">
+                        @foreach ($tags as $tag)
+                            <div class="pos-line">
+                                <div class="grow">{{ $tag->attendee->first_name }} · <strong>…{{ $tag->value_last4 }}</strong>@if ($tag->label) <span class="muted">({{ $tag->label }})</span>@endif
+                                    <div class="small muted">{{ $tag->last_used_at ? 'Last used '.$studio->local($tag->last_used_at)->format('M j, g:i A') : 'Not used yet' }}</div></div>
+                                <form method="post" action="{{ route('studio.admin.tags.revoke', ['accessCredential' => $tag]) }}" class="inline" data-confirm="Stop tag …{{ $tag->value_last4 }} working?">@csrf<button class="link link-danger small">Take back</button></form>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="small muted" style="margin-top:0">No tags yet. Members can also check in with the code in their account.</p>
+                @endif
+                @php $active = $attendees->where('status', 'active'); @endphp
+                @if ($active->isNotEmpty())
+                    <form method="post" action="{{ route('studio.admin.members.tags.store', ['member' => $member]) }}" class="form">
+                        @csrf
+                        <div class="grid-2">
+                            <x-select name="attendee_id" label="For" :options="$active->pluck('name', 'id')->all()" />
+                            <x-field name="label" label="Label (optional)" maxlength="60" placeholder="Blue fob" />
+                        </div>
+                        <x-field name="uid" label="Tag" required maxlength="100" autocomplete="off" placeholder="Scan the tag with the reader, or type its number" />
+                        <button class="btn btn-secondary">Give tag</button>
+                    </form>
+                @endif
+            </div>
+        </section>
+
+        <section>
             <h2>Upcoming</h2>
             @if ($upcoming->isEmpty())
                 <div class="card empty">No upcoming bookings.</div>

@@ -28,7 +28,7 @@ This README is the quick reference. The [project wiki](https://github.com/Cyberp
 | [Design System](https://github.com/CyberpunkAidy/loft-studio/wiki/Design-System) | Logo, colors, fonts, icons, components |
 | [Development](https://github.com/CyberpunkAidy/loft-studio/wiki/Development) | Local setup, tests, CI, making a change |
 | [Decisions](https://github.com/CyberpunkAidy/loft-studio/wiki/Decisions) | Why things are built this way; open questions |
-| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger, merchandise, the point of sale with card readers, the online shop, and the mobile API. Next: check-in kiosks, churn |
+| [Roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap) | Built: waivers, rooms and apparatus capacity, the event backbone, automations, the orders ledger, merchandise, the point of sale with card readers, the online shop, the mobile API, and contactless check-in. Next: churn scoring, video |
 | [Changelog](https://github.com/CyberpunkAidy/loft-studio/wiki/Changelog) | Every pull request so far |
 
 When behavior changes, update this README and `docs/wiki/` in the same pull request.
@@ -58,10 +58,10 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
 | | |
 |---|---|
 | `/` | Marketing page, `/signup` (start a studio), `/login`, `/studios` (my studios) |
-| `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/shop` (and its cart; checkout for members), `/join`, `/login` |
+| `/{studio}` | Public schedule; `/classes/{id}`, `/plans`, `/shop` (and its cart; checkout for members), `/join`, `/login`, `/kiosk` (the check-in kiosk, set up with a device code) |
 | `/{studio}/account…` | Members: upcoming classes, family, plans & billing, waivers, history, profile, deleting the account |
 | `/{studio}/book/{session}` | Booking: choose who's coming (and the apparatus, if the class uses several) → waiver → membership/credit check → checkout if needed |
-| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, automations, plans, point of sale, products, sales, payments and card readers, waivers, staff, settings |
+| `/{studio}/admin…` | Staff: dashboard, check-in, sessions & rosters, programs, seasons, rooms, members, automations, plans, point of sale, products, sales, payments and card readers, waivers, check-in devices, staff, settings |
 | `/stripe/webhook` | Stripe Connect webhook (all studios) |
 | `/api/v1/…` | The mobile app's JSON API: Sanctum tokens, per-studio schedule, bookings, family, waivers, purchases and checkout ([API](https://github.com/CyberpunkAidy/loft-studio/wiki/API)) |
 
@@ -101,6 +101,7 @@ Reset the demo with `php artisan migrate:fresh --seed`. Emails go to `storage/lo
   - **Automations** (`App\Services\Automations`, Admin → Automations): after a first class (from the outbox), birthdays and we-miss-you emails (from housekeeping). Marketing email: only to members who opted in, once each.
 - **Orders ledger** (`App\Services\Orders`, Admin → Sales): every sale is an order with items: each paid one-time checkout, each paid membership invoice, each payment taken in person. Numbered per studio, recorded once each, with Stripe's actual amounts; CSV download per month.
 - **Point of sale** (`App\Services\PointOfSale`, Admin → Point of sale and Products): products with variants and stock, and plans, in one cart for a member or a walk-in; sales tax on taxable products; paid in person or comped. Stock never goes below zero; voiding restocks and cancels plans.
+- **Contactless check-in** (`App\Services\CheckIns`, `CheckInCodes`, Admin → Check-in devices, `/{studio}/kiosk`): kiosks and readers with their own tokens; NFC/RFID tags (stored as keyed hashes) and members' QR codes (signed, rotating every 30 seconds); a scan checks the person in to their class now, waivers enforced; every scan logged.
 - **Mobile API** (`routes/api.php`, `App\Http\Controllers\Api\V1`): `/api/v1` with Sanctum bearer tokens, one per install. The same services as the website (`Bookings`, `BookingOptions`, `Waivers`, `PlanCheckout`, `Memberships`), errors with stable codes, `Idempotency-Key` on writes that matter, cursor pages. Documented in the wiki's API page.
 - **Card readers** (`App\Services\CardReaders`, `App\Services\ReaderPayments`, Payments → Card readers): Stripe Terminal readers paired on the studio's account; the point of sale charges the cart on one, waits for the card on a page that refreshes itself, and records the sale when it's paid. Refunds go back to the card. Housekeeping settles sales left open.
 - **Online shop** (`App\Services\Shop`, `/{studio}/shop`): the same products, paid through Stripe Checkout with the studio's sales tax; stock held for 30 minutes while the member pays; picked up at the front desk (Admin → Sales → To pick up). Housekeeping settles checkouts whose webhook never came.
@@ -253,7 +254,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 155 tests. They cover:
+There are 158 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
@@ -263,6 +264,7 @@ There are 155 tests. They cover:
 - the online shop: the cart, stock held while paying and released when not, Stripe Checkout with tax, paid orders numbered with a pickup receipt, bank payments that fail, the hourly sweep, pickups
 - card readers: pairing and syncing with Stripe, charging the till's cart, declines and retries, cancelling (and paying at the same moment), offline and busy readers, refunds, the hourly sweep
 - the mobile API: signing in and out, registering and joining, token revocation (password change or reset, deleting the account), push tokens, the schedule and cursor pages, booking with stable error codes and idempotency keys, the family, waivers, purchases, buying a plan, rate limits, and that nobody reaches another member's or studio's records
+- contactless check-in: devices and their codes, pairing the kiosk, tags (one person at a time, taken back), rotating QR codes, the check-in window, waivers and waitlists, offline scans, the device API, and that member and device tokens don't cross over
 - daylight-saving-safe session generation
 - the Stripe client and webhooks, against faked HTTP
 - tenancy and roles

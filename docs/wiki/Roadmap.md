@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 7 are built (step 4 by email; SMS waits on carrier registration); the rest is the agreed direction, with schema sketches to start from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). Steps 1 to 8 are built (step 4 by email; SMS waits on carrier registration; step 8 with QR codes and tags); the rest is the agreed direction, with schema sketches to start from.
 
 ## Starting point
 
@@ -301,8 +301,8 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
    - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions), [#20](https://github.com/CyberpunkAidy/loft-studio/pull/20)).
    - [x] An online shop: a cart of products paid through Stripe Checkout, stock held while paying, picked up at the studio ([decision 27](Decisions), [#21](https://github.com/CyberpunkAidy/loft-studio/pull/21)). Plans keep their own Checkout.
    - [x] Stripe Terminal card readers at the point of sale: paired by code, charged from the till, refunds from Loft ([decision 28](Decisions), [#22](https://github.com/CyberpunkAidy/loft-studio/pull/22)).
-7. [x] **API v1** (built 2026-11-09, [decision 29](Decisions)): services first, then Sanctum, schedule, bookings, account, waivers, purchases and checkout, push tokens ([API](API)). Sending push notifications comes with the app.
-8. [ ] **Contactless check-in:** devices, credentials and the check-in endpoint, QR and NFC first.
+7. [x] **API v1** (built 2026-11-09, [decision 29](Decisions), [#23](https://github.com/CyberpunkAidy/loft-studio/pull/23)): services first, then Sanctum, schedule, bookings, account, waivers, purchases and checkout, push tokens ([API](API)). Sending push notifications comes with the app.
+8. [x] **Contactless check-in** (built 2026-11-09, [decision 30](Decisions)): devices with their own tokens, NFC/RFID tags, rotating QR codes, the check-in endpoint and a browser kiosk, every scan logged. Biometrics and door hardware (Kisi, Brivo) later.
 9. [ ] **Churn scoring v1:** rules over the snapshots, feeding automations. A trained model after about six months of labelled history.
 10. [ ] **On-demand video and live virtual classes.**
 

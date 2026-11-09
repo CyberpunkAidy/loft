@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * An Idempotency-Key header makes a POST safe to retry: the first successful response is kept for a
- * day and replayed (with Idempotent-Replayed: true) for the same key, from the same member, on the
+ * day and replayed (with Idempotent-Replayed: true) for the same key, from the same member (or device), on the
  * same route. Errors aren't kept, so a failed request can be retried with the same key. A key reused
  * with a different body is refused, and so is one whose first request is still running.
  */
@@ -27,7 +27,8 @@ class Idempotency
         if ($key === '' || strlen($key) > 255) {
             throw new ApiException('invalid_idempotency_key', 'Idempotency-Key must be 1 to 255 characters.', 400);
         }
-        $id = 'idempotency:'.sha1(($request->user()?->getAuthIdentifier() ?? $request->ip()).'|'.$request->method().'|'.$request->path().'|'.$key);
+        $who = $request->user()?->getAuthIdentifier() ?? (($device = $request->attributes->get('access_device')) ? 'device:'.$device->id : $request->ip());
+        $id = 'idempotency:'.sha1($who.'|'.$request->method().'|'.$request->path().'|'.$key);
         $fingerprint = sha1($request->getContent());
 
         $lock = Cache::lock($id.':lock', 30);

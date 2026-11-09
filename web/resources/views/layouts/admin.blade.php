@@ -24,6 +24,7 @@
         ],
         'Studio' => [
             $nav('studio.admin.waivers.index', 'Waivers', 'file-pen-line', 'studio.admin.waivers.*'),
+            $nav('studio.admin.access.index', 'Check-in devices', 'scan-line', 'studio.admin.access.*'),
             $nav('studio.admin.staff.index', 'Staff', 'id-card', 'studio.admin.staff.*'),
             $nav('studio.admin.settings', 'Settings', 'settings'),
         ],

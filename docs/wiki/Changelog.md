@@ -4,7 +4,18 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Mobile API, v1** (roadmap step 7)
+- **Contactless check-in** (roadmap step 8)
+  - **Admin → Check-in devices:** add kiosks and readers (each gets a device code, shown once), remove them, and see every scan, allowed or not, and why.
+  - **The kiosk** (`/{studio}/kiosk`): any browser, set up once with a device code. Works with USB or Bluetooth NFC readers and QR scanners that type what they read. Shows a big welcome, or why not and to see the front desk.
+  - **Tags:** give a card or fob to anyone on a member's account from their admin page; take it back.
+  - **Check-in codes:** **My account → Check-in** shows a QR code for each person, changing every 30 seconds; the API gives the app the same codes.
+  - **The rule:** the person's class from an hour before it starts until it ends, through the front desk's check-in (waivers enforced). Device API: `POST /api/v1/devices/check-ins` ([API](API)).
+  - **Decision 30.** Roadmap step 8 is complete.
+  - **Database:** new tables `access_devices`, `access_credentials` and `access_events`.
+
+## 2026-11-09
+
+- **Mobile API, v1** (roadmap step 7, [#23](https://github.com/CyberpunkAidy/loft-studio/pull/23))
   - **`/api/v1`** for the mobile app, documented on the new [API](API) page: sign in or register (Sanctum tokens, one per install), the member and their studios, push tokens.
   - **Per studio:** its details, plans and schedule (public; with a token, the member's own bookings), a class's booking options per person, booking and cancelling, the family, waivers and signing them, memberships and credits, purchases, and buying a plan through Stripe Checkout (finishing a booking once paid).
   - **Errors** in one shape with stable codes (`waiver_required`, `needs_plan`, `full`…); `Idempotency-Key` on booking, adding people, signing and checkout; cursor pages; UTC times plus the studio's local time; rate limits.
@@ -12,9 +23,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Services first:** the booking options, waiver order, plan checkout and joining moved out of the web controllers (`BookingOptions`, `Waivers::nextToSign`, `PlanCheckout`, `Memberships`), so the website and the app share them.
   - **Decision 29.** Roadmap step 7 is complete.
   - **Database:** new tables `personal_access_tokens` (Sanctum) and `user_devices`.
-
-## 2026-11-09
-
 - **Card readers** (roadmap step 6, last part, [#22](https://github.com/CyberpunkAidy/loft-studio/pull/22))
   - **Payments → Card readers:** the studio's address for Stripe once, then pair Stripe Terminal readers (WisePOS E, S700) by code; model, serial number and online status; readers added or removed in the Stripe Dashboard are picked up.
   - **Point of sale:** **Charge on Front desk** sends the cart to a reader. A waiting page refreshes itself until the card goes through (order numbered, plans granted, receipt sent), is declined (try again or cancel) or is cancelled (stock back, nothing charged). Offline or busy readers refuse the sale straight away.

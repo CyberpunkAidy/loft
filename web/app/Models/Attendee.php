@@ -83,4 +83,10 @@ class Attendee extends Model
 
         return $age !== null && $age < $minorAge;
     }
+
+    /** NFC or RFID tags this person checks in with. */
+    public function accessCredentials(): HasMany
+    {
+        return $this->hasMany(AccessCredential::class);
+    }
 }
