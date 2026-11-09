@@ -4,7 +4,19 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Video and live classes** (roadmap step 10)
+- **Refunds**
+  - **Refund from Loft:** **Refund** on Sales, a member's page or a card reader receipt opens a page that says what the refund does, then gives back what's left of the payment through Stripe. Online sales (packs, drop-ins, membership payments, shop orders) and card reader sales.
+  - **What a full refund takes back:** packs and drop-ins are cancelled (classes already booked stay), products go back into stock, and a shop order no longer waits to be picked up. For a membership or season payment, staff choose **Refund this payment only** or **Refund and end the membership now** (cancelled in Stripe at once).
+  - **Refunds made in the Stripe Dashboard** reach Loft by `charge.refunded` and are recorded the same way; a full one takes back the same things, but never ends a membership. Partial refunds are recorded only.
+  - **Totals** on Sales, the dashboard and Payments are what the studio kept; Sales shows refunds as their own figure, the CSV has a Refunded column and statuses (Partly refunded, Refunded), and the member's activity shows each refund. Members see refunds under Plans & billing; the API's orders have `refunded_cents`.
+  - **Card reader sales** are refunded the same way, and now show as Refunded rather than Void.
+  - **Decision 34.** The Stripe refunds gap on the roadmap is closed.
+  - **Database:** `orders.refunded_cents`, `refunded_at` and `refunded_by_user_id`.
+  - **Action needed:** add `charge.refunded` to the Stripe webhook's events.
+
+## 2026-11-09
+
+- **Video and live classes** (roadmap step 10, [#27](https://github.com/CyberpunkAidy/loft-studio/pull/27))
   - **Online and hybrid classes:** programs and sessions say where a class happens: in the studio, online, or both. For a class that's both, members choose **In the studio** or **Online**; online spots are separate from the studio's seats (their own limit, no apparatus, no waitlist), and the schedule shows **Studio full · online open**. The choice carries through waivers and checkout.
   - **Joining:** people booked online get **Join online** under Upcoming from 15 minutes before class until it ends. It opens the studio's Zoom or Meet link, which isn't shown anywhere else, and checks them in. Booking emails say where. Rosters mark who's online; kiosks don't check them in. A class can't stop being hybrid while people hold online spots.
   - **Admin → Videos:** upload a file (straight to Mux) or add one from a link, follow it to **Ready**, preview it, choose who can watch (everyone with an account, or members whose plan includes videos), publish, delete. Each studio has 600 minutes of stored video.
@@ -14,9 +26,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Decision 33**, including why the app won't sell plans that include videos. Roadmap step 10 is built.
   - **Database:** new tables `videos` and `video_views`; `delivery`, `online_capacity` and `meeting_url` on `programs` and `class_sessions`; `bookings.online_spot`; `plans.includes_videos`.
   - **Setup:** Mux keys in Render ([Deployment](Deployment#video-mux)).
-
-## 2026-11-09
-
 - **Abandoned shop checkouts are released reliably** ([#26](https://github.com/CyberpunkAidy/loft-studio/pull/26))
   - **The hourly job gets the Stripe key:** `render.yaml` gave `STRIPE_SECRET` only to `loft-web`, so `loft-housekeeping` couldn't ask Stripe about shop checkouts or card reader sales nobody finished. Those would have stayed pending and kept their stock for good. It's now declared on `loft-housekeeping` too.
   - **`checkout.session.expired`** releases a shop order the member walked away from, and puts its stock back, as soon as Stripe expires the session. The hourly sweep still settles anything a webhook missed.

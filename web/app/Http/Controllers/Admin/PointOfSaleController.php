@@ -125,7 +125,7 @@ class PointOfSaleController extends Controller
         if ($order->awaitsReader()) {
             return redirect()->route('studio.admin.pos.reader', ['order' => $order]);
         }
-        abort_unless(in_array($order->status, ['paid', 'void'], true), 404);
+        abort_unless(in_array($order->status, ['paid', 'void', 'refunded'], true), 404);
 
         return view('admin.pos.receipt', ['order' => $order->load(['items', 'user', 'recordedBy', 'cardReader'])]);
     }
@@ -217,30 +217,22 @@ class PointOfSaleController extends Controller
     }
 
     /**
-     * Undo an in-person sale made by mistake (from Sales, a member's page or the receipt). A card reader
-     * sale is refunded to the card first.
+     * Undo an in-person sale made by mistake (from Sales, a member's page or the receipt). Sales paid
+     * through Stripe, such as on a card reader, are refunded instead (RefundController).
      */
-    public function void(Request $request, Studio $studio, Order $order, Orders $orders, ReaderPayments $readers): RedirectResponse
+    public function void(Request $request, Studio $studio, Order $order, Orders $orders): RedirectResponse
     {
-        if ($order->channel !== 'in_person') {
-            return back()->with('error', 'Online sales are refunded in Stripe.');
+        if ($order->canRefund()) {
+            return redirect()->route('studio.admin.orders.refund', ['order' => $order]);
         }
-        if ($order->isVoid()) {
-            return back()->with('error', 'That sale is already void.');
+        if ($order->channel !== 'in_person') {
+            return back()->with('error', 'Online sales are refunded, not voided.');
+        }
+        if ($order->isUndone()) {
+            return back()->with('error', 'That sale is already '.strtolower($order->statusLabel()).'.');
         }
         if ($order->status !== 'paid') {
             return back()->with('error', 'Only paid sales can be voided.');
-        }
-        if ($order->method === 'reader') {
-            try {
-                $readers->refund($order, $request->user());
-            } catch (StripeException $e) {
-                report($e);
-
-                return back()->with('error', 'Stripe couldn’t refund it: '.$e->getMessage());
-            }
-
-            return back()->with('success', "Sale #{$order->number} refunded to the card and voided: plans it added were cancelled and products went back into stock.");
         }
         $orders->void($order, $request->user());
 

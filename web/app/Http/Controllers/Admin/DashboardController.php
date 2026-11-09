@@ -9,6 +9,7 @@ use App\Models\Studio;
 use App\Services\ChurnScores;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -44,7 +45,7 @@ class DashboardController extends Controller
                     : null,
                 'to_pick_up' => $studio->orders()->where('status', 'paid')->where('fulfillment_status', 'to_pick_up')->count(),
                 'sales_month' => (int) $studio->orders()->where('status', 'paid')->where('currency', $studio->currency)
-                    ->where('paid_at', '>=', $studio->localNow()->startOfMonth()->utc())->sum('total_cents'),
+                    ->where('paid_at', '>=', $studio->localNow()->startOfMonth()->utc())->sum(DB::raw('total_cents - refunded_cents')),
                 'memberships' => $studio->entitlements()->where('kind', 'subscription')->where('status', 'active')->count(),
                 'past_due' => $studio->entitlements()->where('status', 'past_due')->count(),
                 'bookings_week' => $studio->bookings()->where('booked_at', '>=', now()->subDays(7))->whereNotIn('status', ['cancelled'])->count(),

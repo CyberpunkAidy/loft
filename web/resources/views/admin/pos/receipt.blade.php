@@ -5,7 +5,7 @@
 @section('content')
 <p class="small no-print"><a href="{{ route('studio.admin.pos') }}">‹ Point of sale</a></p>
 <div class="page-head no-print">
-    <h1>Sale #{{ $order->number }} @if ($order->isVoid())<span class="badge badge-muted">Void</span>@endif</h1>
+    <h1>Sale #{{ $order->number }} @if ($order->isUndone() || $order->refunded_cents)<span class="badge badge-muted">{{ $order->statusLabel() }}</span>@endif</h1>
     <div class="actions">
         <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">Print receipt</button>
         <a class="btn btn-small" href="{{ route('studio.admin.pos') }}">New sale</a>
@@ -27,18 +27,21 @@
             <tr><td class="muted">Tax</td><td class="right">{{ \App\Support\Money::format($order->tax_cents, $order->currency) }}</td></tr>
         @endif
         <tr><td><strong>Total</strong></td><td class="right"><strong>{{ $order->totalLabel() }}</strong></td></tr>
+        @if ($order->refunded_cents)
+            <tr><td class="muted">Refunded{{ $order->refunded_at ? ' '.$studio->local($order->refunded_at)->format('M j') : '' }}</td><td class="right muted">−{{ $order->refundedLabel() }}</td></tr>
+        @endif
         </tbody>
     </table>
     <p class="small" style="margin:.8rem 0 0">Paid by {{ strtolower($order->methodLabel()) }}@if ($order->noteText()) · {{ $order->noteText() }}@endif · served by {{ $order->recordedBy?->first_name ?? 'staff' }}</p>
     @if ($order->user)<p class="small muted" style="margin:.3rem 0 0">A copy was emailed to {{ $order->user->email }}.</p>@endif
 </div>
 
-@unless ($order->isVoid())
-    <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="no-print mt" data-confirm="{{ $order->method === 'reader'
-        ? "Refund sale #{$order->number} to the card and void it? Plans it added are cancelled and products go back into stock."
-        : "Void sale #{$order->number}? Plans it added are cancelled and products go back into stock." }}">
+@if ($order->canRefund())
+    <p class="no-print mt"><a class="link link-danger small" href="{{ route('studio.admin.orders.refund', ['order' => $order, 'return' => request()->getRequestUri()]) }}">Refund to the card</a></p>
+@elseif ($order->status === 'paid' && $order->channel === 'in_person')
+    <form method="post" action="{{ route('studio.admin.orders.void', ['order' => $order]) }}" class="no-print mt" data-confirm="Void sale #{{ $order->number }}? Plans it added are cancelled and products go back into stock.">
         @csrf
-        <button class="link link-danger small">{{ $order->method === 'reader' ? 'Refund to the card and void' : 'Void this sale' }}</button>
+        <button class="link link-danger small">Void this sale</button>
     </form>
-@endunless
+@endif
 @endsection

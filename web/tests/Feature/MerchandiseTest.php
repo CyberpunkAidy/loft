@@ -151,10 +151,10 @@ class MerchandiseTest extends TestCase
         $this->post("/{$studio->slug}/admin/orders/{$order->id}/void")->assertSessionHas('error', 'That sale is already void.');
         $this->assertSame(4, $this->variant($tee, 'Small')->fresh()->stock, 'not restocked twice');
 
-        // Online sales are refunded in Stripe, not voided here; instructors can't use the till.
+        // Online sales are refunded, not voided; instructors can't use the till.
         $online = Order::create(['studio_id' => $studio->id, 'number' => 2000, 'channel' => 'online', 'method' => 'stripe', 'status' => 'paid',
             'currency' => 'usd', 'subtotal_cents' => 100, 'total_cents' => 100, 'paid_at' => now()]);
-        $this->post("/{$studio->slug}/admin/orders/{$online->id}/void")->assertSessionHas('error', 'Online sales are refunded in Stripe.');
+        $this->post("/{$studio->slug}/admin/orders/{$online->id}/void")->assertSessionHas('error', 'Online sales are refunded, not voided.');
         $this->actingAs($this->userIn($studio, 'instructor'))->get($pos)->assertForbidden();
     }
 

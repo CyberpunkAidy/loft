@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  * with a card-present PaymentIntent, shown on the reader. The front desk's waiting page asks Stripe
  * where it stands every couple of seconds: paid → the order is numbered, plans granted, receipt sent;
  * declined → try again or cancel; cancelled → the stock goes back. The hourly sweep settles sales
- * nobody finished. No webhook events are needed. Refunding a reader sale voids it too.
+ * nobody finished. No webhook events are needed. Reader sales are refunded like online ones (Refunds).
  */
 class ReaderPayments
 {
@@ -185,17 +185,6 @@ class ReaderPayments
             return;
         }
         $this->stripe->presentTestCard($order->studio, $order->cardReader->stripe_reader_id, $decline ? self::DECLINED_TEST_CARD : null);
-    }
-
-    /**
-     * Give a reader sale's money back to the card, then void it (plans cancelled, products restocked).
-     *
-     * @throws StripeException
-     */
-    public function refund(Order $order, User $staff): void
-    {
-        $refund = $this->stripe->refundPaymentIntent($order->studio, $order->stripe_payment_intent_id);
-        $this->orders->void($order, $staff, ['refunded' => true, 'refund_id' => $refund['id'] ?? null]);
     }
 
     /** Hourly: settle reader sales nobody finished: record the ones that were paid, cancel the rest. */

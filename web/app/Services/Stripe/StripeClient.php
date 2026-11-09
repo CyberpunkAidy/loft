@@ -450,7 +450,7 @@ class StripeClient
         return $this->post("payment_intents/{$id}/cancel", [], $this->account($studio));
     }
 
-    /** Refund a payment in full, once. */
+    /** Refund what's left of a payment (all of it, unless part was refunded already), once. */
     public function refundPaymentIntent(Studio $studio, string $id): array
     {
         return $this->post('refunds', ['payment_intent' => $id], $this->account($studio), "loft-refund-{$id}");
@@ -476,6 +476,12 @@ class StripeClient
     public function retrieveInvoice(Studio $studio, string $id): array
     {
         return $this->get('invoices/'.$id, [], $this->account($studio));
+    }
+
+    /** A charge, with amount_refunded (Stripe's running total), payment_intent and invoice. */
+    public function retrieveCharge(Studio $studio, string $id): array
+    {
+        return $this->get('charges/'.$id, [], $this->account($studio));
     }
 
     /** Cancel a subscription now, without proration. One that's gone or already cancelled counts as cancelled. */

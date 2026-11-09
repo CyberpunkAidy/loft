@@ -98,8 +98,8 @@ class OrdersTest extends TestCase
         $this->assertSame(['Order', 'Date', 'Time zone', 'Member'], array_slice($rows[0], 0, 4));
         $this->assertCount(5, $rows); // header + 4 orders, the voided one included
         $this->assertSame(['1002', '2026-11-08 12:00', 'America/Denver', "'=SUM(A1) Lee"], array_slice($rows[1], 0, 4), 'formulas are escaped');
-        $this->assertSame(['Online (Stripe)', '30.00', '30.00', 'USD', 'Paid'], [$rows[1][7], $rows[1][8], $rows[1][11], $rows[1][12], $rows[1][13]]);
-        $this->assertSame('Void', $rows[4][13]);
+        $this->assertSame(['Online (Stripe)', '30.00', '30.00', '0.00', 'USD', 'Paid'], [$rows[1][7], $rows[1][8], $rows[1][11], $rows[1][12], $rows[1][13], $rows[1][14]]);
+        $this->assertSame('Void', $rows[4][14]);
 
         // Members see their purchases.
         $this->actingAs($member)->get("/{$studio->slug}/account/billing")->assertOk()->assertSee('Purchases')->assertSee('Order #1003')->assertSee('$30.00');

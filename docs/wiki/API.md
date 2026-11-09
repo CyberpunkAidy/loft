@@ -105,7 +105,7 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `GET /studios/{slug}/waivers` | | Waivers in force with their text, and for each person: `signed`, `expired`, `needed` |
 | `POST /studios/{slug}/attendees/{id}/waiver-signatures` | `waiver_id`, `signed_name`, `agree` (true), `signature_png`? (a data URL) | `201`, with `next_waiver_id` to sign next (or `null`). A waitlist spot waiting on the waiver may go through. Idempotent |
 | `GET /studios/{slug}/entitlements` | | Memberships and credits, current ones first |
-| `GET /studios/{slug}/orders` | | Purchases, newest first |
+| `GET /studios/{slug}/orders` | | Purchases, newest first. `status` is `paid`, `refunded` or `void`; `refunded_cents` and `refunded_at` show any refund (part of a sale can be refunded while it stays `paid`) |
 | `POST /studios/{slug}/checkouts` | `plan_id`, and to finish a booking once paid: `session_id`, `attendee_id`, `apparatus_id`?, `online`? | `201` `{id, url, expires_at, return_url}`. Idempotent |
 | `GET /studios/{slug}/checkouts/{id}` | | `status`, `payment_status`, `fulfilled`, the `entitlement` and `booking` it made, or `booking_error` |
 | `GET /studios/{slug}/attendees/{id}/check-in-code` | | `{code, expires_at, refresh_in}`: show `code` as a QR code, and fetch a new one after `refresh_in` seconds |

@@ -39,7 +39,7 @@ At the front desk (cash, a check, a card terminal, a bank transfer, a payment ap
 - **Receipt:** for paid methods the member gets the purchase email, with **Paid** (amount and method) and **Date** rows.
 - **Record:** each one is saved in `payments` with the amount, currency, method, date, note and who recorded it (`App\Services\OfflinePayments`).
 - **Void:** for mistakes. The record stays, marked void, with who voided it and when, and the plan it granted is cancelled. Comps are recorded too, so they can be voided as well.
-- **Reporting:** the member's page lists their recorded payments. **Admin → Payments** lists everything taken in person (these records and point-of-sale sales), with this month's total (voids and comps excluded).
+- **Reporting:** the member's page lists their recorded payments. **Admin → Payments** lists everything taken in person (these records and point-of-sale sales), with this month's total (voids, refunds and comps left out).
 - **Deleted accounts:** if a member deletes their account, the record stays in the studio's books, unlinked from the person ([Accounts and Data](Accounts-and-Data)). Signed waivers are kept the same way.
 - **Who:** admins and owners only.
 
@@ -51,7 +51,7 @@ Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`),
 - **Paying:** on a Stripe [card reader](#6-card-readers), or recorded: cash, check, card on another terminal, transfer, payment app, other, or comp, with an optional note.
 - **Sales tax:** the studio's rate (Settings → Merchandise, to three decimals, such as 8.875%) is added to products marked taxable. Plans aren't taxed. The studio is responsible for the right rate.
 - **What happens:** in one transaction, stock is taken (it never goes below zero: if another sale took the last one, the sale is refused), plans are granted as if paid in person, and one order records everything, with tax per line. The member gets a receipt email; the till shows a printable receipt.
-- **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock. A card reader sale is refunded to the card first (**Refund**).
+- **Voiding:** from the receipt, Sales or the member's page. The order is marked void, plans it added are cancelled, and products go back into stock. A sale paid on a card reader is refunded instead ([Refunds](#refunds)).
 - **The cart** lives in the staff member's session, one per studio. Every button is a plain form, so it works without JavaScript.
 
 ## 5. The online shop
@@ -64,7 +64,7 @@ Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`),
 - **Not paid:** an abandoned or expired checkout, or a bank payment that fails later, releases the order (expired or failed) and restocks. A failed bank payment emails the member that the order was cancelled.
 - **Walked away:** a member who closes the tab never comes back to release the order. Stripe expires the session at the end of its 30 minutes, and `checkout.session.expired` releases the order and restocks.
 - **Missed webhooks:** the hourly housekeeping job asks Stripe about any pending order whose Checkout should have finished: paid ones are fulfilled, expired ones released, failed bank payments released; ones still clearing are left. This also covers expired checkouts while `checkout.session.expired` isn't on the webhook. It needs `STRIPE_SECRET` on `loft-housekeeping` ([Deployment](Deployment#environment-variables)).
-- **Refunds:** in the Stripe Dashboard, as for other online sales; restock by hand in Products.
+- **Refunds:** **Refund** on Sales or the member's page puts the products back into stock, and clears "Ready to pick up" ([Refunds](#refunds)). If they keep what they bought, take it off the stock in Products.
 
 ## 6. Card readers
 
@@ -74,9 +74,25 @@ Stripe Terminal readers (BBPOS WisePOS E, Stripe Reader S700) at the front desk,
 - **Waiting:** a page shows the amount and refreshes itself every two seconds, asking Stripe each time. Paid: the order is numbered, plans are granted, the member gets their receipt, and the till's cart empties. Declined: Stripe's reason, with **Try again** (on the same reader) or **Cancel sale**. Cancelling clears the reader, cancels the payment and puts the stock back; if the card went through at that moment, the sale is recorded instead.
 - **Can't take it:** an offline or busy reader refuses the sale straight away, and nothing is left behind. A reader handles one sale at a time. Card payments must be at least 50¢ (Stripe's minimum).
 - **Left open:** the point of sale shows any sale still waiting on a reader. The hourly housekeeping job settles ones older than 15 minutes: paid ones are recorded, the rest cancelled and restocked. No webhook events are needed, but the job needs `STRIPE_SECRET` on `loft-housekeeping` ([Deployment](Deployment#environment-variables)).
-- **Refunds:** **Refund** on the receipt, Sales or the member's page refunds the whole sale to the card in Stripe, then voids it (plans cancelled, products restocked).
+- **Refunds:** **Refund** on the receipt, Sales or the member's page gives the whole sale back to the card ([Refunds](#refunds)).
 - **Test mode:** with test API keys, pair a simulated reader with the code `simulated-wpe`; the waiting page can then tap a test card, or one that's declined.
-- **Not supported:** tips, Interac (Canadian debit), the reader's offline mode, partial refunds (use the Stripe Dashboard).
+- **Not supported:** tips, Interac (Canadian debit), the reader's offline mode, partial refunds from Loft (use the Stripe Dashboard; Loft records them).
+
+## Refunds
+
+Money goes back through Stripe, on the studio's account ([decision 34](Decisions)). Sales taken in person without Stripe (cash, a check, another terminal, a comp) are voided instead.
+
+- **From Loft:** **Refund** on Sales, a member's page or a card reader receipt opens a page that says what the refund does, then refunds whatever is left of the payment (`App\Services\Refunds`). For admins and owners. Online sales (packs, drop-ins, membership payments, shop orders) and card reader sales can be refunded; a sale that's already refunded, or has no Stripe payment, can't.
+- **From the Stripe Dashboard:** full or partial refunds reach Loft through the `charge.refunded` webhook and are recorded on the sale the same way. Refunding part of a sale is done there.
+- **What a full refund takes back:**
+  - **Packs and drop-ins** are cancelled, unused credits and all. Classes already booked with them stay booked; staff remove them if they need to.
+  - **Products** go back into stock, and a shop order no longer waits to be picked up.
+  - **Plans sold at the point of sale** are cancelled, as when voiding.
+  - **A renewing membership or season** keeps running: one payment back doesn't end it. Refunding from Loft offers **Refund and end the membership now**, which cancels the subscription in Stripe straight away. A refund made in the Stripe Dashboard never ends it on its own; cancelling the subscription there does.
+- **A partial refund** is recorded only: nothing is taken back.
+- **On the books:** each order keeps how much was refunded (Stripe's running total, so a repeated or late webhook changes nothing), when, and who refunded it from Loft. Sales, the dashboard, Payments and the CSV show what the studio kept; a refund counts in the month of the sale. Sales shows refunds as their own figure, and the member's activity shows each one (`order.refunded`).
+- **Fees:** Stripe keeps its processing fee on refunded payments. With a platform fee, Loft keeps its fee too.
+- **Not handled:** a refund that fails after Stripe accepts it (rare; Stripe emails the studio), and disputes (chargebacks), which stay in the Stripe Dashboard.
 
 ## The orders ledger
 
@@ -92,13 +108,12 @@ Every sale is an **order** with **items** (`orders`, `order_items`, `App\Service
 
 - **Numbers:** per studio, from #1001, given when paid, so paid orders are numbered without gaps.
 - **Once each:** orders are keyed on the Stripe Checkout Session or invoice ID, so retried webhooks and the checkout return page can't record a sale twice.
-- **History:** each order records an `order.paid` domain event (`order.voided` when voided), shown in the member's activity.
-- **Admin → Sales:** a month at a time (studio time), with total, online and in-person sales, the number of sales and comps, every order with its items, how it was paid (online ones link to the payment in the studio's Stripe Dashboard), and **Download CSV** for the books. Voided sales are listed but left out of totals.
-- **Elsewhere:** the dashboard shows sales this month; a member's admin page lists their purchases (in-person ones can be voided there); members see their purchases under **Plans & billing**.
+- **History:** each order records an `order.paid` domain event (`order.voided` when voided, `order.refunded` for each refund), shown in the member's activity.
+- **Admin → Sales:** a month at a time (studio time), with total, online and in-person sales, the number of sales and comps, every order with its items, how it was paid (online ones link to the payment in the studio's Stripe Dashboard), and **Download CSV** for the books. Voided and refunded sales are listed but left out of totals, and partial refunds are taken off.
+- **Elsewhere:** the dashboard shows sales this month; a member's admin page lists their purchases (refunded or voided there); members see their purchases under **Plans & billing**.
 - **History before the ledger:** payments recorded in person before November 2026 were copied in as orders. Earlier online sales weren't (their amounts are in Stripe, not Loft), so the online history starts with the ledger.
 
 ## Not supported yet
 
 - **Shipping:** shop orders are picked up at the studio.
-- **Stripe refunds** made in the Stripe Dashboard don't take back what they paid for, and don't change the order. Remove the plan by hand. (Card reader sales refunded from Loft are voided too.)
 - **Other payment providers:** PayPal checkout, Square, or Loft collecting money and paying studios out. Deliberately not planned ([Decisions](Decisions)).

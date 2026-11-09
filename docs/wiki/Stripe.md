@@ -25,6 +25,7 @@
      - `checkout.session.async_payment_succeeded`
      - `checkout.session.async_payment_failed`
      - `checkout.session.expired`
+     - `charge.refunded`
      - `invoice.paid`
      - `invoice.payment_failed`
      - `customer.subscription.updated`
@@ -61,6 +62,7 @@ Status in November 2026: the platform keys, Connect and the webhook are being se
 | `checkout.session.async_payment_succeeded` | Same, once a delayed payment (bank debit) clears |
 | `checkout.session.async_payment_failed` | Emails the member that the payment didn't go through (one-time purchases) |
 | `checkout.session.expired` | Releases a shop order the member walked away from and puts its stock back (plan checkouts hold nothing) |
+| `charge.refunded` | Records the refund on its sale; a full one takes back what it paid for, except a renewing membership ([Payments](Payments#refunds)) |
 | `invoice.paid` | Extends the membership period; restores a past-due membership; grants it if checkout hasn't arrived yet |
 | `invoice.payment_failed` | Marks the membership past due (bookings pause) and emails once per lapse |
 | `customer.subscription.updated` | Copies status, period end and scheduled cancellation |
@@ -84,9 +86,9 @@ Returning from Checkout (`/{studio}/checkout/complete`) runs the same fulfilment
 | "This API call cannot be made with a publishable API key" | `STRIPE_SECRET` held the `pk_` key | Use the `sk_` secret key |
 | "Stripe no longer recommends Accounts v1 for new Connect integrations…" | Stripe blocks v1 account creation for new platforms | Accounts v2 since [#8](https://github.com/CyberpunkAidy/loft-studio/pull/8) |
 | A pack paid by bank debit never appears | `async_payment_succeeded` wasn't handled | Handled since [#13](https://github.com/CyberpunkAidy/loft-studio/pull/13); add the event to the webhook |
+| A refund made in the Stripe Dashboard doesn't show in Sales, and the pack is still usable | `charge.refunded` isn't on the webhook | Add `charge.refunded` to the webhook's events. Refunds made before that aren't sent again: cancel those plans by hand |
 | Shop orders or card reader sales stay pending and keep their stock; `loft-housekeeping`'s logs show "Stripe is not configured. Set STRIPE_SECRET." | `STRIPE_SECRET` was only on `loft-web`, so the hourly job couldn't ask Stripe | Add `STRIPE_SECRET` (the same key) to `loft-housekeeping` → Environment. A Blueprint sync won't add it, because it's `sync: false`. Also add `checkout.session.expired` to the webhook |
 
 ## Known gaps
 
-- **Refunds:** a refund issued in the studio's Stripe Dashboard doesn't take back the credits or membership it paid for. Staff remove it by hand. See [Roadmap](Roadmap).
 - **Payment methods:** these are whatever each studio turns on in its own Stripe Dashboard (Settings → Payment methods). The app doesn't restrict them.

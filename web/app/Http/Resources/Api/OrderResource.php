@@ -22,6 +22,8 @@ class OrderResource extends ApiResource
             'tax_cents' => $this->tax_cents,
             'total_cents' => $this->total_cents,
             'total_label' => $this->totalLabel(),
+            'refunded_cents' => $this->refunded_cents,
+            'refunded_at' => self::utc($this->refunded_at),
             'fulfillment_status' => $this->fulfillment_status,
             'items' => $this->items->map(fn ($i) => ['kind' => $i->kind, 'description' => $i->description, 'quantity' => $i->quantity, 'total_cents' => $i->total_cents])->values(),
         ];

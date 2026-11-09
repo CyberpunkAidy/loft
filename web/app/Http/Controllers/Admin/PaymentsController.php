@@ -10,6 +10,7 @@ use App\Services\Stripe\StripeClient;
 use App\Services\Stripe\StripeException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /** Stripe Connect onboarding, and the payments staff recorded by hand. */
@@ -36,7 +37,7 @@ class PaymentsController extends Controller
             'error' => $error,
             'webhookUrl' => route('stripe.webhook'),
             'orders' => (clone $inPerson)->with(['items', 'user', 'payment', 'studio'])->latest('paid_at')->latest('id')->paginate(25),
-            'monthTotal' => (int) (clone $thisMonth)->sum('total_cents'),
+            'monthTotal' => (int) (clone $thisMonth)->sum(DB::raw('total_cents - refunded_cents')),
             'monthCount' => (clone $thisMonth)->count(),
         ]);
     }

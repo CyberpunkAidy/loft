@@ -167,6 +167,8 @@ Route::prefix('{studio}')
                 Route::post('pos/orders/{order}/reader/retry', [Admin\PointOfSaleController::class, 'retryReader'])->name('pos.reader.retry');
                 Route::post('pos/orders/{order}/reader/simulate', [Admin\PointOfSaleController::class, 'simulateReader'])->name('pos.reader.simulate');
                 Route::post('orders/{order}/void', [Admin\PointOfSaleController::class, 'void'])->name('orders.void');
+                Route::get('orders/{order}/refund', [Admin\RefundController::class, 'show'])->name('orders.refund');
+                Route::post('orders/{order}/refund', [Admin\RefundController::class, 'store'])->middleware('throttle:20,1')->name('orders.refund.store');
 
                 Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
                 Route::get('sales/export', [Admin\SalesController::class, 'export'])->name('sales.export');

@@ -36,13 +36,13 @@
     <h2 class="mt">Purchases</h2>
     <div class="list">
         @foreach ($orders as $order)
-            <div @class(['card', 'item', 'is-void' => $order->isVoid()])>
+            <div @class(['card', 'item', 'is-void' => $order->isUndone()])>
                 <div>
                     <strong>{{ $order->itemsLabel() }}</strong>
                     <div class="muted small">{{ $studio->local($order->paid_at)->format('M j, Y') }} · {{ $order->methodLabel() }} · Order #{{ $order->number }}</div>
                     @if ($order->awaitsPickup())<div class="small"><span class="badge badge-warn">Ready to pick up</span></div>@elseif ($order->fulfillment_status === 'picked_up')<div class="small muted">Picked up {{ $studio->local($order->picked_up_at)->format('M j') }}</div>@endif
                 </div>
-                <span @class(['badge', 'badge-muted' => $order->isVoid()])>{{ $order->isVoid() ? 'Void' : $order->totalLabel() }}</span>
+                <span @class(['badge', 'badge-muted' => $order->isUndone()])>{{ $order->isUndone() ? $order->statusLabel() : $order->totalLabel().($order->refunded_cents ? ' · '.$order->refundedLabel().' refunded' : '') }}</span>
             </div>
         @endforeach
     </div>

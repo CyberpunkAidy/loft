@@ -129,6 +129,7 @@ class StripeWebhooks
             'checkout.session.async_payment_succeeded' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
             'checkout.session.async_payment_failed' => $this->checkoutFailed($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
             'checkout.session.expired' => $this->shop->expired($studio, $this->stripe->retrieveCheckoutSession($studio, $id)), // plan checkouts hold nothing
+            'charge.refunded' => $this->chargeRefunded($studio, $this->stripe->retrieveCharge($studio, $id)),
             'invoice.paid' => $this->invoicePaid($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'invoice.payment_failed' => $this->invoiceFailed($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'customer.subscription.updated' => $this->subscriptionUpdated($studio, $this->stripe->retrieveSubscription($studio, $id)),
@@ -302,6 +303,24 @@ class StripeWebhooks
     }
 
     /** @param array<string, mixed> $subscription */
+    /**
+     * Money given back for a payment, from Loft or the Stripe Dashboard: recorded on its order, which
+     * a full refund takes back (Orders::refunded). Payments Loft has no order for are ignored.
+     */
+    private function chargeRefunded(Studio $studio, array $charge): void
+    {
+        $intent = is_array($charge['payment_intent'] ?? null) ? ($charge['payment_intent']['id'] ?? null) : ($charge['payment_intent'] ?? null);
+        $invoice = is_array($charge['invoice'] ?? null) ? ($charge['invoice']['id'] ?? null) : ($charge['invoice'] ?? null);
+        $order = match (true) {
+            filled($intent) && ($found = $studio->orders()->where('stripe_payment_intent_id', $intent)->first()) !== null => $found,
+            filled($invoice) => $studio->orders()->where('stripe_invoice_id', $invoice)->first(),
+            default => null,
+        };
+        if ($order) {
+            $this->orders->refunded($order, (int) ($charge['amount_refunded'] ?? 0), null, ['charge_id' => $charge['id'] ?? null]);
+        }
+    }
+
     private function subscriptionDeleted(Studio $studio, array $subscription): void
     {
         $entitlement = $studio->entitlements()->where('stripe_subscription_id', $subscription['id'] ?? '')->first();
