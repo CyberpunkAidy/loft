@@ -29,6 +29,15 @@ Transactional email (bookings, receipts, reminders, payment problems) always goe
 - **Sending marketing email:** `Messages::email($user, $message, $dedupeKey, 'marketing')`. It checks consent, adds the footer line and the headers.
 - **SMS:** consent for marketing texts (TCPA) will be collected when SMS is added.
 
+## Invitations and renewals for imported members
+
+Members imported from another system ([Data Import](Data-Import)) hear nothing until staff send invitations. Both emails are studio-branded and transactional:
+
+| Email | Sent | Once per |
+|---|---|---|
+| Invitation (“*Studio* has a new booking system”) | When staff press Send invitations, or remind those who haven't come in | press (reminders three days apart) |
+| Keep your *plan* going | A week before an imported membership ends, to invited members who haven't started it in Loft | membership |
+
 ## Automations
 
 Admin → Automations: emails a studio sets up once that then go out by themselves (`App\Services\Automations`). Each is off until the studio turns it on.

@@ -89,12 +89,14 @@ class DomainEvent extends Model
                 'reader' => ' (paid on a card reader)',
                 'comp' => ' (comped)',
                 'staff' => ' (given by staff)',
+                'import' => ' (brought over from the old system)',
                 default => ' (paid in person: '.strtolower(Payment::METHODS[$p['source']] ?? $p['source']).')',
             },
             'entitlement.ended' => ($p['plan_name'] ?? 'Plan').' '.match ($p['reason'] ?? null) {
                 'expired' => 'expired',
                 'voided' => 'voided',
                 'refunded' => 'taken back (refunded)',
+                'continued' => 'carried on as a Loft membership',
                 default => 'ended',
             },
             'order.paid' => 'Paid '.Money::format((int) ($p['total_cents'] ?? 0), $p['currency'] ?? 'usd')

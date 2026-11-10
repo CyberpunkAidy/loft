@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * A person who attends classes: a child on a family account, or the account holder ("self").
  */
-#[Fillable(['studio_id', 'user_id', 'first_name', 'last_name', 'dob', 'is_self', 'medical_notes', 'emergency_contact', 'status'])]
+#[Fillable(['studio_id', 'user_id', 'first_name', 'last_name', 'dob', 'is_self', 'medical_notes', 'emergency_contact', 'status', 'import_id'])]
 class Attendee extends Model
 {
     /** @return array<string, mixed> what a member can set on someone in their family (website and app) */

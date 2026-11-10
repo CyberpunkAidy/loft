@@ -7,6 +7,7 @@
 - [Email](Email)
 - [Payments](Payments)
 - [Loft Subscription](Loft-Subscription)
+- [Data Import](Data-Import)
 - [API](API)
 - [Mobile App](Mobile-App)
 - [Accounts and Data](Accounts-and-Data)

@@ -4,6 +4,16 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
+- **Data import from another system** ([Data Import](Data-Import))
+  - **Admin → Members → Import:** upload a CSV from Mindbody, Momence, Punchpass, WellnessLiving or a spreadsheet. Columns are matched by name (staff can change any), and a preview shows what will be imported and which rows are skipped and why. Imports run in the background and can be undone for 30 days.
+  - **Members and families:** rows sharing an email, or a parent's email, become one family, with birthdays, medical notes, emergency contacts and marketing consent. Existing Loft accounts join as they are.
+  - **Credits and memberships:** matched to the studio's plans by name. Packs keep the classes they have left; memberships run until their paid-through date. Nothing is recorded as a sale.
+  - **Invitations when the studio chooses:** a studio-branded email with each member's family and plans, and a link to choose a password; reminders for those who haven't come in.
+  - **Carrying memberships on:** a week before an imported membership ends, invited members are asked to start it in Loft; Checkout trials until the old end date, so the card is first charged when it ends.
+  - **Imported people aren't new:** no "first class" email for their first class in Loft, and no "never visited" churn flag.
+  - **Fix:** an API test that failed between midnight and 5 AM UTC.
+  - **Decision 37.**
+  - **Database:** `imports`; `import_id` on `users`, `studio_users`, `attendees` and `entitlements`; `studio_users.invited_at` and `invitation_accepted_at`; `member_snapshots.imported`.
 - **Studios pay Loft: $49 a month after a 30-day free trial** ([Loft Subscription](Loft-Subscription))
   - **Trial:** new studios start a 30-day free trial with no card; staff see the days left at the top of the admin.
   - **Admin → Subscription:** owners subscribe through Stripe Checkout on Loft's own Stripe account. In the trial the card is first charged when it ends, and promotion codes work. **Manage billing** opens Stripe's billing portal: card, invoices, cancelling at the end of the month.

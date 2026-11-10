@@ -95,6 +95,7 @@ class MemberSnapshots
                 'failed_payments_90d' => (int) ($failedPayments[$m->user_id] ?? 0),
                 'attendees' => (int) ($attendees[$m->user_id] ?? 0),
                 'tenure_days' => $m->created_at ? $daysSince($studio->local($m->created_at)->startOfDay()) : 0,
+                'imported' => $m->import_id !== null,
                 'created_at' => now(),
             ];
         });

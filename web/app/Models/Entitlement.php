@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'studio_id', 'user_id', 'plan_id', 'kind', 'status', 'stripe_subscription_id', 'stripe_customer_id',
     'stripe_checkout_session_id', 'credits_total', 'credits_remaining', 'expires_at', 'current_period_end',
-    'program_scope', 'weekly_limit',
+    'program_scope', 'weekly_limit', 'import_id',
 ])]
 class Entitlement extends Model
 {

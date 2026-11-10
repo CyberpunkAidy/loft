@@ -31,7 +31,7 @@ The [wiki](https://github.com/CyberpunkAidy/loft-studio/wiki) covers:
 
 ## Status
 
-- **Web app:** live. Stripe Connect is being set up in test mode. Studios pay Loft $49 a month after a 30-day free trial ([Loft Subscription](https://github.com/CyberpunkAidy/loft-studio/wiki/Loft-Subscription)).
+- **Web app:** live. Stripe Connect is being set up in test mode. Studios pay Loft $49 a month after a 30-day free trial ([Loft Subscription](https://github.com/CyberpunkAidy/loft-studio/wiki/Loft-Subscription)), and can import their members from another system ([Data Import](https://github.com/CyberpunkAidy/loft-studio/wiki/Data-Import)).
 - **Built from the [roadmap](https://github.com/CyberpunkAidy/loft-studio/wiki/Roadmap):** waiver hardening; rooms with apparatus capacity and waitlist limits; the event backbone (an event outbox, an email log, marketing consent, nightly member snapshots); automated emails (after a first class, birthdays, we miss you); an orders ledger of every sale; merchandise, a front-desk point of sale with Stripe Terminal card readers, an online shop with pickup at the studio; a JSON API for the mobile app (v1); contactless check-in at a kiosk with tags or QR codes; churn risk scoring with an at-risk email; and online and hybrid classes joined through the studio's meeting link, with an on-demand video library on Mux. All ten roadmap steps are built; what's left in each is on the roadmap.
 - **Mobile app:** the first version is built in `mobile/` (Expo, on the web app's API): booking, check-in codes, videos and buying plans, for every studio in one app. Not in the stores yet.
 - **WordPress plugin:** releases paused until the web app (and possibly the mobile app) is finished.

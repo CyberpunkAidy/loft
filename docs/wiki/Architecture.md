@@ -83,6 +83,7 @@ Elsewhere in the repository:
 | `domain_events` | The outbox and history: every booking, check-in, plan, payment failure, waiver signature and consent change, with IDs and facts only ([below](#events-and-email)) |
 | `message_deliveries` | Every studio email: its kind, transactional or marketing, status (queued, sent, failed, suppressed), the automation that sent it (if any), and a unique dedupe key |
 | `member_snapshots` | Each member's activity as of each night, for churn scoring |
+| `imports` | CSV uploads from a studio's old system: the file (until imported), column matches, counts and skipped rows. `import_id` on users, memberships, attendees and entitlements points back here ([Data Import](Data-Import)) |
 | `member_risk_scores` | Each member's churn risk each night: a score from 0 to 100, a level, the reasons in plain words, and the model version |
 | `automations` | Each studio's automated emails (one per trigger: first class, birthday, we miss you): text, timing, on or off |
 
@@ -111,6 +112,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Shop`:** the online shop: holds stock in a pending order, opens a 30-minute Stripe Checkout on the studio's account, marks the order paid (webhook or return page) and emails a pickup receipt, or releases it and restocks (`checkout.session.expired` releases abandoned ones). Housekeeping settles checkouts whose webhook never came.
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
+- **`Imports\Imports`, `PeopleImporter`, `PlansImporter`:** data import from another system: preview, run (on the queue), undo. **`MemberInvitations`:** invitations to imported members, and carrying their memberships on in Loft.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
 - **`MemberSnapshots`:** each night's member snapshot.
 - **`ChurnScores`:** scores each snapshot for churn risk (rules, version `rules-v1`) into `member_risk_scores`.

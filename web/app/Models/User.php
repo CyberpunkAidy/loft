@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
  * A person with a login. Users are global: the same account can be a member of one
  * studio and staff at another. Their role per studio lives in studio_users.
  */
-#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password'])]
+#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password', 'import_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

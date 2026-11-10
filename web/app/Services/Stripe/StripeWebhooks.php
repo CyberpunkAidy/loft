@@ -179,6 +179,9 @@ class StripeWebhooks
                 $stripe['current_period_end'] = $this->periodEnd($this->stripe->retrieveSubscription($studio, $subscriptionId));
             }
             [$entitlement, $created] = $this->grant($studio, $plan, $user, $stripe);
+            if ($created) {
+                $this->endContinued($studio, $meta, $entitlement);
+            }
         } elseif (! $entitlement->stripe_checkout_session_id) {
             $entitlement->update(['stripe_checkout_session_id' => $cs['id']]); // invoice.paid got here first
         }
@@ -228,11 +231,14 @@ class StripeWebhooks
             $subscription = $this->stripe->retrieveSubscription($studio, $subscriptionId);
             [$plan, $user] = $this->planAndUser($studio, $subscription['metadata'] ?? []);
             if ($plan && $user) {
-                [$entitlement] = $this->grant($studio, $plan, $user, [
+                [$entitlement, $created] = $this->grant($studio, $plan, $user, [
                     'customer_id' => $subscription['customer'] ?? null,
                     'subscription_id' => $subscriptionId,
                     'current_period_end' => $this->periodEnd($subscription),
                 ]);
+                if ($entitlement && $created) {
+                    $this->endContinued($studio, $subscription['metadata'] ?? [], $entitlement);
+                }
                 if ($entitlement) {
                     $this->orders->recordInvoice($studio, $invoice, $entitlement);
                 }
@@ -368,6 +374,27 @@ class StripeWebhooks
         EntitlementGranted::dispatch($entitlement);
 
         return [$entitlement, true];
+    }
+
+    /**
+     * A membership imported from another system, now carried on by a Loft subscription (decision
+     * 37): the subscription covers the rest of its time (Stripe trials until it would have ended),
+     * so it ends here rather than showing twice.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    private function endContinued(Studio $studio, array $meta, Entitlement $new): void
+    {
+        $id = (int) ($meta['continues_entitlement_id'] ?? 0);
+        $old = $id ? $studio->entitlements()->whereKey($id)->where('user_id', $new->user_id)->whereNotNull('import_id')
+            ->whereNull('stripe_subscription_id')->where('status', 'active')->with('plan')->first() : null;
+        if (! $old) {
+            return;
+        }
+        DB::transaction(function () use ($old) {
+            $old->update(['status' => 'expired']);
+            $this->events->forEntitlement('entitlement.ended', $old, ['reason' => 'continued']);
+        });
     }
 
     /** @return array{0: ?Booking, 1: ?string} */

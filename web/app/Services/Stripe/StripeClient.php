@@ -239,7 +239,8 @@ class StripeClient
     /**
      * Start a hosted Checkout for a plan. $successUrl may contain {CHECKOUT_SESSION_ID}.
      *
-     * @param  array{session_id?: int, attendee_id?: int, apparatus_id?: int}  $context  a booking to complete after payment
+     * @param  array{session_id?: int, attendee_id?: int, apparatus_id?: int, online?: int, continues?: int, trial_end?: int}  $context
+     *                                                                                                                                   a booking to complete after payment; an imported membership to carry on
      */
     public function createCheckout(Studio $studio, User $user, Plan $plan, string $successUrl, string $cancelUrl, array $context = []): array
     {
@@ -259,6 +260,9 @@ class StripeClient
         if (! empty($context['online'])) {
             $metadata['online'] = 1;
         }
+        if (! empty($context['continues'])) {
+            $metadata['continues_entitlement_id'] = (int) $context['continues']; // an imported membership this one carries on
+        }
         $params = [
             'customer' => $this->ensureCustomer($studio, $user),
             'mode' => $plan->isRecurring() ? 'subscription' : 'payment',
@@ -271,10 +275,13 @@ class StripeClient
 
         if ($plan->isRecurring()) {
             $params['subscription_data'] = ['metadata' => $metadata];
+            if (! empty($context['trial_end'])) {
+                $params['subscription_data']['trial_end'] = (int) $context['trial_end']; // first charged when the imported membership ends
+            }
             if ($this->platformFeePercent > 0) {
                 $params['subscription_data']['application_fee_percent'] = $this->platformFeePercent;
             }
-            if ($plan->kind === 'season' && $plan->stripe_fee_price_id) {
+            if ($plan->kind === 'season' && $plan->stripe_fee_price_id && empty($context['continues'])) {
                 $params['line_items'][] = ['price' => $plan->stripe_fee_price_id, 'quantity' => 1];
             }
             // A season plan ends with its season. Checkout can't set cancel_at, so the
