@@ -44,6 +44,40 @@
 		sync();
 	});
 
+	// Home page savings calculator: a year of the studio's current software, plus any fee it adds to
+	// card sales, against a year of Loft. The same sum as PlatformController::home, which fills in
+	// the first answer so the page reads right without this.
+	document.querySelectorAll('[data-calc]').forEach(function (form) {
+		var monthly = parseFloat(form.getAttribute('data-monthly')) || 0;
+		var loftFee = parseFloat(form.getAttribute('data-fee')) || 0;
+		var money;
+		try {
+			money = new Intl.NumberFormat('en-US', { style: 'currency', currency: form.getAttribute('data-currency') || 'USD', maximumFractionDigits: 0 });
+		} catch (err) {
+			money = { format: function (n) { return '$' + Math.round(n).toLocaleString('en-US'); } };
+		}
+		function num(name) {
+			var v = parseFloat(form.elements[name].value);
+			return isFinite(v) && v > 0 ? v : 0;
+		}
+		function out(name) { return form.querySelector('[data-out="' + name + '"]'); }
+		function show(el, amount) { el.firstChild.nodeValue = money.format(amount); }
+		function sync() {
+			var sales = num('sales');
+			var now = 12 * (num('software') + sales * Math.min(num('percent'), 100) / 100);
+			var loft = 12 * (monthly + sales * loftFee / 100);
+			var saved = now - loft;
+			show(out('now'), now);
+			show(out('loft'), loft);
+			show(out('saved'), Math.abs(saved));
+			out('saved-label').textContent = saved >= 0 ? 'You’d keep' : 'Loft costs more by';
+			out('saved').parentNode.classList.toggle('more', saved < 0);
+		}
+		form.addEventListener('input', sync);
+		form.addEventListener('submit', function (e) { e.preventDefault(); sync(); });
+		sync();
+	});
+
 	// Waiver signature pad: draws into a canvas and stores a PNG data URL in the hidden input.
 	document.querySelectorAll('[data-sigpad]').forEach(function (canvas) {
 		var input = document.getElementById(canvas.getAttribute('data-sigpad'));

@@ -53,6 +53,12 @@ return [
     ],
 
     /*
+    | Where studio owners write for help, and to send their old system's export for the free
+    | import the home page offers. Shown on the home page and in the platform footer.
+    */
+    'support_email' => env('LOFT_SUPPORT_EMAIL', 'hello@loftstudio.app'),
+
+    /*
     | Mux, for on-demand video (decision 33). Loft's own Mux account hosts every studio's videos.
     | token_id/token_secret: an access token with Mux Video read and write. signing_key_id and
     | signing_key: a URL signing key (Settings → Signing keys); the key is the base64 private key

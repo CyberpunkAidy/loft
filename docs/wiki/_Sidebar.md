@@ -9,6 +9,7 @@
 - [Loft Subscription](Loft-Subscription)
 - [Data Import](Data-Import)
 - [Legal](Legal)
+- [Home Page](Home-Page)
 - [API](API)
 - [Mobile App](Mobile-App)
 - [Accounts and Data](Accounts-and-Data)

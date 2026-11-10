@@ -4,14 +4,27 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Terms of Service and Privacy Policy** ([Legal](Legal))
+- **A new home page** ([Home Page](Home-Page))
+  - **loftstudio.app** now sells one flat price with everything included: "Your whole studio, one flat price." Real screenshots from a demo studio (the owner's dashboard, a parent's phone, booking a silk or hoop, the check-in roster, sales, members at risk, an import preview) replace the drawn schedule.
+  - **For every class-based studio,** with a section on booking by apparatus for aerial, pole and reformer studios.
+  - **A savings calculator:** a studio's current software bill and any fee on card sales, against a year of Loft. It names no other products, leaves Stripe's own fees out of both sides, and says so when Loft would cost more.
+  - **Free help moving from another system**, and a support address, `hello@loftstudio.app` (`LOFT_SUPPORT_EMAIL`), also in the site footer as **Contact**.
+  - **Questions** on the page: fees, moving members, apps, getting started, the trial, leaving, and support.
+  - **Search and sharing:** meta descriptions on the home and pricing pages, a share image for links, and structured data for the price and the questions.
+  - **Dashboard:** once every setup step is done, the Setup card becomes **Your schedule**, with the studio's link (now clickable, without `https://`).
+  - **Decision 39.**
+  - **Action needed:** forward hello@loftstudio.app to your inbox (Porkbun).
+
+## 2026-11-10
+
+- **Terms of Service and Privacy Policy** ([Legal](Legal), [#33](https://github.com/CyberpunkAidy/loft-studio/pull/33))
   - **/terms and /privacy**, written from how Loft works: the studio subscription (prices, trial and grace from the billing settings), studios' responsibilities (their own Stripe accounts, classes, waivers, members' data, marketing), members' terms, data processing terms for studios (subprocessors, security, breaches, deletion, EU and UK transfer clauses), and what's collected, kept and shared. Goldseam Tech LLC, Wyoming law, privacy@loftstudio.app.
   - **Agreeing:** starting a studio needs a ticked box; joining a studio, signing up in the app, or choosing a password from an import invitation says it agrees. Who agreed, when, and to which version is recorded.
   - **Links** in the site, studio and admin footers, and in the mobile app (sign-up and Account).
   - **Decision 38.**
   - **Database:** `terms_accepted_at` and `terms_version` on `users` and `studios`.
   - **Action needed:** forward privacy@loftstudio.app to your inbox (Porkbun), and have a lawyer review both documents.
-- **Data import from another system** ([Data Import](Data-Import))
+- **Data import from another system** ([Data Import](Data-Import), [#32](https://github.com/CyberpunkAidy/loft-studio/pull/32))
   - **Admin → Members → Import:** upload a CSV from Mindbody, Momence, Punchpass, WellnessLiving or a spreadsheet. Columns are matched by name (staff can change any), and a preview shows what will be imported and which rows are skipped and why. Imports run in the background and can be undone for 30 days.
   - **Members and families:** rows sharing an email, or a parent's email, become one family, with birthdays, medical notes, emergency contacts and marketing consent. Existing Loft accounts join as they are.
   - **Credits and memberships:** matched to the studio's plans by name. Packs keep the classes they have left; memberships run until their paid-through date. Nothing is recorded as a sale.
@@ -21,7 +34,10 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Fix:** an API test that failed between midnight and 5 AM UTC.
   - **Decision 37.**
   - **Database:** `imports`; `import_id` on `users`, `studio_users`, `attendees` and `entitlements`; `studio_users.invited_at` and `invitation_accepted_at`; `member_snapshots.imported`.
-- **Studios pay Loft: $49 a month after a 30-day free trial** ([Loft Subscription](Loft-Subscription))
+
+## 2026-11-09
+
+- **Studios pay Loft: $49 a month after a 30-day free trial** ([Loft Subscription](Loft-Subscription), [#31](https://github.com/CyberpunkAidy/loft-studio/pull/31))
   - **Trial:** new studios start a 30-day free trial with no card; staff see the days left at the top of the admin.
   - **Admin → Subscription:** owners subscribe through Stripe Checkout on Loft's own Stripe account. In the trial the card is first charged when it ends, and promotion codes work. **Manage billing** opens Stripe's billing portal: card, invoices, cancelling at the end of the month.
   - **If it lapses:** when the trial or subscription ends, or a payment fails, everything works for 7 more days with a warning, then the studio pauses. Staff see only the Subscription page, and members can't book, join waitlists, buy plans or order from the shop online (`studio_paused` in the API); automations wait. Nothing is deleted, and paying restores it all.
@@ -32,7 +48,7 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Decision 36.**
   - **Database:** `studios.trial_ends_at`, `comped_at`, `comp_note` and `billing_*`.
   - **Action needed:** add the billing webhook in Stripe and `STRIPE_BILLING_WEBHOOK_SECRET` on `loft-web` ([setup](Loft-Subscription#setting-it-up-once)).
-- **The mobile app, first version** (`mobile/`)
+- **The mobile app, first version** (`mobile/`, [#30](https://github.com/CyberpunkAidy/loft-studio/pull/30))
   - **One Loft app for every studio**, for iOS and Android, built with Expo on the API. Members find their studio by its web address, then sign in, create an account or join; the app takes on the studio's color, and follows the phone's light or dark setting.
   - **Booking:** the schedule a week at a time in the studio's time zone; each class with a line per person on the account: book, join the waitlist, sign a waiver first, or buy a plan that covers it (the booking finishes once paid). Online or in the studio for hybrid classes; apparatus where there's a choice.
   - **My classes:** upcoming and past, cancelling, and **Join online** for online classes.
@@ -40,10 +56,7 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Videos:** the library and player.
   - **Checks:** a type check and 21 tests on every change (`.github/workflows/mobile.yml`), and the web build. Not in the stores yet: that needs Apple and Google developer accounts ([Mobile App](Mobile-App)).
   - **Decision 35.**
-- **API:** upcoming bookings now stay upcoming until the class ends, checked-in ones too, as on the website, so the app can rejoin an online class; past is what has ended.
-
-## 2026-11-09
-
+- **API** ([#30](https://github.com/CyberpunkAidy/loft-studio/pull/30)): upcoming bookings now stay upcoming until the class ends, checked-in ones too, as on the website, so the app can rejoin an online class; past is what has ended.
 - **The old email log is dropped** ([#29](https://github.com/CyberpunkAidy/loft-studio/pull/29))
   - **Database:** the `sent_notifications` table is dropped. It was replaced by `message_deliveries` when the event backbone went live ([#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)), which copied its rows (class reminders and credit-expiry warnings already sent), and nothing has used it since. Rolling back brings the table back empty.
 - **Refunds** ([#28](https://github.com/CyberpunkAidy/loft-studio/pull/28))

@@ -1,6 +1,7 @@
 @extends('layouts.platform')
 
 @section('title', 'Pricing')
+@section('description', "Loft costs {$price} a month per studio, with every feature included and unlimited members and staff. Free for {$trialDays} days, no card needed.")
 
 @section('content')
 <section class="section pricing" aria-labelledby="pricing-title">
