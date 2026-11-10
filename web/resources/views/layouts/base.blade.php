@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@hasSection('title')@yield('title') · @endif{{ isset($studio) && $studio ? $studio->name : config('app.name') }}</title>
+    @hasSection('description')<meta name="description" content="@yield('description')">@endif
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
     @if (isset($studio) && $studio)
         @php($favicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="13" fill="'.$studio->accent().'"/><text x="24" y="33" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" fill="'.$studio->accentInk().'">'.e($studio->initial()).'</text></svg>')

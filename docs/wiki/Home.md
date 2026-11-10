@@ -21,6 +21,7 @@ This wiki covers the web app and the mobile app. The plugin is documented in `pl
 - **Loft subscription:** $49 a month per studio after a 30-day free trial, billed on Loft's own Stripe account ([Loft Subscription](Loft-Subscription)). Studios that were already on Loft are free.
 - **Data import:** studios bring members, families, credits and memberships over from another system as CSV files, and invite members when they're ready ([Data Import](Data-Import)).
 - **Legal:** Terms of Service (with data processing terms) and a Privacy Policy at loftstudio.app/terms and /privacy, to be reviewed by a lawyer ([Legal](Legal)).
+- **Home page:** loftstudio.app sells one flat price with everything included, with real screenshots, a savings calculator, free help moving from another system, and search and share tags ([Home Page](Home-Page)).
 - **Roadmap:** all ten steps are built ([Roadmap](Roadmap)). The mobile app's first version is built on the API ([Mobile App](Mobile-App)); it isn't in the stores yet.
 
 ## Pages
@@ -33,6 +34,7 @@ This wiki covers the web app and the mobile app. The plugin is documented in `pl
 - [Payments](Payments): online, delayed (bank) and in-person payments.
 - [Loft Subscription](Loft-Subscription): what studios pay Loft: the trial, subscribing, grace and pausing, comps, and the Stripe setup.
 - [Legal](Legal): the Terms of Service and Privacy Policy: what they cover, where they live, acceptance records and how to change them.
+- [Home Page](Home-Page): the marketing page: what it says, the promises it makes, search and share tags, and how to retake its screenshots.
 - [Data Import](Data-Import): moving a studio's members, families, credits and memberships over from another system, and inviting them.
 - [API](API): the mobile app's JSON API (v1): tokens, errors, endpoints.
 - [Mobile App](Mobile-App): the Loft app for iOS and Android: what it does, how it's built, getting it into the stores.

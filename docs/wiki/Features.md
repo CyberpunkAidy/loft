@@ -2,7 +2,7 @@
 
 ## Platform (loftstudio.app)
 
-- **Home page:** what Loft does, with a way to start a studio.
+- **Home page:** what Loft does and costs, with real screenshots, a savings calculator, free help moving from another system, questions and answers, and a way to start a studio ([Home Page](Home-Page)). Every platform page's footer has a **Contact** address.
 - **Pricing** (`/pricing`): $49 a month per studio, everything included, a 30-day free trial, and answers to common questions ([Loft Subscription](Loft-Subscription)).
 - **Start your studio** (`/signup`): creates the studio with its name, web address (slug), time zone and currency. The person who signs up becomes its owner, and the studio starts its 30-day free trial.
 - **Signing in:** one login for every studio someone belongs to. **My studios** (`/studios`) lists them, with links to each schedule, account and studio admin.
@@ -40,7 +40,7 @@
 
 | Area | What it does | Who |
 |---|---|---|
-| Dashboard | Members, members at high risk of leaving, sales this month, shop orders to pick up, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist | admin |
+| Dashboard | Members, members at high risk of leaving, sales this month, shop orders to pick up, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist, which becomes the studio's schedule link once every step is done | admin |
 | Check-in | Today's classes (or any date), roster with waiver status, apparatus spot and medical notes, mark attended or no-show | instructor+ |
 | Check-in devices | Kiosks and readers members check themselves in at (each with a device code, shown once), and every scan with its result. Tags (cards, fobs) are given out on a member's page | admin |
 | Sessions | Every class by date, rosters (people booked online are marked), capacity (raising it promotes the waitlist), waitlist limit, where it happens (in the studio, online, or both, with online spots and the meeting link), room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |

@@ -174,7 +174,7 @@ class StudioBillingTest extends TestCase
 
     public function test_the_pricing_page_follows_the_configured_price(): void
     {
-        $this->get('/')->assertOk()->assertSee('Free for 30 days, no card needed')->assertSee('/pricing');
+        $this->get('/')->assertOk()->assertSee('Free for 30 days')->assertSee('No card needed')->assertSee('/pricing');
         $this->get('/pricing')->assertOk()
             ->assertSee('$49')
             ->assertSee('30-day free trial')

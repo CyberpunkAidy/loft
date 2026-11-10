@@ -54,14 +54,23 @@
         @endif
     </section>
     <aside class="card">
-        <h2>Setup</h2>
-        <ul class="checklist">
-            @foreach ($checklist as $step)
-                <li @class(['done' => $step['done']])><span class="dot" aria-hidden="true">{{ $step['done'] ? '✓' : '' }}</span><a href="{{ $step['url'] }}">{{ $step['label'] }}</a><span class="sr-only">{{ $step['done'] ? '(done)' : '(to do)' }}</span></li>
-            @endforeach
-        </ul>
-        <hr>
-        <p class="small" style="margin:0">Share your schedule:<br><code>{{ route('studio.schedule') }}</code></p>
+        {{-- The setup checklist goes once every step is done; the schedule link stays. --}}
+        @php($scheduleUrl = route('studio.schedule'))
+        @php($scheduleLink = preg_replace('#^https?://#', '', $scheduleUrl))
+        @if (collect($checklist)->every('done'))
+            <h2>Your schedule</h2>
+            <p class="small">Share this link, or put it on your website and Instagram. Members book, sign and pay from it.</p>
+            <p class="small" style="margin:0"><a href="{{ $scheduleUrl }}"><code>{{ $scheduleLink }}</code></a></p>
+        @else
+            <h2>Setup</h2>
+            <ul class="checklist">
+                @foreach ($checklist as $step)
+                    <li @class(['done' => $step['done']])><span class="dot" aria-hidden="true">{{ $step['done'] ? '✓' : '' }}</span><a href="{{ $step['url'] }}">{{ $step['label'] }}</a><span class="sr-only">{{ $step['done'] ? '(done)' : '(to do)' }}</span></li>
+                @endforeach
+            </ul>
+            <hr>
+            <p class="small" style="margin:0">Share your schedule:<br><a href="{{ $scheduleUrl }}"><code>{{ $scheduleLink }}</code></a></p>
+        @endif
     </aside>
 </div>
 @endsection
