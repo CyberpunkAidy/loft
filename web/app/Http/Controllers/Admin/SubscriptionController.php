@@ -28,6 +28,7 @@ class SubscriptionController extends Controller
             'price' => $billing->priceLabel(),
             'yearly' => $billing->yearlyPriceLabel(),
             'yearlySaving' => $billing->yearlySaving(),
+            'twelveMonths' => $billing->monthlyForAYearLabel(),
             'plan' => $billing->planLabel($studio),
             'graceDays' => $billing->graceDays(),
             'isOwner' => $request->user()->hasRoleIn($studio, 'owner'),

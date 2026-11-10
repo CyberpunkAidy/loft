@@ -24,7 +24,7 @@ class PricingPageTest extends TestCase
             ->assertSee('On the yearly plan, Loft is $490 a year.')
             ->assertSeeInOrder(['data-out="now">$3,588', 'data-out="loft">$588', 'data-out="saved">$3,000'], false)
             ->assertSee('Is there a yearly plan?')
-            ->assertSee('Yes: $490 a year, which is 2 months free.')
+            ->assertSee('Yes: $490 a year, which is 2 months free. The saving is in the price; your 30-day free trial comes first either way.')
             ->assertSee('The price you start at is the price you keep on that plan.')
             ->assertSee('Each location with its own schedule is its own studio, at $49 a month each')
             ->assertSee('end of the month or year you’ve paid for', false)
