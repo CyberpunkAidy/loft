@@ -55,7 +55,8 @@ Elsewhere in the repository:
 
 | Table | Holds |
 |---|---|
-| `studios` | Name, slug, time zone, currency, brand color, contact email, settings (JSON), Stripe account state |
+| `studios` | Name, slug, time zone, currency, brand color, the logo's hash, type and size (`logo_hash`, `logo_type`, `logo_width`, `logo_height`), contact email, settings (JSON), Stripe account state |
+| `studio_logos` | The studio's logo image, base64, one row per studio, written only by `App\Services\StudioLogos` and served at `/{studio}/logo/{hash}.{type}` ([decision 41](Decisions)) |
 | `studio_users` | A user's role at a studio, their Stripe customer ID on that studio's account, and marketing email consent (when, where, and when they unsubscribed) |
 | `seasons` | Date ranges that weekly classes run across |
 | `categories` | Age groups, levels and plan tags |

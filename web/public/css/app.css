@@ -756,3 +756,20 @@ form.inline { display: inline; }
 .subscription .actions { margin-top: 1rem; }
 .subscription .small .icon { vertical-align: -.15em; color: var(--ok); }
 .calc .calc-yearly { margin: 0 0 .5rem; }
+
+/* ---------------------------------------------------------------- Studio logos (decision 41) */
+/* Logos carry their own width and height, so the site-wide img max-width (a percentage, which lets a row shrink and wrap) is off. */
+.brand-logo { display: block; flex-shrink: 0; max-width: none; object-fit: contain; }
+.brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.studio-thumb { display: block; flex-shrink: 0; max-width: none; object-fit: contain; }
+.logo-settings { margin-bottom: 1.25rem; }
+.logo-settings .legend { font-size: 1.1rem; margin-bottom: .75rem; }
+.logo-preview { display: flex; align-items: center; min-height: 68px; padding: .9rem 1.1rem; margin-bottom: .6rem; border: 1px dashed var(--line-strong); border-radius: var(--radius);
+	background: color-mix(in srgb, var(--surface) 78%, transparent); }
+.logo-actions { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; margin: .4rem 0 .9rem; }
+.logo-upload-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; }
+.logo-upload .field { min-width: min(100%, 22rem); }
+.logo-upload > .hint, .logo-upload > .error { display: block; margin-top: .4rem; }
+@media (max-width: 640px) {
+	.site-header .brand-logo { max-height: 30px; width: auto; max-width: 55vw; }
+}

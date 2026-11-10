@@ -14,9 +14,11 @@ RUN composer dump-autoload --no-dev --optimize --classmap-authoritative --no-int
 # ---- Runtime -----------------------------------------------------------------------------------
 FROM php:8.3-apache
 
+# GD (PNG, JPEG, WebP) re-encodes the logos studios upload (StudioLogos).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libpq-dev libzip-dev \
- && docker-php-ext-install -j"$(nproc)" pdo_pgsql opcache pcntl zip \
+ && apt-get install -y --no-install-recommends libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libwebp-dev \
+ && docker-php-ext-configure gd --with-jpeg --with-webp \
+ && docker-php-ext-install -j"$(nproc)" pdo_pgsql opcache pcntl zip gd \
  && apt-get purge -y --auto-remove \
  && rm -rf /var/lib/apt/lists/* \
  && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \

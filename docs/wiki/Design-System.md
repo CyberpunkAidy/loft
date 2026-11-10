@@ -15,7 +15,7 @@
 | `public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png` | Browser and home-screen icons |
 
 - **In page templates:** use `<x-logo />` (add `:wordmark="false"` for the mark alone). The wordmark takes the text color.
-- **Studio pages** show the studio's own badge instead (its initial, in its brand color), and a favicon of that initial in that color.
+- **Studio pages** show the studio's own mark instead (`<x-studio-brand>`): its **logo** if it has uploaded one, otherwise its initial in its brand color. A wide logo (at least twice as wide as tall) stands in for the name, with the name as its alt text; a square one sits beside the name. Logos carry their own width and height, so space is kept while they load and email apps draw them at that size. The favicon stays the initial, because a wide logo shrunk to a tab icon can't be read ([decision 41](Decisions)).
 
 ## Color
 

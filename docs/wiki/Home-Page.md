@@ -23,7 +23,7 @@ Keep these true, or change the page:
 - **"A person reads and answers every message."**
 - **No Loft fee on sales.** The page switches to the fee if `LOFT_PLATFORM_FEE_PERCENT` is set.
 - **"$150–500 a month elsewhere"** comes from the November 2026 market research, which isn't kept in the repository: what it costs to get the same features from other products. Check it again if prices in the market change.
-- Every feature the page lists exists today. **Studio logos and SMS are not mentioned, because Loft doesn't have them.** The mobile app isn't mentioned until it's in the stores.
+- Every feature the page lists exists today, including studio logos. **SMS is not mentioned, because Loft doesn't have it.** The mobile app isn't mentioned until it's in the stores.
 
 ## Search and sharing
 

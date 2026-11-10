@@ -29,7 +29,7 @@ The app follows the phone's light or dark setting and uses the studio's brand co
 | Framework | Expo SDK 58 (React Native 0.88), TypeScript, Expo Router (one file per screen in `mobile/app/`) |
 | Data | TanStack Query over a small API client (`src/api/client.ts`): bearer token, the error envelope as `ApiError`, `Idempotency-Key` on booking, signing and checkout |
 | Sign-in | One token per install (`POST /auth/tokens`), kept in the device's keychain (`expo-secure-store`); signing out revokes it. A refused token signs the app out |
-| Studio | `/studio/[slug]/…`: the studio's details and color for every screen under it |
+| Studio | `/studio/[slug]/…`: the studio's details and color for every screen under it. `StudioMark` shows its logo (or its initial) on the find-a-studio card and in the schedule's header |
 | Times | Shown in the studio's time zone, wherever the phone is |
 | Video | `expo-video` with the HLS stream URL and token from `POST …/videos/{id}/playback` |
 | Payments | `expo-web-browser`'s auth session opens Stripe Checkout and returns when it reaches the API's `return_url`; the app then asks `GET …/checkouts/{id}` |

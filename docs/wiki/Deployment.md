@@ -13,7 +13,7 @@ Loft runs on [Render](https://render.com), defined by the Blueprint in `render.y
 
 - **Shared image and settings:** all three app services build the same image from `web/Dockerfile` (`rootDir: web`) and share the `loft-shared` environment group.
 - **Disk:** `loft-web` has a 1 GB persistent disk at `storage/app/private` for waiver signature drawings. A service with a disk can't run more than one instance.
-- **Container:** the image is `php:8.3-apache` with the `pdo_pgsql`, `opcache`, `pcntl` and `zip` extensions (zip builds the signed-waiver download). `docker/start.sh` picks the role (`web`, `worker`, `housekeeping` or `migrate`). It also:
+- **Container:** the image is `php:8.3-apache` with the `pdo_pgsql`, `opcache`, `pcntl`, `zip` and `gd` extensions (zip builds the signed-waiver download; GD, with PNG, JPEG and WebP, redraws studio logos, and CI checks it's there). `docker/start.sh` picks the role (`web`, `worker`, `housekeeping` or `migrate`). It also:
   - adds Laravel's `base64:` prefix to the `APP_KEY` Render generates;
   - falls back to `RENDER_EXTERNAL_URL` for `APP_URL`;
   - caches config, routes and views.

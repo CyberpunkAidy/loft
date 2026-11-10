@@ -10,7 +10,7 @@
 @section('body')
 <main class="kiosk">
     <div class="kiosk-card">
-        <div class="kiosk-brand"><span class="brand-mark" aria-hidden="true">{{ mb_substr($studio->name, 0, 1) }}</span> {{ $studio->name }}</div>
+        <div class="kiosk-brand"><x-studio-brand :studio="$studio" :height="56" :max-width="320" /></div>
 
         @if ($result)
             <div @class(['kiosk-result', 'is-granted' => $result['granted'], 'is-denied' => ! $result['granted']]) role="status">

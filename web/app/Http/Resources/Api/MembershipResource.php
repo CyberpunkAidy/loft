@@ -17,6 +17,7 @@ class MembershipResource extends ApiResource
             'timezone' => $this->timezone,
             'currency' => $this->currency,
             'accent_color' => $this->accent_color,
+            'logo' => $this->hasLogo() ? ['url' => $this->logoUrl(), 'width' => $this->logo_width, 'height' => $this->logo_height] : null,
         ];
     }
 }

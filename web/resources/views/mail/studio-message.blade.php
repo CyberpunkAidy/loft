@@ -12,8 +12,16 @@
 @section('header')
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
         <tr>
-            <td width="34" height="34" align="center" bgcolor="{{ $accent }}" style="width:34px;height:34px;border-radius:11px;background:{{ $accent }};color:{{ $ink }};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;line-height:34px;text-align:center;">{{ $studio->initial() }}</td>
-            <td style="padding-left:11px;font-family:'Bricolage Grotesque Variable','Inter Variable',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:650;letter-spacing:-0.015em;color:#17141f;">{{ $studio->name }}</td>
+            @if ($studio->hasLogo())
+                {{-- The logo, at a fixed size for email apps that ignore CSS; if images are blocked, the alt text is the name. --}}
+                @php([$logoWidth, $logoHeight] = $studio->logoSize(40, 220))
+                <td style="line-height:0;"><img src="{{ $studio->logoUrl() }}" width="{{ $logoWidth }}" height="{{ $logoHeight }}" alt="{{ $studio->name }}" style="display:block;width:{{ $logoWidth }}px;height:{{ $logoHeight }}px;border:0;outline:none;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:650;color:#17141f;"></td>
+            @else
+                <td width="34" height="34" align="center" bgcolor="{{ $accent }}" style="width:34px;height:34px;border-radius:11px;background:{{ $accent }};color:{{ $ink }};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;line-height:34px;text-align:center;">{{ $studio->initial() }}</td>
+            @endif
+            @unless ($studio->logoIsWide())
+                <td style="padding-left:11px;font-family:'Bricolage Grotesque Variable','Inter Variable',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:650;letter-spacing:-0.015em;color:#17141f;">{{ $studio->name }}</td>
+            @endunless
         </tr>
     </table>
 @endsection

@@ -15,7 +15,12 @@
     @forelse ($memberships as $membership)
         <div class="card item">
             <div class="row">
-                <span class="brand-mark" style="--accent: {{ $membership->studio->accent() }}; --accent-ink: {{ $membership->studio->accentInk() }}" aria-hidden="true">{{ $membership->studio->initial() }}</span>
+                @if ($membership->studio->hasLogo())
+                    @php([$logoWidth, $logoHeight] = $membership->studio->logoSize(40, 120))
+                    <img class="studio-thumb" src="{{ $membership->studio->logoUrl() }}" width="{{ $logoWidth }}" height="{{ $logoHeight }}" alt="">
+                @else
+                    <span class="brand-mark" style="--accent: {{ $membership->studio->accent() }}; --accent-ink: {{ $membership->studio->accentInk() }}" aria-hidden="true">{{ $membership->studio->initial() }}</span>
+                @endif
                 <div>
                     <strong>{{ $membership->studio->name }}</strong>
                     <div class="muted small">{{ \App\Models\StudioUser::ROLES[$membership->role] ?? $membership->role }}</div>
