@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 #[Fillable([
     'studio_id', 'user_id', 'as_of', 'days_since_visit', 'visits_28d', 'visits_prev_28d', 'misses_28d', 'upcoming_bookings',
-    'has_membership', 'credits_remaining', 'failed_payments_90d', 'attendees', 'tenure_days', 'created_at',
+    'has_membership', 'credits_remaining', 'failed_payments_90d', 'attendees', 'tenure_days', 'imported', 'created_at',
 ])]
 class MemberSnapshot extends Model
 {
@@ -23,6 +23,7 @@ class MemberSnapshot extends Model
         return [
             'as_of' => 'date',
             'has_membership' => 'boolean',
+            'imported' => 'boolean',
         ];
     }
 

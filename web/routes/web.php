@@ -70,6 +70,9 @@ Route::prefix('{studio}')
         Route::post('/join', [Studio\JoinController::class, 'store'])->middleware('throttle:10,1')->name('join.store');
         // Signed links from marketing emails; no sign-in needed. CSRF is off for these (see bootstrap/app.php).
         Route::get('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'show'])->middleware('signed')->name('unsubscribe');
+        // Invitations to members imported from another system: a signed link to choose a password.
+        Route::get('/welcome/{member}', [Studio\WelcomeController::class, 'show'])->name('welcome');
+        Route::post('/welcome/{member}', [Studio\WelcomeController::class, 'store'])->middleware('throttle:10,1')->name('welcome.store');
         Route::post('/unsubscribe/{member}', [Studio\UnsubscribeController::class, 'store'])->middleware(['signed', 'throttle:20,1'])->name('unsubscribe.store');
 
         // Members
@@ -145,6 +148,15 @@ Route::prefix('{studio}')
                 Route::post('automations/{trigger}/test', [Admin\AutomationController::class, 'test'])->whereIn('trigger', $triggers)->middleware('throttle:10,1')->name('automations.test');
 
                 Route::get('members', [Admin\MemberController::class, 'index'])->name('members.index');
+                Route::get('import', [Admin\ImportController::class, 'index'])->name('imports.index');
+                Route::post('import', [Admin\ImportController::class, 'store'])->middleware('throttle:20,1')->name('imports.store');
+                Route::get('import/template/{kind}', [Admin\ImportController::class, 'template'])->whereIn('kind', ['people', 'plans'])->name('imports.template');
+                Route::post('import/invitations', [Admin\ImportController::class, 'invite'])->middleware('throttle:10,1')->name('imports.invite');
+                Route::get('import/{import}', [Admin\ImportController::class, 'show'])->whereNumber('import')->name('imports.show');
+                Route::put('import/{import}', [Admin\ImportController::class, 'update'])->whereNumber('import')->name('imports.update');
+                Route::post('import/{import}/run', [Admin\ImportController::class, 'run'])->whereNumber('import')->name('imports.run');
+                Route::post('import/{import}/undo', [Admin\ImportController::class, 'undo'])->whereNumber('import')->name('imports.undo');
+                Route::delete('import/{import}', [Admin\ImportController::class, 'destroy'])->whereNumber('import')->name('imports.destroy');
                 Route::get('members/{member}', [Admin\MemberController::class, 'show'])->name('members.show');
                 Route::post('members/{member}/plans', [Admin\MemberController::class, 'grant'])->name('members.grant');
                 Route::post('members/{member}/tags', [Admin\AccessController::class, 'storeTag'])->name('members.tags.store');

@@ -242,6 +242,11 @@ class Studio extends Model
         return ((int) $this->setting('sales_tax_milli')) / 1000;
     }
 
+    public function imports(): HasMany
+    {
+        return $this->hasMany(Import::class);
+    }
+
     public function automations(): HasMany
     {
         return $this->hasMany(Automation::class);

@@ -33,6 +33,7 @@ class DashboardController extends Controller
             ['done' => $studio->seasons()->exists(), 'label' => 'Add a season (e.g. Sept → May)', 'url' => route('studio.admin.seasons.index')],
             ['done' => $studio->programs()->exists(), 'label' => 'Add your classes', 'url' => route('studio.admin.programs.index')],
             ['done' => $hasPlans && ! $studio->plans()->where('active', true)->whereNull('stripe_price_id')->exists(), 'label' => 'Create plans and connect them to Stripe', 'url' => route('studio.admin.plans.index')],
+            ['done' => $studio->imports()->where('status', 'done')->exists(), 'label' => 'Moving from another system? Import your members', 'url' => route('studio.admin.imports.index')],
         ];
 
         return view('admin.dashboard', [

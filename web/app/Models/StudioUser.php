@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'studio_id', 'user_id', 'role', 'stripe_customer_id',
     'email_marketing_consent_at', 'email_marketing_consent_source', 'email_unsubscribed_at',
+    'import_id', 'invited_at', 'invitation_accepted_at',
 ])]
 class StudioUser extends Model
 {
@@ -33,6 +34,8 @@ class StudioUser extends Model
         return [
             'email_marketing_consent_at' => 'datetime',
             'email_unsubscribed_at' => 'datetime',
+            'invited_at' => 'datetime',
+            'invitation_accepted_at' => 'datetime',
         ];
     }
 

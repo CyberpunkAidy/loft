@@ -78,6 +78,10 @@ Stripe Terminal readers (BBPOS WisePOS E, Stripe Reader S700) at the front desk,
 - **Test mode:** with test API keys, pair a simulated reader with the code `simulated-wpe`; the waiting page can then tap a test card, or one that's declined.
 - **Not supported:** tips, Interac (Canadian debit), the reader's offline mode, partial refunds from Loft (use the Stripe Dashboard; Loft records them).
 
+## Memberships imported from another system
+
+A membership imported from a studio's old system ([Data Import](Data-Import)) is active until its paid-through date with no card behind it. When the member chooses the same plan in Loft, Checkout starts the subscription with a trial until that date, so the card is first charged when the old membership ends (straight away if that's less than 48 hours off). Season registration fees aren't charged again, the imported membership ends, and the $0 opening invoice isn't recorded as a sale.
+
 ## Refunds
 
 Money goes back through Stripe, on the studio's account ([decision 34](Decisions)). Sales taken in person without Stripe (cash, a check, another terminal, a comp) are voided instead.

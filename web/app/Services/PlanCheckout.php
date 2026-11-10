@@ -20,6 +20,7 @@ class PlanCheckout
     public function __construct(
         private readonly StripeClient $stripe,
         private readonly StripeWebhooks $webhooks,
+        private readonly MemberInvitations $invitations,
     ) {}
 
     /**
@@ -63,6 +64,15 @@ class PlanCheckout
         }
         if ($plan->kind === 'season' && $plan->season && $plan->season->ends_on->copy()->endOfDay()->isPast()) {
             throw new CheckoutException('That season has ended.');
+        }
+
+        // Continuing a membership imported from another system: it's already paid for until its
+        // end date, so the card is first charged then (Stripe needs that to be 48+ hours away).
+        if ($plan->isRecurring() && ($continues = $this->invitations->continuation($studio, $member->id, $plan->id))) {
+            $context['continues'] = $continues->id;
+            if ($continues->expires_at->gt(now()->addHours(49))) {
+                $context['trial_end'] = $continues->expires_at->getTimestamp();
+            }
         }
 
         return $this->stripe->createCheckout($studio, $member, $plan, $successUrl, $cancelUrl, $context);

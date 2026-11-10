@@ -23,6 +23,7 @@ A plan for the next features, drafted on 2026-11-08 from a review of the current
   - See [Architecture](Architecture#the-outbox-domain_events).
 - **Automations (step 4, done by email):** after a first class, birthday and we miss you, as marketing email ([Email](Email#automations)). The first-class follow-up is the outbox's first consumer.
 - **API (step 7, done):** a JSON API for the mobile app at `/api/v1`, with Sanctum tokens ([API](API)).
+- **Data import (built):** members, families, credits and memberships from another system's CSV export, with a preview, undo and invitations sent when the studio chooses ([Data Import](Data-Import), [decision 37](Decisions)).
 - **Loft subscription (built):** studios pay Loft $49 a month after a 30-day free trial, on Loft's own Stripe account; grace, then a pause, if they don't ([Loft Subscription](Loft-Subscription), [decision 36](Decisions)).
 - **Mobile app (first version, built):** the Loft app for iOS and Android in `mobile/` ([Mobile App](Mobile-App), [decision 35](Decisions)). Not in the stores yet.
 - **Video and live classes (step 10, done):** classes in the studio, online or both, joined through the studio's meeting link; an on-demand library on Loft's Mux account, open to members or to plans that include videos ([decision 33](Decisions)).

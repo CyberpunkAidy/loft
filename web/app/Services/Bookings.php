@@ -378,9 +378,11 @@ class Bookings
 
             match ($status) {
                 // first_visit: this attendee's first class at the studio (the "first class" milestone).
+                // Someone imported from the studio's old system has been coming already.
                 'attended' => $this->events->forBooking('booking.attended', $booking, [
-                    'first_visit' => ! Booking::where('studio_id', $booking->studio_id)->where('attendee_id', $booking->attendee_id)
-                        ->where('status', 'attended')->whereKeyNot($booking->id)->exists(),
+                    'first_visit' => ! Attendee::whereKey($booking->attendee_id)->whereNotNull('import_id')->exists()
+                        && ! Booking::where('studio_id', $booking->studio_id)->where('attendee_id', $booking->attendee_id)
+                            ->where('status', 'attended')->whereKeyNot($booking->id)->exists(),
                     'waiver_override' => $needsOverride,
                 ]),
                 'no_show' => $this->events->forBooking('booking.no_show', $booking),

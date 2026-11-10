@@ -67,6 +67,11 @@ class Orders
         if (empty($invoice['id'])) {
             return null;
         }
+        // A subscription's opening $0 invoice (a trial, such as a membership continued from an
+        // import that's paid until a later date) isn't a sale; the first real charge is.
+        if ((int) ($invoice['total'] ?? 0) === 0 && ($invoice['billing_reason'] ?? null) === 'subscription_create') {
+            return null;
+        }
         if ($existing = Order::where('stripe_invoice_id', $invoice['id'])->first()) {
             return $existing;
         }

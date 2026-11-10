@@ -586,3 +586,15 @@ form.inline { display: inline; }
 .faq > .card + .card { margin-top: 0; }
 .faq p { margin: 0; color: var(--muted); font-size: .95rem; }
 .cta p a { color: #fff; text-decoration: underline; }
+
+/* Admin → Import (decision 37) */
+.import-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+.import-steps > .card + .card { margin-top: 0; }
+.import-steps .card { position: relative; display: flex; flex-direction: column; }
+.import-steps .form { margin-top: auto; }
+.step-number { display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text, var(--accent)); font-weight: 700; font-size: .9rem; margin-bottom: .6rem; }
+.invite-stats { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; font-size: .93rem; }
+.import-mapping { margin-top: 1rem; }
+.import-problems summary { cursor: pointer; font-weight: 600; }
+.import-problems .table-wrap { margin-top: .75rem; }
+.plan-continues { margin: 0; padding: .6rem .75rem; border-radius: 10px; background: var(--info-bg); color: var(--info); border: 1px solid var(--info-line); }

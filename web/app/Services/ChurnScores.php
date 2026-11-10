@@ -17,7 +17,7 @@ use App\Models\Studio;
  */
 class ChurnScores
 {
-    public const MODEL = 'rules-v1';
+    public const MODEL = 'rules-v1'; // imported members' rule (decision 37) changes no existing member's score
 
     public const HIGH = 60;
 
@@ -36,9 +36,14 @@ class ChurnScores
         };
         $days = $s->days_since_visit;
 
-        // Coming to class
+        // Coming to class. Members imported from the studio's old system came before Loft, so not
+        // having been yet isn't "never visited"; it matters only if they're paying (below).
         if ($days === null) {
-            if ($s->tenure_days >= 14 && $s->upcoming_bookings === 0) {
+            if ($s->imported) {
+                if ($s->tenure_days >= 14 && $s->upcoming_bookings === 0 && ($s->has_membership || $s->credits_remaining > 0)) {
+                    $add('not_since_import', 35, "Hasn’t been to a class since moving to Loft {$s->tenure_days} days ago");
+                }
+            } elseif ($s->tenure_days >= 14 && $s->upcoming_bookings === 0) {
                 $add('never_visited', 40, "Joined {$s->tenure_days} days ago and hasn’t been to a class");
             }
         } elseif ($days >= 45) {
@@ -83,7 +88,8 @@ class ChurnScores
 
         usort($reasons, fn ($a, $b) => $b['points'] <=> $a['points']);
         $score = max(0, min(100, array_sum(array_column($reasons, 'points'))));
-        $gone = ($days ?? $s->tenure_days) > self::LAPSED_DAYS && $s->upcoming_bookings === 0 && ! $s->has_membership && $s->credits_remaining === 0;
+        $gone = $s->upcoming_bookings === 0 && ! $s->has_membership && $s->credits_remaining === 0
+            && ($days === null && $s->imported ? true : ($days ?? $s->tenure_days) > self::LAPSED_DAYS); // an imported former client
 
         return [
             'score' => $score,

@@ -9,6 +9,7 @@
         <p>@if ($atRisk){{ $members->total() }} at risk of leaving.@else{{ $members->total() }} {{ $members->total() === 1 ? 'account' : 'accounts' }}. New members join at <code>{{ route('studio.join') }}</code>.@endif</p>
     </div>
     <form method="get" class="row">
+        <a class="btn btn-secondary btn-small" href="{{ route('studio.admin.imports.index') }}">Import</a>
         @if ($atRisk)<input type="hidden" name="risk" value="at_risk">@endif
         <input class="input" type="search" name="q" value="{{ $q }}" placeholder="Name or email" aria-label="Search members" style="width:16rem">
         <button class="btn btn-secondary btn-small">Search</button>

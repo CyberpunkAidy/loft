@@ -262,6 +262,7 @@ class ApiTest extends TestCase
     public function test_booking_lists_page_through_in_class_order(): void
     {
         $studio = $this->studio();
+        $this->travelTo(now()->setTime(12, 0)); // whole days apart from 5 PM classes, whatever the time of the run
         $member = $this->userIn($studio);
         $kid = $this->attendee($studio, $member);
         $program = $this->program($studio, ['title' => 'Silks']);
