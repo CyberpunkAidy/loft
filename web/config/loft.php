@@ -21,17 +21,20 @@ return [
     ],
 
     /*
-    | Loft's own subscription (decision 36): each studio pays Loft monthly, on the platform Stripe
-    | account (STRIPE_SECRET). A free trial from signup, then trial_days… grace_days of reminders,
-    | then the studio pauses. monthly_cents sets the price of new subscriptions: Loft finds or
-    | creates a Stripe Price for it (lookup key loft_studio_monthly_<currency>_<cents>), so changing
-    | it needs no change in Stripe, and existing subscribers keep the price they signed up at.
+    | Loft's own subscription (decision 36): each studio pays Loft monthly or yearly (decision 40),
+    | on the platform Stripe account (STRIPE_SECRET). A free trial from signup, then trial_days…
+    | grace_days of reminders, then the studio pauses. monthly_cents and yearly_cents set the prices
+    | of new subscriptions: Loft finds or creates a Stripe Price for each (lookup keys
+    | loft_studio_monthly_<currency>_<cents> and loft_studio_yearly_…), so changing them needs no
+    | change in Stripe, and existing subscribers keep the price they signed up at (the price lock
+    | the pricing page and terms promise). yearly_cents defaults to ten months; 0 turns yearly off.
     | webhook_secret belongs to a webhook endpoint for events on *your account* (not connected
     | accounts) pointing at /stripe/billing-webhook. automatic_tax turns on Stripe Tax for the
     | subscription (set up Stripe Tax first).
     */
     'billing' => [
         'monthly_cents' => (int) env('LOFT_MONTHLY_PRICE_CENTS', 4900),
+        'yearly_cents' => (int) env('LOFT_YEARLY_PRICE_CENTS', 10 * (int) env('LOFT_MONTHLY_PRICE_CENTS', 4900)),
         'currency' => strtolower((string) env('LOFT_BILLING_CURRENCY', 'usd')),
         'trial_days' => (int) env('LOFT_TRIAL_DAYS', 30),
         'grace_days' => (int) env('LOFT_BILLING_GRACE_DAYS', 7),

@@ -6,14 +6,15 @@
     use App\Support\BillingState;
     $date = fn ($at) => $at ? $studio->local($at)->format('F j, Y') : '';
     $needsAction = in_array($state->status, [BillingState::TRIAL, BillingState::GRACE, BillingState::PAUSED], true);
-    $subscribeButton = $state->paymentFailing() ? 'Update your card' : 'Subscribe for '.$price.' a month';
+    $offer = $yearly ? $price.' a month, or '.$yearly.' a year,' : $price.' a month';
+    $isYearly = $studio->billing_interval === 'year';
 @endphp
 
 @section('content')
 <div class="page-head">
     <div>
         <h1>Your Loft subscription</h1>
-        <p>{{ $price }} a month for {{ $studio->name }}, with every feature. Your members’ payments go straight to your own Stripe account; this is what you pay Loft.</p>
+        <p>{{ $offer }} for {{ $studio->name }}, with every feature. Your members’ payments go straight to your own Stripe account; this is what you pay Loft.</p>
     </div>
 </div>
 
@@ -30,14 +31,20 @@
                 <p>Your subscription ends on {{ $date($state->cancelsAt) }}, and everything keeps running until then. Changed your mind? Renew it in the billing portal.</p>
             @elseif ($state->inStripeTrial)
                 <h2>Subscribed <span class="badge">Active</span></h2>
-                <p>Your free trial runs until {{ $date($state->periodEndsAt) }}. Your card is first charged {{ $price }} then, and every month after.</p>
+                <p>Your free trial runs until {{ $date($state->periodEndsAt) }}. Your card is first charged then: {{ $plan }}.</p>
             @else
                 <h2>Subscribed <span class="badge">Active</span></h2>
-                <p>{{ $price }} a month. Your next payment is on {{ $date($state->periodEndsAt) }}.</p>
+                <p>{{ ucfirst($plan) }}. Your next payment is on {{ $date($state->periodEndsAt) }}.</p>
             @endif
+            <p class="small muted"><x-icon name="lock" /> Your price is locked: {{ $plan }} for as long as you stay subscribed{{ $yearly ? ' on this plan' : '' }}.</p>
             @if ($isOwner)
-                <form method="post" action="{{ route('studio.admin.subscription.portal') }}">@csrf<button class="btn btn-secondary">Manage billing</button></form>
-                <p class="small muted" style="margin:.75rem 0 0">Change your card, download invoices, or cancel.</p>
+                <div class="actions">
+                    <form method="post" action="{{ route('studio.admin.subscription.portal') }}">@csrf<button class="btn btn-secondary">Manage billing</button></form>
+                    @if ($yearly && ! $isYearly && ! $state->cancelsAt)
+                        <form method="post" action="{{ route('studio.admin.subscription.portal') }}">@csrf<input type="hidden" name="switch" value="1"><button class="btn btn-secondary">Switch to yearly{{ $yearlySaving ? ' ('.$yearlySaving.')' : '' }}</button></form>
+                    @endif
+                </div>
+                <p class="small muted" style="margin:.75rem 0 0">Change your card, download invoices, {{ $yearly ? 'switch between monthly and yearly, ' : '' }}or cancel.</p>
             @endif
             @break
 
@@ -65,7 +72,19 @@
 
     @if ($needsAction)
         @if ($isOwner)
-            <form method="post" action="{{ route($state->paymentFailing() ? 'studio.admin.subscription.portal' : 'studio.admin.subscription.checkout') }}">@csrf<button class="btn">{{ $subscribeButton }}</button></form>
+            @if ($state->paymentFailing())
+                <form method="post" action="{{ route('studio.admin.subscription.portal') }}">@csrf<button class="btn">Update your card</button></form>
+            @elseif ($yearly)
+                <form method="post" action="{{ route('studio.admin.subscription.checkout') }}" class="plan-choice">@csrf
+                    <div class="list" role="radiogroup" aria-label="Billing">
+                        <label class="pick"><input type="radio" name="interval" value="month" @checked(old('interval', 'month') === 'month')><span class="grow"><strong>Monthly</strong><span class="muted small" style="display:block">{{ $price }} a month</span></span></label>
+                        <label class="pick"><input type="radio" name="interval" value="year" @checked(old('interval') === 'year')><span class="grow"><strong>Yearly</strong><span class="muted small" style="display:block">{{ $yearly }} a year{{ $yearlySaving ? ', '.$yearlySaving : '' }}</span></span></label>
+                    </div>
+                    <button class="btn">Subscribe</button>
+                </form>
+            @else
+                <form method="post" action="{{ route('studio.admin.subscription.checkout') }}">@csrf<button class="btn">Subscribe for {{ $price }} a month</button></form>
+            @endif
             @if (! $configured)
                 <p class="small muted" style="margin:.75rem 0 0">Subscriptions aren’t switched on for this server yet. (Operator: set <code>STRIPE_SECRET</code>.)</p>
             @else
@@ -86,6 +105,7 @@
                 <li><x-icon name="check" />No Loft fees on your members’ payments. Stripe’s usual card fees apply.</li>
             @endif
             <li><x-icon name="check" />No limits on members, staff, classes or bookings.</li>
+            <li><x-icon name="check" />The price you start at is the price you keep, for as long as you stay subscribed.</li>
             <li><x-icon name="check" />Cancel any time from the billing portal. If you stop, your studio pauses after {{ $graceDays }} days and nothing is deleted.</li>
         </ul>
     </section>

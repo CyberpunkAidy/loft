@@ -17,7 +17,13 @@ class LegalTest extends TestCase
             ->assertSee('Goldseam Tech LLC')
             ->assertSee('laws of the State of Wyoming')
             ->assertSee('privacy@loftstudio.app')
-            ->assertSee('currently $49 a month per studio')
+            ->assertSee('currently $49 a month, or $490 a year, per studio')
+            ->assertSee('You choose monthly or yearly billing.')
+            ->assertSee('end of the month or year you’ve paid for', false)
+            ->assertSee('Your price is locked.')
+            ->assertSee('stays the same for as long as your subscription continues on the same plan (monthly or yearly)')
+            ->assertSee('A new price applies only to subscriptions started, or switched to the other plan, after it takes effect.')
+            ->assertDontSee('before a new price applies to your subscription')
             ->assertSee('30-day free trial')
             ->assertSee('for 7 more days')
             ->assertSee('15. Data processing terms')
@@ -28,8 +34,12 @@ class LegalTest extends TestCase
             ->assertSee('We don’t sell your information', false)
             ->assertSee('privacy@loftstudio.app');
 
-        config(['loft.legal.entity' => 'Goldseam Tech Inc.', 'loft.legal.state' => 'Delaware', 'loft.billing.monthly_cents' => 5900]);
-        $this->get('/terms')->assertSee('Goldseam Tech Inc.')->assertSee('laws of the State of Delaware')->assertSee('currently $59 a month');
+        config(['loft.legal.entity' => 'Goldseam Tech Inc.', 'loft.legal.state' => 'Delaware', 'loft.billing.monthly_cents' => 5900, 'loft.billing.yearly_cents' => 0]);
+        $this->get('/terms')->assertSee('Goldseam Tech Inc.')->assertSee('laws of the State of Delaware')
+            ->assertSee('currently $59 a month per studio')
+            ->assertSee('billed monthly in advance')
+            ->assertSee('stays the same for as long as your subscription continues.')
+            ->assertDontSee('monthly or yearly');
     }
 
     public function test_every_kind_of_page_links_to_them(): void

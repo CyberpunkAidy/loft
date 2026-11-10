@@ -564,6 +564,11 @@ form.inline { display: inline; }
 	.shot-stack .shot-card { right: -.25rem; width: 60%; bottom: -2rem; }
 	.calc, .price-card, .start-card { padding: 1.4rem; }
 	.calc-fields, .calc-result { grid-template-columns: minmax(0, 1fr); }
+	.pricing-card, .fees-card { padding: 1.4rem; }
+	.pricing-card .price { font-size: 3rem; }
+	.compare th, .compare td { padding: .7rem .65rem; font-size: .86rem; }
+	.compare tbody th { width: 26%; }
+	.compare td:nth-child(2) .icon { display: none; }
 	.calc-result > div { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .7rem 1rem; }
 	.calc-result dd { margin: 0; font-size: 1.3rem; }
 	.mini-features { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
@@ -675,14 +680,47 @@ form.inline { display: inline; }
 
 /* Pricing page */
 .pricing .section-head h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); letter-spacing: -.045em; font-weight: 700; line-height: 1.05; margin-bottom: .75rem; }
+/* The pricing page (decision 40): a monthly/yearly switch made of two radios, so it needs no script. */
+.plan-switch { max-width: 30rem; margin: 0 auto; }
+.period-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.segmented { display: flex; gap: .25rem; width: max-content; max-width: 100%; margin: 0 auto 1.25rem; padding: .3rem; background: var(--surface);
+	border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow-xs); }
+.segmented label { display: inline-flex; align-items: center; gap: .45rem; padding: .5rem 1.1rem; border-radius: 999px; font-size: .92rem; font-weight: 600;
+	color: var(--ink-2); cursor: pointer; transition: background-color .15s, color .15s; }
+.segmented .save { padding: .12rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700; color: var(--ok); background: var(--ok-bg); }
+#period-month:checked ~ .segmented [for=period-month], #period-year:checked ~ .segmented [for=period-year] { background: var(--ink); color: #fff; }
+#period-year:checked ~ .segmented [for=period-year] .save { color: #0f3d26; background: #b8ebcd; }
+#period-month:focus-visible ~ .segmented [for=period-month], #period-year:focus-visible ~ .segmented [for=period-year] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.price-year { display: none; }
+#period-year:checked ~ .pricing-card .price-year { display: block; }
+#period-year:checked ~ .pricing-card .price-month { display: none; }
 .pricing-card { max-width: 30rem; margin: 0 auto; padding: 2rem; text-align: center; }
-.pricing-card .price { font-size: 3.6rem; font-weight: 700; letter-spacing: -.05em; line-height: 1; }
-.pricing-card .price small { font-size: 1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); margin-left: .35rem; }
-.pricing-card > p { margin: .75rem 0 1.25rem; }
+.pricing-card .price { font-family: var(--font-display); font-size: 3.6rem; font-weight: 700; letter-spacing: -.05em; line-height: 1; }
+.pricing-card .price small { font-family: var(--font); font-size: 1rem; font-weight: 500; letter-spacing: 0; color: var(--muted); margin-left: .35rem; }
+.price-period p { margin: .75rem 0 1.25rem; }
+.pricing-card .trial-note { margin: .75rem 0 0; }
 .pricing-card .included { margin-top: 1.5rem; text-align: left; }
-.faq { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; max-width: 52rem; margin: 0 auto; }
-.faq > .card + .card { margin-top: 0; }
-.faq p { margin: 0; color: var(--muted); font-size: .95rem; }
+.lock-note { display: flex; gap: 1rem; align-items: flex-start; max-width: 40rem; margin: 1.5rem auto 0; padding: 1.25rem 1.4rem; }
+.lock-note .feature-icon { flex-shrink: 0; }
+.lock-note h2 { font-size: 1.1rem; margin: .1rem 0 .3rem; }
+.lock-note p { margin: 0; color: var(--ink-2); }
+.included-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.included-grid > .card + .card { margin-top: 0; }
+.included-grid h3 { font-size: 1.05rem; margin-bottom: .9rem; }
+.fees-card { padding: 2rem; }
+.fees-card h3 { display: flex; align-items: center; gap: .5rem; font-size: 1.2rem; }
+.fees-card h3 .icon { color: var(--accent); }
+.fees-card p { color: var(--ink-2); }
+.fees-card p:last-child { margin: 0; }
+.compare-wrap { max-width: 56rem; margin: 0 auto; }
+.compare { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.compare th, .compare td { padding: .9rem 1.1rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.compare tr:last-child th, .compare tr:last-child td { border-bottom: 0; }
+.compare thead th { font-family: var(--font-display); font-size: 1rem; background: var(--surface-2); }
+.compare tbody th { width: 22%; font-weight: 600; color: var(--ink); }
+.compare td:nth-child(2) { width: 39%; font-weight: 550; color: var(--ink); background: color-mix(in srgb, var(--ok-bg) 45%, transparent); }
+.compare td:nth-child(2) .icon { color: var(--ok); margin-right: .4rem; }
+.compare td:nth-child(3) { color: var(--muted); }
 .cta p a { color: #fff; text-decoration: underline; }
 
 /* Admin → Import (decision 37) */
@@ -713,3 +751,8 @@ form.inline { display: inline; }
 .legal-links { display: inline-flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
 .sidebar-foot .legal-links { padding: .25rem .65rem 0; }
 .sidebar-foot .legal-links a { color: var(--muted); }
+.plan-choice .list { margin-bottom: 1rem; }
+.subscription .actions form { margin-top: 0; }
+.subscription .actions { margin-top: 1rem; }
+.subscription .small .icon { vertical-align: -.15em; color: var(--ok); }
+.calc .calc-yearly { margin: 0 0 .5rem; }

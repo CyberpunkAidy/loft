@@ -16,7 +16,8 @@ use Illuminate\View\View;
 /**
  * Admin → Subscription: the studio's own Loft subscription (decision 36). Every staff member can
  * see where it stands (it's the one page left when the studio is paused); owners subscribe through
- * Stripe Checkout and manage the card in Stripe's billing portal.
+ * Stripe Checkout, monthly or yearly (decision 40), and manage the card and plan in Stripe's
+ * billing portal.
  */
 class SubscriptionController extends Controller
 {
@@ -25,6 +26,9 @@ class SubscriptionController extends Controller
         return view('admin.subscription', [
             'state' => $billing->state($studio),
             'price' => $billing->priceLabel(),
+            'yearly' => $billing->yearlyPriceLabel(),
+            'yearlySaving' => $billing->yearlySaving(),
+            'plan' => $billing->planLabel($studio),
             'graceDays' => $billing->graceDays(),
             'isOwner' => $request->user()->hasRoleIn($studio, 'owner'),
             'owners' => $billing->owners($studio),
@@ -40,6 +44,7 @@ class SubscriptionController extends Controller
                 $request->user(),
                 route('studio.admin.subscription.complete').'?session_id={CHECKOUT_SESSION_ID}',
                 route('studio.admin.subscription'),
+                (string) $request->input('interval', 'month'),
             );
         } catch (CheckoutException $e) {
             return back()->with('error', $e->getMessage());
@@ -73,10 +78,11 @@ class SubscriptionController extends Controller
             : 'Thanks for subscribing! Everything’s running.');
     }
 
-    public function portal(Studio $studio, StudioBilling $billing): RedirectResponse
+    /** Stripe's billing portal; with switch=1, straight to choosing monthly or yearly. */
+    public function portal(Request $request, Studio $studio, StudioBilling $billing): RedirectResponse
     {
         try {
-            return redirect()->away($billing->portalUrl($studio, route('studio.admin.subscription')));
+            return redirect()->away($billing->portalUrl($studio, route('studio.admin.subscription'), $request->boolean('switch')));
         } catch (CheckoutException $e) {
             return back()->with('error', $e->getMessage());
         } catch (StripeException $e) {

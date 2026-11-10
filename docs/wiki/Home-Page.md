@@ -52,8 +52,8 @@ To retake them after the screens change:
 | What | Where |
 |---|---|
 | The page | `web/resources/views/platform/home.blade.php` |
-| Numbers it shows, and the calculator's starting values | `PlatformController::home` |
-| Calculator in the browser | `public/js/app.js` (`[data-calc]`), the same sum as the controller |
+| Numbers it shows, and the calculator's starting values | `PlatformController::marketing`, shared with `/pricing` |
+| The calculator | `platform/_calculator.blade.php`, also on `/pricing`; in the browser, `public/js/app.js` (`[data-calc]`), the same sum as the controller |
 | Styles | `public/css/app.css`, "Marketing (platform home)" |
 | Tests | `tests/Feature/HomePageTest.php` |
 

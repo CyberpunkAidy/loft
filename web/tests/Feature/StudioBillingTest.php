@@ -149,7 +149,9 @@ class StudioBillingTest extends TestCase
         $this->get('/pilates/admin')->assertOk()->assertSee('Free trial: 30 days left.')->assertSee('Subscribe');
         $this->get('/pilates/admin/subscription')->assertOk()
             ->assertSee('Your trial ends on')
-            ->assertSee('Subscribe for $49 a month')
+            ->assertSee('$49 a month, or $490 a year, for')
+            ->assertSee('name="interval" value="month"', false)
+            ->assertSee('$490 a year, 2 months free')
             ->assertSee('No Loft fees on your members’ payments.');
     }
 
@@ -176,14 +178,14 @@ class StudioBillingTest extends TestCase
     {
         $this->get('/')->assertOk()->assertSee('Free for 30 days')->assertSee('No card needed')->assertSee('/pricing');
         $this->get('/pricing')->assertOk()
-            ->assertSee('$49')
-            ->assertSee('30-day free trial')
+            ->assertSee('$49<small>/ month per studio</small>', false)
+            ->assertSee('30 days free, no card needed.')
             ->assertSee('everything keeps working for 7 more days', false)
             ->assertSee('No. Members pay you directly')
             ->assertSee('up to 10 hours of stored video');
 
         config(['loft.billing.monthly_cents' => 5950, 'loft.billing.trial_days' => 14, 'loft.stripe.platform_fee_percent' => 1.5]);
-        $this->get('/pricing')->assertOk()->assertSee('$59.50')->assertSee('14-day free trial')->assertSee('Loft adds 1.5% to online sales.');
+        $this->get('/pricing')->assertOk()->assertSee('$59.50<small>/ month per studio</small>', false)->assertSee('14 days free')->assertSee('Loft adds 1.5% to online sales.');
     }
 
     public function test_when_the_trial_runs_out_the_studio_has_a_week_then_pauses(): void
@@ -452,6 +454,104 @@ class StudioBillingTest extends TestCase
         $this->sub('sub_1', 'canceled', ['ended_at' => now()->getTimestamp()]);
         $this->billingWebhook($this->event('customer.subscription.updated', 'sub_2'))->assertOk();
         $this->assertSame(['sub_2', 'active'], [$studio->refresh()->billing_subscription_id, $studio->billing_status]);
+    }
+
+    public function test_owners_choose_monthly_or_yearly_and_yearly_has_its_own_price(): void
+    {
+        $studio = $this->payingStudio();
+        $this->actingAs($this->userIn($studio, 'owner'));
+
+        $this->post("/{$studio->slug}/admin/subscription/checkout", ['interval' => 'year'])->assertRedirect('https://checkout.stripe.com/c/cs_1');
+        $this->assertSame('loft_studio_yearly_usd_49000', $this->sent('GET', 'prices')[0]['lookup_keys'][0]);
+        $price = $this->sent('POST', 'prices')[0];
+        $this->assertSame([49000, 'usd', 'year', 'Loft yearly'], [$price['unit_amount'], $price['currency'], $price['recurring']['interval'], $price['nickname']]);
+        $this->assertSame('price_1', $this->sent('POST', 'checkout/sessions')[0]['line_items'][0]['price']);
+        $this->assertSame($studio->trial_ends_at->getTimestamp(), $this->sent('POST', 'checkout/sessions')[0]['subscription_data']['trial_end'], 'the trial is kept on yearly too');
+
+        $this->post("/{$studio->slug}/admin/subscription/checkout", ['interval' => 'week'])->assertSessionHas('error', 'Choose monthly or yearly billing.');
+        $this->assertCount(1, $this->sent('POST', 'checkout/sessions'));
+
+        // LOFT_YEARLY_PRICE_CENTS=0: monthly only.
+        config(['loft.billing.yearly_cents' => 0]);
+        $this->get("/{$studio->slug}/admin/subscription")->assertOk()->assertSee('Subscribe for $49 a month')->assertDontSee('name="interval"', false)->assertDontSee('a year');
+        $this->post("/{$studio->slug}/admin/subscription/checkout", ['interval' => 'year'])->assertSessionHas('error', 'Choose monthly billing.');
+        $this->post("/{$studio->slug}/admin/subscription/checkout")->assertRedirect('https://checkout.stripe.com/c/cs_1');
+        $this->assertSame('loft_studio_monthly_usd_4900', $this->sent('GET', 'prices')[1]['lookup_keys'][0]);
+    }
+
+    public function test_the_plan_comes_from_stripe_and_its_price_stays_locked(): void
+    {
+        $item = fn (int $cents, string $interval) => ['items' => ['data' => [['id' => 'si_1', 'price' => ['id' => 'price_x', 'unit_amount' => $cents, 'recurring' => ['interval' => $interval]]]]]];
+        $studio = $this->payingStudio(-60, ['billing_customer_id' => 'cus_loft_1']);
+        app(StudioBilling::class)->sync($studio, $this->sub('sub_1', 'active', $item(4900, 'month')));
+        $this->assertSame(['month', 4900], [$studio->refresh()->billing_interval, $studio->billing_amount_cents]);
+        $this->actingAs($this->userIn($studio, 'owner'));
+
+        $this->get("/{$studio->slug}/admin/subscription")->assertOk()
+            ->assertSee('$49 a month. Your next payment is on')
+            ->assertSee('Your price is locked: $49 a month for as long as you stay subscribed on this plan.')
+            ->assertSee('Switch to yearly (2 months free)')
+            ->assertSee('switch between monthly and yearly');
+
+        // A new price for new studios doesn't touch this one.
+        config(['loft.billing.monthly_cents' => 5900, 'loft.billing.yearly_cents' => 59000]);
+        $this->get("/{$studio->slug}/admin/subscription")->assertOk()->assertSee('Your price is locked: $49 a month')->assertSee('$59 a month, or $590 a year, for');
+
+        // Switched to yearly in the billing portal: the webhook records the new plan.
+        $this->sub('sub_1', 'active', $item(49000, 'year'));
+        $this->billingWebhook($this->event('customer.subscription.updated', 'sub_1'))->assertOk();
+        $this->assertSame(['year', 49000], [$studio->refresh()->billing_interval, $studio->billing_amount_cents]);
+        $this->get("/{$studio->slug}/admin/subscription")->assertOk()
+            ->assertSee('$490 a year. Your next payment is on')
+            ->assertSee('Your price is locked: $490 a year')
+            ->assertDontSee('Switch to yearly');
+
+        // An event without the price (older API shapes) keeps what's known.
+        app(StudioBilling::class)->sync($studio, $this->sub('sub_1', 'active'));
+        $this->assertSame(['year', 49000], [$studio->refresh()->billing_interval, $studio->billing_amount_cents]);
+        // The older plan field works too.
+        app(StudioBilling::class)->sync($studio, $this->sub('sub_1', 'active', ['plan' => ['amount' => 4900, 'interval' => 'month']]));
+        $this->assertSame(['month', 4900], [$studio->refresh()->billing_interval, $studio->billing_amount_cents]);
+    }
+
+    public function test_the_billing_portal_lets_owners_switch_between_monthly_and_yearly(): void
+    {
+        $studio = $this->subscribedStudio();
+        $this->actingAs($this->userIn($studio, 'owner'));
+
+        $this->post("/{$studio->slug}/admin/subscription/portal")->assertRedirect('https://billing.stripe.com/p/session_1');
+        $config = $this->sent('POST', 'billing_portal/configurations')[0];
+        $update = $config['features']['subscription_update'];
+        $this->assertSame(['true', ['price'], 'loft_studio', 'create_prorations'], [$update['enabled'], $update['default_allowed_updates'], $update['products'][0]['product'], $update['proration_behavior']]);
+        $this->assertSame(['price_1', 'price_2'], $update['products'][0]['prices']);
+        $this->assertSame(['loft_studio_monthly_usd_4900', 'loft_studio_yearly_usd_49000'], array_map(fn ($r) => $r['lookup_key'], $this->sent('POST', 'prices')));
+        $this->assertArrayNotHasKey('flow_data', $this->sent('POST', 'billing_portal/sessions')[0]->data());
+
+        // "Switch to yearly" opens straight on choosing a plan for this subscription.
+        $this->post("/{$studio->slug}/admin/subscription/portal", ['switch' => 1])->assertRedirect('https://billing.stripe.com/p/session_1');
+        $flow = $this->sent('POST', 'billing_portal/sessions')[1]['flow_data'];
+        $this->assertSame(['subscription_update', 'sub_1', 'redirect'], [$flow['type'], $flow['subscription_update']['subscription'], $flow['after_completion']['type']]);
+        $this->assertStringEndsWith("/{$studio->slug}/admin/subscription", $flow['after_completion']['redirect']['return_url']);
+        $this->assertCount(1, $this->sent('POST', 'billing_portal/configurations'), 'made once');
+
+        // Without a yearly plan the portal has no plan switching, under its own configuration.
+        config(['loft.billing.yearly_cents' => 0]);
+        $this->post("/{$studio->slug}/admin/subscription/portal", ['switch' => 1])->assertRedirect('https://billing.stripe.com/p/session_1');
+        $this->assertCount(2, $this->sent('POST', 'billing_portal/configurations'));
+        $this->assertArrayNotHasKey('subscription_update', $this->sent('POST', 'billing_portal/configurations')[1]['features']);
+        $this->assertArrayNotHasKey('flow_data', $this->sent('POST', 'billing_portal/sessions')[2]->data());
+    }
+
+    public function test_owner_emails_offer_both_plans(): void
+    {
+        $billing = app(StudioBilling::class);
+        $studio = $this->payingStudio(2);
+        $notice = $billing->notice($studio, $billing->state($studio), 'billing_trial_ending');
+        $this->assertStringContainsString('Subscribe for $49 a month or $490 a year to keep everything running.', $notice->render());
+
+        config(['loft.billing.yearly_cents' => 0]);
+        $notice = $billing->notice($studio, $billing->state($studio), 'billing_trial_ending');
+        $this->assertStringContainsString('Subscribe for $49 a month to keep everything running.', $notice->render());
     }
 
     public function test_the_billing_portal_is_set_up_once(): void

@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
     'trial_ends_at', 'comped_at', 'comp_note', 'billing_customer_id', 'billing_subscription_id', 'billing_status',
     'terms_accepted_at', 'terms_version',
     'billing_period_ends_at', 'billing_cancels_at', 'billing_payment_failed_at', 'billing_ended_at',
+    'billing_interval', 'billing_amount_cents',
 ])]
 class Studio extends Model
 {
@@ -64,6 +65,7 @@ class Studio extends Model
             'billing_cancels_at' => 'datetime',
             'billing_payment_failed_at' => 'datetime',
             'billing_ended_at' => 'datetime',
+            'billing_amount_cents' => 'integer',
             'terms_accepted_at' => 'datetime',
         ];
     }

@@ -71,7 +71,10 @@ class HomePageTest extends TestCase
         $data = json_decode($m[1] ?? '', true, flags: JSON_THROW_ON_ERROR);
         [$app, $faq] = $data['@graph'];
         $this->assertSame('SoftwareApplication', $app['@type']);
-        $this->assertSame(['@type' => 'Offer', 'price' => '49.00', 'priceCurrency' => 'USD', 'description' => 'Per studio, per month. Free for 30 days.'], $app['offers']);
+        $this->assertSame([
+            ['@type' => 'Offer', 'name' => 'Monthly', 'price' => '49.00', 'priceCurrency' => 'USD', 'description' => 'Per studio, per month. Free for 30 days.'],
+            ['@type' => 'Offer', 'name' => 'Yearly', 'price' => '490.00', 'priceCurrency' => 'USD', 'description' => 'Per studio, per year. Free for 30 days.'],
+        ], $app['offers']);
         $this->assertSame('FAQPage', $faq['@type']);
         $this->assertCount(7, $faq['mainEntity']);
         $this->assertSame('Do you take a cut of my sales?', $faq['mainEntity'][0]['name']);

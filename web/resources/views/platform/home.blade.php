@@ -4,7 +4,6 @@
 @section('description', "Booking, memberships, waivers, check-in, point of sale and video for class-based studios. {$price} a month, unlimited members and staff, paid straight to your own Stripe account. Free for {$trialDays} days.")
 
 @php
-    $money = fn ($amount) => str_replace('.00', '', \App\Support\Money::format((int) round($amount * 100), strtolower($currency)));
     $feeLabel = rtrim(rtrim(number_format($fee, 2), '0'), '.');
     $faqs = [
         [
@@ -62,7 +61,10 @@
                 'applicationCategory' => 'BusinessApplication',
                 'operatingSystem' => 'Web',
                 'description' => 'Studio management software: class booking, memberships, waivers, check-in, point of sale and video for dance, yoga, Pilates, aerial, pole and fitness studios.',
-                'offers' => ['@type' => 'Offer', 'price' => number_format($monthly, 2, '.', ''), 'priceCurrency' => $currency, 'description' => "Per studio, per month. Free for {$trialDays} days."],
+                'offers' => array_values(array_filter([
+                    ['@type' => 'Offer', 'name' => 'Monthly', 'price' => number_format($monthly, 2, '.', ''), 'priceCurrency' => $currency, 'description' => "Per studio, per month. Free for {$trialDays} days."],
+                    $yearlyAmount ? ['@type' => 'Offer', 'name' => 'Yearly', 'price' => number_format($yearlyAmount, 2, '.', ''), 'priceCurrency' => $currency, 'description' => "Per studio, per year. Free for {$trialDays} days."] : null,
+                ])),
                 'publisher' => ['@type' => 'Organization', 'name' => config('loft.legal.entity')],
             ],
             [
@@ -208,9 +210,10 @@
     <div class="price-grid">
         <div class="card price-card">
             <div class="price">{{ $price }}<small>/ month per studio</small></div>
-            <p class="muted">{{ $trialDays }}-day free trial. No card needed to start.</p>
+            <p class="muted">@if ($yearly)Or {{ $yearly }} a year{{ $yearlySaving ? ': '.$yearlySaving : '' }}. @endif{{ $trialDays }}-day free trial. No card needed to start.</p>
             <ul class="included">
                 <li><x-icon name="check" />Unlimited members, staff, classes and bookings</li>
+                <li><x-icon name="check" />The price you start at is the price you keep</li>
                 <li><x-icon name="check" />Every feature on this page</li>
                 <li><x-icon name="check" />@if ($fee > 0){{ $feeLabel }}% Loft fee on online sales @else No Loft fee on your sales @endif</li>
                 <li><x-icon name="check" />No setup fee, no contract</li>
@@ -220,24 +223,7 @@
             <p class="small muted center"><a href="{{ route('pricing') }}">Pricing details</a></p>
         </div>
 
-        <form class="card calc" data-calc data-monthly="{{ $monthly }}" data-fee="{{ $fee }}" data-currency="{{ $currency }}">
-            <h3><x-icon name="calculator" /> What do you pay now?</h3>
-            <p class="small muted">Enter what your current software costs. It’s worked out here in your browser; nothing is sent anywhere.</p>
-            <div class="calc-fields">
-                <label class="calc-field"><span>Software a month</span>
-                    <span class="input-affix"><i>$</i><input type="number" name="software" min="0" step="1" inputmode="decimal" value="{{ $calc['software'] }}"></span></label>
-                <label class="calc-field"><span>Its fee on sales</span>
-                    <span class="input-affix"><input type="number" name="percent" min="0" max="20" step="0.1" inputmode="decimal" value="{{ $calc['percent'] }}"><i>%</i></span></label>
-                <label class="calc-field"><span>Card sales a month</span>
-                    <span class="input-affix"><i>$</i><input type="number" name="sales" min="0" step="100" inputmode="decimal" value="{{ $calc['sales'] }}"></span></label>
-            </div>
-            <dl class="calc-result" aria-live="polite">
-                <div><dt>You pay now</dt><dd data-out="now">{{ $money($calc['now']) }}<small>/year</small></dd></div>
-                <div><dt>With Loft</dt><dd data-out="loft">{{ $money($calc['loft']) }}<small>/year</small></dd></div>
-                <div class="calc-saved"><dt data-out="saved-label">You’d keep</dt><dd data-out="saved">{{ $money(abs($calc['saved'])) }}<small>/year</small></dd></div>
-            </dl>
-            <p class="tiny muted">Only count fees your software adds on top of card processing. Stripe’s own card fees (in the US, 2.9% + 30¢ a charge) apply with Loft too, so they’re left out of both sides.</p>
-        </form>
+        @include('platform._calculator')
     </div>
 </section>
 
