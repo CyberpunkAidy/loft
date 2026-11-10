@@ -61,7 +61,7 @@ class Memberships
                 'email' => strtolower($data['email']),
                 'phone' => $data['phone'] ?? null,
                 'password' => $data['password'],
-            ]);
+            ] + User::termsAccepted()); // the join form and the app say signing up agrees to them
             $this->membership($studio, $user, $marketing);
             if (! empty($data['is_student'])) {
                 $studio->attendees()->create(['user_id' => $user->id, 'first_name' => $data['first_name'], 'last_name' => $data['last_name'], 'is_self' => true]);

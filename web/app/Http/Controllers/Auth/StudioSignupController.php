@@ -32,6 +32,7 @@ class StudioSignupController extends Controller
             'slug' => ['required', 'string', 'min:3', 'max:60', 'regex:/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/', 'unique:studios,slug', Rule::notIn(config('loft.reserved_slugs'))],
             'timezone' => ['required', 'timezone:all'],
             'currency' => ['required', Rule::in(array_keys(self::CURRENCIES))],
+            'terms' => ['accepted'],
         ];
         if (! $request->user()) {
             $rules += [
@@ -46,6 +47,7 @@ class StudioSignupController extends Controller
             'slug.unique' => 'That address is taken. Try another.',
             'slug.not_in' => 'That address is reserved. Try another.',
             'email.unique' => 'That email already has an account. Sign in first, then start your studio.',
+            'terms.accepted' => 'Agree to the Terms of Service and Privacy Policy to start your studio.',
         ]);
 
         $studio = DB::transaction(function () use ($request, $data) {
@@ -54,7 +56,7 @@ class StudioSignupController extends Controller
                 'last_name' => $data['last_name'],
                 'email' => strtolower($data['email']),
                 'password' => $data['password'],
-            ]);
+            ] + User::termsAccepted());
             $studio = Studio::create([
                 'name' => $data['studio_name'],
                 'slug' => $data['slug'],
@@ -63,6 +65,8 @@ class StudioSignupController extends Controller
                 'contact_email' => $user->email,
                 'email_from_name' => $data['studio_name'],
                 'trial_ends_at' => now()->addDays(app(StudioBilling::class)->trialDays()),
+                'terms_accepted_at' => now(),
+                'terms_version' => config('loft.legal.terms_version'),
             ]);
             $studio->studioUsers()->create(['user_id' => $user->id, 'role' => 'owner']);
             Category::seedDefaults($studio);

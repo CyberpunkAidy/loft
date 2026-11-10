@@ -34,7 +34,7 @@ class WelcomeController extends Controller
         $member->forceFill([
             'password' => $data['password'],
             'email_verified_at' => $member->email_verified_at ?? now(), // the invitation reached them
-        ])->setRememberToken(Str::random(60));
+        ] + User::termsAccepted())->setRememberToken(Str::random(60));
         $member->save();
         $invitations->accepted($studio, $member);
 

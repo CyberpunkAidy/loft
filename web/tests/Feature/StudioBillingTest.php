@@ -136,7 +136,7 @@ class StudioBillingTest extends TestCase
 
         $this->post('/signup', [
             'studio_name' => 'Pilates Loft', 'slug' => 'pilates', 'timezone' => 'America/Denver', 'currency' => 'usd',
-            'first_name' => 'Ola', 'last_name' => 'Owner', 'email' => 'ola@example.com', 'password' => 'secret-pass',
+            'first_name' => 'Ola', 'last_name' => 'Owner', 'email' => 'ola@example.com', 'password' => 'secret-pass', 'terms' => '1',
         ])->assertRedirect('/pilates/admin');
 
         $studio = Studio::where('slug', 'pilates')->sole();

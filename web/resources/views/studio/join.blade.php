@@ -27,6 +27,7 @@
             <x-checkbox name="is_student" label="I’ll be taking classes myself" hint="Leave unticked if you’re only booking for children." />
             <x-checkbox name="marketing_email" :label="'Email me news and offers from '.$studio->name" hint="Optional. Emails about your bookings and payments come either way." />
             <div class="hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+            <p class="small muted" style="margin:0">By creating an account, you agree to Loft’s <a href="{{ route('terms') }}" target="_blank">Terms of Service</a> and <a href="{{ route('privacy') }}" target="_blank">Privacy Policy</a>. {{ $studio->name }}’s own policies apply to your bookings and purchases.</p>
             <button class="btn btn-block">Create account</button>
         </form>
         <hr>

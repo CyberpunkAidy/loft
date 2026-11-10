@@ -38,6 +38,7 @@
                 <x-select name="currency" label="Currency" :options="$currencies" value="usd" />
             </div>
         </fieldset>
+        <x-checkbox name="terms" required>I agree to Loft’s <a href="{{ route('terms') }}" target="_blank">Terms of Service</a>, including the data processing terms, and its <a href="{{ route('privacy') }}" target="_blank">Privacy Policy</a>.</x-checkbox>
         <button class="btn btn-block">Create studio</button>
     </form>
 </div>

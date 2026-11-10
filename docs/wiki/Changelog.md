@@ -4,6 +4,13 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
+- **Terms of Service and Privacy Policy** ([Legal](Legal))
+  - **/terms and /privacy**, written from how Loft works: the studio subscription (prices, trial and grace from the billing settings), studios' responsibilities (their own Stripe accounts, classes, waivers, members' data, marketing), members' terms, data processing terms for studios (subprocessors, security, breaches, deletion, EU and UK transfer clauses), and what's collected, kept and shared. Goldseam Tech LLC, Wyoming law, privacy@loftstudio.app.
+  - **Agreeing:** starting a studio needs a ticked box; joining a studio, signing up in the app, or choosing a password from an import invitation says it agrees. Who agreed, when, and to which version is recorded.
+  - **Links** in the site, studio and admin footers, and in the mobile app (sign-up and Account).
+  - **Decision 38.**
+  - **Database:** `terms_accepted_at` and `terms_version` on `users` and `studios`.
+  - **Action needed:** forward privacy@loftstudio.app to your inbox (Porkbun), and have a lawyer review both documents.
 - **Data import from another system** ([Data Import](Data-Import))
   - **Admin → Members → Import:** upload a CSV from Mindbody, Momence, Punchpass, WellnessLiving or a spreadsheet. Columns are matched by name (staff can change any), and a preview shows what will be imported and which rows are skipped and why. Imports run in the background and can be undone for 30 days.
   - **Members and families:** rows sharing an email, or a parent's email, become one family, with birthdays, medical notes, emergency contacts and marketing consent. Existing Loft accounts join as they are.

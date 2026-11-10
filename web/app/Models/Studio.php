@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
     'stripe_account_id', 'stripe_charges_enabled', 'stripe_details_submitted', 'stripe_portal_configuration_id',
     'stripe_tax_rate_id', 'stripe_tax_rate_milli', 'stripe_terminal_location_id',
     'trial_ends_at', 'comped_at', 'comp_note', 'billing_customer_id', 'billing_subscription_id', 'billing_status',
+    'terms_accepted_at', 'terms_version',
     'billing_period_ends_at', 'billing_cancels_at', 'billing_payment_failed_at', 'billing_ended_at',
 ])]
 class Studio extends Model
@@ -63,6 +64,7 @@ class Studio extends Model
             'billing_cancels_at' => 'datetime',
             'billing_payment_failed_at' => 'datetime',
             'billing_ended_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
         ];
     }
 

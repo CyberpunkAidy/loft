@@ -598,3 +598,20 @@ form.inline { display: inline; }
 .import-problems summary { cursor: pointer; font-weight: 600; }
 .import-problems .table-wrap { margin-top: .75rem; }
 .plan-continues { margin: 0; padding: .6rem .75rem; border-radius: 10px; background: var(--info-bg); color: var(--info); border: 1px solid var(--info-line); }
+
+/* Terms of Service and Privacy Policy (decision 38) */
+.legal { max-width: 46rem; margin: 0 auto; padding: 1rem 0 3rem; line-height: 1.65; }
+.legal header { margin-bottom: 1.5rem; }
+.legal h1 { font-size: clamp(2rem, 4.5vw, 2.8rem); letter-spacing: -.04em; margin-bottom: .35rem; }
+.legal h2 { font-size: 1.35rem; letter-spacing: -.02em; margin: 2.25rem 0 .75rem; scroll-margin-top: 5rem; }
+.legal h3 { font-size: 1.02rem; margin: 1.4rem 0 .4rem; }
+.legal section { scroll-margin-top: 5rem; }
+.legal p, .legal li { color: var(--ink-2); }
+.legal ul { padding-left: 1.2rem; display: flex; flex-direction: column; gap: .45rem; }
+.legal .table-wrap { margin: .75rem 0 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.legal-contents { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin: 1.5rem 0 1rem; }
+.legal-contents ol { margin: 0; padding-left: 1.3rem; columns: 2 16rem; column-gap: 2rem; font-size: .93rem; }
+.legal-contents li { break-inside: avoid; padding: .1rem 0; }
+.legal-links { display: inline-flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+.sidebar-foot .legal-links { padding: .25rem .65rem 0; }
+.sidebar-foot .legal-links a { color: var(--muted); }
