@@ -198,7 +198,7 @@
         <div><x-icon name="mail-check" /><h3>Emails that send themselves</h3><p>Booking confirmations, waitlist moves, receipts and reminders.</p></div>
         <div><x-icon name="users-round" /><h3>Family accounts</h3><p>One parent account for every child, with ages and emergency contacts.</p></div>
         <div><x-icon name="scan-line" /><h3>Door check-in</h3><p>Rotating QR codes on members’ phones, or cards and fobs you hand out.</p></div>
-        <div><x-icon name="smartphone" /><h3>Works on any phone</h3><p>Your studio’s own page, in your colors. Nothing for members to install.</p></div>
+        <div><x-icon name="smartphone" /><h3>Works on any phone</h3><p>Your studio’s own page, with your logo and colors. Nothing for members to install.</p></div>
     </div>
 </section>
 

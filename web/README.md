@@ -262,7 +262,7 @@ docker build -t loft web
 php artisan test
 ```
 
-There are 241 tests. They cover:
+There are 250 tests. They cover:
 - the booking rules
 - rooms and apparatus: spots, item numbers, waitlist limits and promotion, and the admin screens
 - the event backbone: events recorded with their changes, the relay and retries, the email log, consent and unsubscribing, nightly snapshots
@@ -289,6 +289,7 @@ There are 241 tests. They cover:
 - Loft's own subscription: the trial, monthly and yearly checkout, the price lock, switching plans in the billing portal, grace and pause, comps and owner emails
 - data import, invitations and carrying memberships on
 - the home and pricing pages: their numbers, the calculator, structured data and screenshots; and the terms and privacy policy
+- studio logos: accepted and refused files, redrawing and resizing, serving and caching, replacing and removing, and where they show (pages, emails, the kiosk, the API)
 - waiver rules: program waivers, versions, enforcement, overrides and the download
 - the demo seeder
 

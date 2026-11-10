@@ -8,7 +8,7 @@
 @endphp
 <header class="site-header">
     <div class="container">
-        <a class="brand" href="{{ route('studio.schedule') }}"><span class="brand-mark" aria-hidden="true">{{ $studio->initial() }}</span> {{ $studio->name }}</a>
+        <a class="brand" href="{{ route('studio.schedule') }}"><x-studio-brand :studio="$studio" /></a>
         <nav class="nav" aria-label="Studio">
             <a href="{{ route('studio.schedule') }}" @class(['active' => request()->routeIs('studio.schedule', 'studio.program', 'studio.book')])>Schedule</a>
             <a href="{{ route('studio.plans') }}" @class(['active' => request()->routeIs('studio.plans')])>Plans</a>

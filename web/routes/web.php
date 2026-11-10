@@ -9,7 +9,12 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Studio;
 use App\Http\Controllers\StudioBillingWebhookController;
 use App\Models\Automation;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,6 +58,11 @@ Route::prefix('{studio}')
     ->group(function () {
         // Public
         Route::get('/', [Studio\ScheduleController::class, 'index'])->name('schedule');
+        // The logo is cached for good and loaded by emails, so it skips the session and cookies.
+        Route::get('/logo/{hash}.{type}', [Studio\LogoController::class, 'show'])
+            ->where(['hash' => '[a-f0-9]{12}', 'type' => 'png|jpg'])
+            ->withoutMiddleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
+            ->name('logo');
         Route::get('/classes/{program}', [Studio\ScheduleController::class, 'program'])->name('program');
         Route::get('/plans', [Studio\PlanController::class, 'index'])->name('plans');
         Route::get('/shop', [Studio\ShopController::class, 'index'])->name('shop');
@@ -210,6 +220,8 @@ Route::prefix('{studio}')
 
                 Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
                 Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+                Route::post('settings/logo', [Admin\LogoController::class, 'store'])->middleware('throttle:20,1')->name('settings.logo');
+                Route::delete('settings/logo', [Admin\LogoController::class, 'destroy'])->name('settings.logo.destroy');
             });
         });
     });

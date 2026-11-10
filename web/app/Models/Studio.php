@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
     'terms_accepted_at', 'terms_version',
     'billing_period_ends_at', 'billing_cancels_at', 'billing_payment_failed_at', 'billing_ended_at',
     'billing_interval', 'billing_amount_cents',
+    'logo_hash', 'logo_type', 'logo_width', 'logo_height',
 ])]
 class Studio extends Model
 {
@@ -57,6 +59,8 @@ class Studio extends Model
     {
         return [
             'settings' => 'array',
+            'logo_width' => 'integer',
+            'logo_height' => 'integer',
             'stripe_charges_enabled' => 'boolean',
             'stripe_details_submitted' => 'boolean',
             'trial_ends_at' => 'datetime',
@@ -126,10 +130,54 @@ class Studio extends Model
         return Color::textOnWhite($this->accent());
     }
 
-    /** The first letter of the name, for the studio's badge and favicon. */
+    /** The first letter of the name, for the studio's badge and favicon, when it has no logo. */
     public function initial(): string
     {
         return mb_strtoupper(mb_substr(trim($this->name), 0, 1)) ?: '?';
+    }
+
+    /** The uploaded logo image (decision 41); pages use logoUrl() and never load this. */
+    public function logo(): HasOne
+    {
+        return $this->hasOne(StudioLogo::class);
+    }
+
+    public function hasLogo(): bool
+    {
+        return $this->logo_hash !== null;
+    }
+
+    /** Where the logo is served, cached for good: the hash changes whenever the logo does. */
+    public function logoUrl(): ?string
+    {
+        return $this->hasLogo() ? route('studio.logo', ['studio' => $this->slug, 'hash' => $this->logo_hash, 'type' => $this->logo_type]) : null;
+    }
+
+    /**
+     * A wide logo (at least twice as wide as it is tall) usually spells out the name, so it's shown
+     * on its own; a square or tall one sits beside the name.
+     */
+    public function logoIsWide(): bool
+    {
+        return $this->hasLogo() && $this->logo_width >= 2 * $this->logo_height;
+    }
+
+    /**
+     * The size to show the logo at: $height tall, or narrower than $maxWidth if it's very wide.
+     * Pages and emails give these as width and height, so the space is kept while it loads and
+     * email apps that ignore CSS still draw it at this size.
+     *
+     * @return array{0: int, 1: int} width, height
+     */
+    public function logoSize(int $height, int $maxWidth): array
+    {
+        $ratio = $this->logo_height ? $this->logo_width / $this->logo_height : 1;
+        $width = (int) round($height * $ratio);
+        if ($width > $maxWidth) {
+            return [$maxWidth, max(1, (int) round($maxWidth / $ratio))];
+        }
+
+        return [max(1, $width), $height];
     }
 
     public function stripeReady(): bool

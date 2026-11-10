@@ -39,7 +39,7 @@
 <div class="admin">
     <aside class="sidebar">
         <div class="sidebar-head">
-            <a class="brand" href="{{ route('studio.admin.dashboard') }}"><span class="brand-mark" aria-hidden="true">{{ $studio->initial() }}</span> {{ $studio->name }}</a>
+            <a class="brand" href="{{ route('studio.admin.dashboard') }}"><x-studio-brand :studio="$studio" :height="32" :max-width="170" /></a>
             <button type="button" class="menu-toggle" data-menu-toggle aria-expanded="false"><x-icon name="menu" /> Menu</button>
         </div>
         <nav aria-label="Studio admin">

@@ -18,6 +18,7 @@ import { Icon, IconName } from './Icon';
 import { radius, space, useTheme } from './theme';
 
 export { Icon } from './Icon';
+export { StudioMark } from './StudioMark';
 export { AccentProvider, useTheme, space, radius } from './theme';
 
 /** A scrolling page with the app's background; pull to refresh when $onRefresh is given. */

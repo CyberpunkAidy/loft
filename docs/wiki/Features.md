@@ -59,7 +59,7 @@
 | Card readers | Payments → Card readers: the studio's address for Stripe, pairing Stripe Terminal readers by code, their model, serial number and online status, removing them | admin |
 | Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |
 | Staff | Add instructors and admins (new people get an email to set a password); owners can make other owners | admin |
-| Settings | Name, brand color, time zone, currency, email sender name and reply-to, booking policies, sales tax on products | admin |
+| Settings | **Logo** (PNG, JPEG or WebP, with a preview of the header; replace or remove), name, brand color, time zone, currency, email sender name and reply-to, booking policies, sales tax on products | admin |
 | Subscription | The studio's Loft subscription: the free trial and days left, choosing monthly or yearly and subscribing through Stripe Checkout, the plan and locked price the studio pays, the billing portal (card, invoices, switching plans, cancelling) and **Switch to yearly**, and what happens if it lapses. The only page left while the studio is paused. Banners elsewhere in the admin during the trial and before a pause | owners subscribe; all staff see it |
 
 ## Booking rules (studio settings)

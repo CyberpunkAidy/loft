@@ -6,7 +6,7 @@ import { ApiError, request } from '@/src/api/client';
 import { useSession } from '@/src/api/session';
 import type { Studio } from '@/src/api/types';
 import { studioSlugFrom } from '@/src/lib/studioAddress';
-import { AccentProvider, Body, Button, Card, Heading, Muted, Notice, Screen, TextField } from '@/src/ui';
+import { AccentProvider, Body, Button, Card, Heading, Muted, Notice, Screen, StudioMark, TextField } from '@/src/ui';
 import { space } from '@/src/ui/theme';
 
 /** Find a studio by its web address; then sign in, create an account, or (signed in) join it. */
@@ -75,9 +75,7 @@ export default function FindStudio() {
         <AccentProvider color={studio.accent_color}>
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-              <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: studio.accent_color, alignItems: 'center', justifyContent: 'center' }}>
-                <Heading style={{ color: '#fff' }}>{studio.name.slice(0, 1).toUpperCase()}</Heading>
-              </View>
+              <StudioMark studio={studio} maxWidth={140} />
               <View style={{ flex: 1 }}>
                 <Heading>{studio.name}</Heading>
                 <Muted>{studio.website_url.replace(/^https?:\/\//, '')}</Muted>

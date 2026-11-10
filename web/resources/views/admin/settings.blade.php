@@ -4,6 +4,36 @@
 
 @section('content')
 <h1>Settings</h1>
+
+<section class="fieldset logo-settings" style="max-width: 760px" aria-labelledby="logo-title">
+    <h2 id="logo-title" class="legend">Logo</h2>
+    <div class="logo-preview" aria-label="How your logo looks in your studio’s header">
+        <span class="brand"><x-studio-brand :studio="$studio" /></span>
+    </div>
+    <p class="small muted">{{ $studio->hasLogo() ? 'This is how your studio’s pages and emails show it.' : 'No logo yet: your pages and emails show your initial in your brand color.' }} A wide logo replaces your studio’s name; a square one sits beside it.</p>
+    <div class="logo-actions">
+        <form method="post" action="{{ route('studio.admin.settings.logo') }}" enctype="multipart/form-data" class="logo-upload">
+            @csrf
+            <div class="logo-upload-row">
+                <label class="field @error('logo') has-error @enderror">
+                    <span>{{ $studio->hasLogo() ? 'Replace your logo' : 'Upload your logo' }}</span>
+                    <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required aria-describedby="logo-hint">
+                </label>
+                <button class="btn btn-small">Upload</button>
+            </div>
+            <small class="hint" id="logo-hint">PNG, JPEG or WebP, up to 2 MB. A PNG with a transparent background looks best.</small>
+            @error('logo')<small class="error" role="alert">{{ $message }}</small>@enderror
+        </form>
+        @if ($studio->hasLogo())
+            <form method="post" action="{{ route('studio.admin.settings.logo.destroy') }}" data-confirm="Remove your logo? Your pages and emails go back to your initial.">
+                @csrf @method('delete')
+                <button class="btn btn-secondary btn-small">Remove logo</button>
+            </form>
+        @endif
+    </div>
+    <p class="small muted" style="margin:0">Stripe’s payment pages use the logo in your Stripe account: set it in Stripe under Settings → Branding.</p>
+</section>
+
 <form method="post" action="{{ route('studio.admin.settings') }}" class="form" style="max-width: 760px">
     @csrf @method('put')
     <fieldset class="fieldset form">

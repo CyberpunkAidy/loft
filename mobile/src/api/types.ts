@@ -7,6 +7,8 @@ export type Studio = {
   timezone: string;
   currency: string;
   accent_color: string;
+  /** The studio's logo (decision 41), or null: show its initial instead. */
+  logo: StudioLogo | null;
   contact_email: string | null;
   website_url: string;
   online_payments: boolean;
@@ -26,7 +28,11 @@ export type Membership = {
   timezone: string;
   currency: string;
   accent_color: string;
+  logo: StudioLogo | null;
 };
+
+/** A studio's logo, served for good from its URL; width and height give its shape. */
+export type StudioLogo = { url: string; width: number; height: number };
 
 export type User = {
   id: number;

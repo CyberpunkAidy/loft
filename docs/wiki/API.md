@@ -85,7 +85,7 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 
 | | |
 |---|---|
-| `GET /studios/{slug}` | Name, time zone, currency, colour, contact email, website, whether it takes online payments, booking policies |
+| `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, booking policies. The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
 | `GET /studios/{slug}/plans` | What it sells, with prices, labels, credits, season dates and `can_buy_online` |
 | `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` and `online_spots_left` (a hybrid class's online spots; `null` when there's no limit). With a token, `mine` lists the member's bookings in it |
 | `GET /studios/{slug}/sessions/{id}` | One class. With a member's token, `booking` says for each person on the account whether they can book, and if not, why (`reason` uses the error codes above, with `waiver_id` to sign) |

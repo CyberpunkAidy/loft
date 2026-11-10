@@ -64,6 +64,9 @@ jobs:
             -e APP_ENV=production -e LOG_CHANNEL=stderr -e SESSION_DRIVER=array -e CACHE_STORE=array \
             loft-web
           curl --fail --silent --show-error --retry 15 --retry-delay 1 --retry-all-errors http://localhost:8080/up
+      - name: GD can redraw studio logos (PNG, JPEG, WebP)
+        run: |
+          docker run --rm loft-web php -r 'foreach (["imagecreatefrompng", "imagecreatefromjpeg", "imagecreatefromwebp", "imagepng", "imagejpeg"] as $f) { if (! function_exists($f)) { fwrite(STDERR, "$f is missing\n"); exit(1); } } echo "GD ok\n";'
       - name: Fonts allow cross-origin use (email web fonts)
         run: |
           curl --fail --silent --show-error -o /dev/null -D - http://localhost:8080/fonts/inter-latin-wght-normal.woff2 \

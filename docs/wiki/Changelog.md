@@ -4,7 +4,20 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Yearly plan, price lock and a new pricing page** ([Loft Subscription](Loft-Subscription))
+- **Studio logos** ([decision 41](Decisions))
+  - **Admin → Settings → Logo:** upload a PNG, JPEG or WebP (up to 2 MB), see how it looks in the header, replace or remove it. SVG isn't accepted.
+  - **Every logo is redrawn:** decoded and drawn again so only the pixels are kept, shrunk to fit 960 × 240, and saved as PNG (JPEG for JPEG uploads).
+  - **Where it shows:** the studio's pages, the admin sidebar, the check-in kiosk, studio emails, My studios, and the mobile app (the find-a-studio card and the schedule's header). A wide logo stands in for the name; a square one sits beside it. Without a logo, the initial shows as before; the favicon stays the initial.
+  - **Served for good** from `/{studio}/logo/{hash}.png` (or `.jpg`), with no session or cookies; logos in older emails lead to the current one.
+  - **API:** studios and `/me`'s studios carry `logo` (`url`, `width`, `height`) or `null`.
+  - **Docker image:** now includes GD (PNG, JPEG, WebP); CI checks it.
+  - **Home and pricing pages** now mention logos.
+  - **Decision 41.**
+  - **Database:** `studio_logos`; `studios.logo_hash`, `logo_type`, `logo_width` and `logo_height`.
+
+## 2026-11-10
+
+- **Yearly plan, price lock and a new pricing page** ([Loft Subscription](Loft-Subscription), [#35](https://github.com/CyberpunkAidy/loft-studio/pull/35))
   - **Yearly billing:** studios choose $49 a month or $490 a year (two months free) when they subscribe. Monthly subscribers can **Switch to yearly** from Admin → Subscription, or switch either way in the billing portal; Stripe prorates it.
   - **Price lock:** a studio keeps the price it subscribed at for as long as it stays on that plan. The Subscription page shows the plan and amount it pays, and the terms (section 4) now promise the lock instead of 30 days' notice of a change.
   - **/pricing, rebuilt:** a monthly/yearly switch, the price lock, everything included by area, what else you pay (Stripe's card fees) with the savings calculator, a comparison with what studios often find elsewhere, nine questions (including one studio per location), and structured data for both prices.
@@ -13,8 +26,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Decision 40.**
   - **Database:** `studios.billing_interval` and `billing_amount_cents`.
   - **Settings:** `LOFT_YEARLY_PRICE_CENTS` (optional; ten months of the monthly price by default, `0` turns yearly off).
-
-## 2026-11-10
 
 - **A new home page** ([Home Page](Home-Page), [#34](https://github.com/CyberpunkAidy/loft-studio/pull/34))
   - **loftstudio.app** now sells one flat price with everything included: "Your whole studio, one flat price." Real screenshots from a demo studio (the owner's dashboard, a parent's phone, booking a silk or hoop, the check-in roster, sales, members at risk, an import preview) replace the drawn schedule.

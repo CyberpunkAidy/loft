@@ -18,7 +18,7 @@
             'One parent account for every child, with ages, medical notes and emergency contacts',
             'Digital waivers, versioned and signed by each attendee',
             'Check-in by staff, or with QR codes, cards and fobs at the door',
-            'Your studio’s own booking page, in your colors, on any phone',
+            'Your studio’s own booking page, with your logo and colors, on any phone',
         ],
         'Payments and sales' => [
             'Memberships with weekly limits, season tuition, class packs and drop-ins',
