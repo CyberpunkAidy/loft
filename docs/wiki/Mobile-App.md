@@ -63,3 +63,7 @@ Not done yet. It needs accounts only the owner can open:
 - **A drawn signature** on waivers (the website has one; the app takes a typed name).
 - **Editing or removing family members**, and the profile (name, phone, email preferences): on the website for now.
 - **Offline use:** the app needs a connection.
+
+## Privacy policy and terms
+
+The Account screen and the sign-up screen link to the [Privacy Policy](https://loftstudio.app/privacy) and [Terms of Service](https://loftstudio.app/terms). For the store listings' privacy policy URL, use `https://loftstudio.app/privacy` ([Legal](Legal)).

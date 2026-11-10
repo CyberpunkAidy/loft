@@ -1,10 +1,12 @@
+import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 
 import { ApiError } from '@/src/api/client';
 import { useStudio } from '@/src/api/hooks';
 import { useSession } from '@/src/api/session';
-import { AccentProvider, Body, Button, Checkbox, Muted, Screen, TextField } from '@/src/ui';
+import { WEB_URL } from '@/src/config';
+import { AccentProvider, Body, Button, Checkbox, Muted, Row, Screen, TextField } from '@/src/ui';
 
 export default function Register() {
   const { register } = useSession();
@@ -41,7 +43,10 @@ export default function Register() {
         <TextField label="Password" value={fields.password} onChangeText={set('password')} secureTextEntry autoComplete="new-password" hint="At least 8 characters." error={error?.fieldMessage('password')} />
         <Checkbox label={`Send me news and offers from ${name}. You can unsubscribe at any time.`} checked={marketing} onChange={setMarketing} />
         {error && !Object.keys(error.fields).length ? <Muted>{error.message}</Muted> : null}
+        <Muted>By creating an account, you agree to Loft’s Terms of Service and Privacy Policy. {name}’s own policies apply to your bookings and purchases.</Muted>
         <Button title="Create account" onPress={submit} loading={busy} />
+        <Row title="Terms of Service" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/terms`)} />
+        <Row title="Privacy Policy" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`)} />
       </Screen>
     </AccentProvider>
   );

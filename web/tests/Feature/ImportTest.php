@@ -474,6 +474,7 @@ class ImportTest extends TestCase
         $priya = User::where('email', 'priya@example.com')->sole();
         $this->assertAuthenticatedAs($priya);
         $this->assertTrue(Hash::check('new-password', $priya->password));
+        $this->assertSame('2026-11-10', $priya->terms_version, 'choosing a password agrees to the terms');
         $this->assertNotNull(StudioUser::where('studio_id', $studio->id)->where('user_id', $priya->id)->value('invitation_accepted_at'));
         Auth::logout();
         $this->get($toPriya->actionUrl)->assertRedirect("/{$studio->slug}/login")->assertSessionHas('warning');

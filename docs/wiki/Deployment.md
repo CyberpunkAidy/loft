@@ -32,6 +32,7 @@ Values aren't recorded here. Secrets live only in Render's dashboard.
 | `STRIPE_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | `sync: false` in the Blueprint |
 | `LOFT_PLATFORM_FEE_PERCENT` | `loft-web` | `0`: no platform fee |
 | `STRIPE_BILLING_WEBHOOK_SECRET` | `loft-web`, **set in the dashboard** | The billing webhook's signing secret, for studios' Loft subscriptions ([Loft Subscription](Loft-Subscription#setting-it-up-once)). `sync: false` in the Blueprint |
+| `LOFT_LEGAL_ENTITY`, `LOFT_LEGAL_STATE`, `LOFT_LEGAL_EMAIL` | Optional | Who operates Loft, whose law governs the terms, and where privacy requests go: `Goldseam Tech LLC`, `Wyoming`, `privacy@loftstudio.app` by default ([Legal](Legal)) |
 | `LOFT_MONTHLY_PRICE_CENTS`, `LOFT_BILLING_CURRENCY`, `LOFT_TRIAL_DAYS`, `LOFT_BILLING_GRACE_DAYS`, `LOFT_BILLING_AUTOMATIC_TAX` | Optional, `loft-shared` group | The Loft subscription: `4900`, `usd`, `30` days, `7` days and `false` by default |
 | `STRIPE_API_VERSION`, `STRIPE_V2_API_VERSION` | Optional | Default to `2024-06-20` and `2026-10-28.endive` ([Stripe](Stripe)) |
 | `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`, `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_KEY` | `loft-shared` group, **set in the dashboard** | On-demand video ([below](#video-mux)). In the group so the hourly job can follow uploads too. Without them, Admin → Videos says video isn't switched on |

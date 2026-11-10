@@ -10,6 +10,7 @@
         @csrf
         <x-field name="password" label="Password" type="password" autocomplete="new-password" minlength="8" required hint="At least 8 characters." />
         <x-field name="password_confirmation" label="Password again" type="password" autocomplete="new-password" minlength="8" required />
+        <p class="small muted" style="margin:0">By choosing a password, you agree to Loft’s <a href="{{ route('terms') }}" target="_blank">Terms of Service</a> and <a href="{{ route('privacy') }}" target="_blank">Privacy Policy</a>.</p>
         <button class="btn btn-block">Choose password</button>
     </form>
     <hr>

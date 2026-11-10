@@ -40,6 +40,19 @@ return [
     ],
 
     /*
+    | The Terms of Service and Privacy Policy (/terms, /privacy; decision 38): who operates Loft,
+    | whose law governs the terms, where privacy and legal requests go, and the version (the date)
+    | of each document. Change a version when its text changes; acceptance is recorded with it.
+    */
+    'legal' => [
+        'entity' => env('LOFT_LEGAL_ENTITY', 'Goldseam Tech LLC'),
+        'state' => env('LOFT_LEGAL_STATE', 'Wyoming'),
+        'email' => env('LOFT_LEGAL_EMAIL', 'privacy@loftstudio.app'),
+        'terms_version' => '2026-11-10',
+        'privacy_version' => '2026-11-10',
+    ],
+
+    /*
     | Mux, for on-demand video (decision 33). Loft's own Mux account hosts every studio's videos.
     | token_id/token_secret: an access token with Mux Video read and write. signing_key_id and
     | signing_key: a URL signing key (Settings → Signing keys); the key is the base64 private key

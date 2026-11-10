@@ -28,7 +28,8 @@
     <div class="container">
         <a class="powered" href="{{ route('home') }}"><x-logo /></a>
         <span>Scheduling, memberships, waivers and billing for studios.</span>
-        <span>© {{ date('Y') }} {{ config('app.name') }}</span>
+        <span class="legal-links"><a href="{{ route('pricing') }}">Pricing</a><a href="{{ route('terms') }}">Terms</a><a href="{{ route('privacy') }}">Privacy</a></span>
+        <span>© {{ date('Y') }} {{ config('loft.legal.entity') }}</span>
     </div>
 </footer>
 @endsection

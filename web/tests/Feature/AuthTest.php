@@ -24,7 +24,7 @@ class AuthTest extends TestCase
     {
         $this->post('/signup', [
             'first_name' => 'Olivia', 'last_name' => 'Owens', 'email' => 'olivia@example.com', 'password' => 'long-enough',
-            'studio_name' => 'Skyline Aerial', 'slug' => 'skyline', 'timezone' => 'America/Denver', 'currency' => 'usd',
+            'studio_name' => 'Skyline Aerial', 'slug' => 'skyline', 'timezone' => 'America/Denver', 'currency' => 'usd', 'terms' => '1',
         ])->assertRedirect('/skyline/admin');
 
         $studio = Studio::where('slug', 'skyline')->sole();
@@ -41,7 +41,7 @@ class AuthTest extends TestCase
         foreach (['login', 'taken', 'Bad Slug', 'ab'] as $slug) {
             $this->post('/signup', [
                 'first_name' => 'A', 'last_name' => 'B', 'email' => "x{$slug}@example.com", 'password' => 'long-enough',
-                'studio_name' => 'S', 'slug' => $slug, 'timezone' => 'America/Denver', 'currency' => 'usd',
+                'studio_name' => 'S', 'slug' => $slug, 'timezone' => 'America/Denver', 'currency' => 'usd', 'terms' => '1',
             ])->assertSessionHasErrors('slug');
         }
     }
@@ -49,7 +49,7 @@ class AuthTest extends TestCase
     public function test_signed_in_users_can_start_another_studio(): void
     {
         $user = User::factory()->create();
-        $this->actingAs($user)->post('/signup', ['studio_name' => 'Second', 'slug' => 'second', 'timezone' => 'Europe/London', 'currency' => 'gbp'])
+        $this->actingAs($user)->post('/signup', ['studio_name' => 'Second', 'slug' => 'second', 'timezone' => 'Europe/London', 'currency' => 'gbp', 'terms' => '1'])
             ->assertRedirect('/second/admin');
         $this->assertTrue($user->fresh()->hasRoleIn(Studio::where('slug', 'second')->sole(), 'owner'));
         $this->get('/studios')->assertOk()->assertSee('Second');

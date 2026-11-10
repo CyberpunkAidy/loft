@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 
 import { useSession } from '@/src/api/session';
+import { WEB_URL } from '@/src/config';
 import { useCurrentStudio, useSlug } from '@/src/api/studio';
 import { confirm } from '@/src/lib/confirm';
 import { Card, Divider, Loading, Muted, Row, Screen, Title } from '@/src/ui';
@@ -68,6 +69,12 @@ export default function Account() {
           subtitle="On the website: Profile → Delete account"
           onPress={() => WebBrowser.openBrowserAsync(`${studio.website_url}/account/profile`)}
         />
+      </Card>
+
+      <Card style={{ paddingVertical: 4 }}>
+        <Row title="Privacy Policy" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/privacy`)} />
+        <Divider />
+        <Row title="Terms of Service" onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/terms`)} />
       </Card>
     </Screen>
   );

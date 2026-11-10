@@ -59,6 +59,7 @@
                 <span><strong>{{ $me->name }}</strong><small>{{ $me->email }}</small></span>
             </div>
             <a class="powered" href="{{ route('home') }}">Powered by <x-logo /></a>
+            <span class="legal-links small"><a href="{{ route('terms') }}">Terms</a><a href="{{ route('privacy') }}">Privacy</a></span>
         </div>
     </aside>
     <main class="admin-main">

@@ -48,7 +48,7 @@
 <footer class="site-footer">
     <div class="container">
         <span><strong>{{ $studio->name }}</strong>@if ($studio->contact_email) · <a href="mailto:{{ $studio->contact_email }}">{{ $studio->contact_email }}</a>@endif</span>
-        <a class="powered" href="{{ route('home') }}">Powered by <x-logo /></a>
+        <span class="legal-links"><a href="{{ route('terms') }}">Terms</a><a href="{{ route('privacy') }}">Privacy</a><a class="powered" href="{{ route('home') }}">Powered by <x-logo /></a></span>
     </div>
 </footer>
 @endsection

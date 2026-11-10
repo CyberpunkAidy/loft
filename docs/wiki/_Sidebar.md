@@ -8,6 +8,7 @@
 - [Payments](Payments)
 - [Loft Subscription](Loft-Subscription)
 - [Data Import](Data-Import)
+- [Legal](Legal)
 - [API](API)
 - [Mobile App](Mobile-App)
 - [Accounts and Data](Accounts-and-Data)

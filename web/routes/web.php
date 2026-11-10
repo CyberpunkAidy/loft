@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', [PlatformController::class, 'home'])->name('home');
 Route::get('/pricing', [PlatformController::class, 'pricing'])->name('pricing');
+Route::get('/terms', [PlatformController::class, 'terms'])->name('terms');
+Route::get('/privacy', [PlatformController::class, 'privacy'])->name('privacy');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');

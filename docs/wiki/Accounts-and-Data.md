@@ -35,6 +35,10 @@ A studio must always have an owner.
 - **Loft subscription:** a closing studio's subscription to Loft is cancelled straight away ([Loft Subscription](Loft-Subscription)).
 - **After a close:** the owner lands on the Loft home page. Emails still queued for the closed studio are dropped.
 
+## Terms and privacy
+
+The [Privacy Policy](https://loftstudio.app/privacy) describes this page to members and studios; the [Terms of Service](https://loftstudio.app/terms) (section 15) make Loft the studios' processor for their members' data. When people and studios agreed, and to which version, is recorded ([Legal](Legal)).
+
 ## Where personal data lives
 
 | Data | Where |

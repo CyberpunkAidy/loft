@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
  * A person with a login. Users are global: the same account can be a member of one
  * studio and staff at another. Their role per studio lives in studio_users.
  */
-#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password', 'import_id'])]
+#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password', 'import_id', 'terms_accepted_at', 'terms_version'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,7 +32,14 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'terms_accepted_at' => 'datetime',
         ];
+    }
+
+    /** They agree to the current Terms of Service and Privacy Policy (account creation, invitation accepted). */
+    public static function termsAccepted(): array
+    {
+        return ['terms_accepted_at' => now(), 'terms_version' => (string) config('loft.legal.terms_version')];
     }
 
     protected function name(): Attribute
