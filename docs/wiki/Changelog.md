@@ -4,7 +4,12 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Studio logos** ([decision 41](Decisions))
+- **Yearly checkout explains the free time** ([Loft Subscription](Loft-Subscription))
+  - Stripe Checkout shows the rest of Loft's trial as days free, which owners took for the yearly plan's 2 free months. A line by the pay button now says the free period is the trial and the 2 months are in the price; the Subscription page and the pricing page's yearly question say the same.
+
+## 2026-11-10
+
+- **Studio logos** ([decision 41](Decisions), [#36](https://github.com/CyberpunkAidy/loft-studio/pull/36))
   - **Admin → Settings → Logo:** upload a PNG, JPEG or WebP (up to 2 MB), see how it looks in the header, replace or remove it. SVG isn't accepted.
   - **Every logo is redrawn:** decoded and drawn again so only the pixels are kept, shrunk to fit 960 × 240, and saved as PNG (JPEG for JPEG uploads).
   - **Where it shows:** the studio's pages, the admin sidebar, the check-in kiosk, studio emails, My studios, and the mobile app (the find-a-studio card and the schedule's header). A wide logo stands in for the name; a square one sits beside it. Without a logo, the initial shows as before; the favicon stays the initial.
@@ -14,8 +19,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Home and pricing pages** now mention logos.
   - **Decision 41.**
   - **Database:** `studio_logos`; `studios.logo_hash`, `logo_type`, `logo_width` and `logo_height`.
-
-## 2026-11-10
 
 - **Yearly plan, price lock and a new pricing page** ([Loft Subscription](Loft-Subscription), [#35](https://github.com/CyberpunkAidy/loft-studio/pull/35))
   - **Yearly billing:** studios choose $49 a month or $490 a year (two months free) when they subscribe. Monthly subscribers can **Switch to yearly** from Admin → Subscription, or switch either way in the billing portal; Stripe prorates it.

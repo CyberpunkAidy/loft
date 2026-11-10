@@ -80,6 +80,10 @@
                         <label class="pick"><input type="radio" name="interval" value="month" @checked(old('interval', 'month') === 'month')><span class="grow"><strong>Monthly</strong><span class="muted small" style="display:block">{{ $price }} a month</span></span></label>
                         <label class="pick"><input type="radio" name="interval" value="year" @checked(old('interval') === 'year')><span class="grow"><strong>Yearly</strong><span class="muted small" style="display:block">{{ $yearly }} a year{{ $yearlySaving ? ', '.$yearlySaving : '' }}</span></span></label>
                     </div>
+                    <p class="small muted">
+                        @if ($state->status === BillingState::TRIAL)Your free trial carries on until {{ $date($state->trialEndsAt) }} on either plan, so Stripe’s page shows that time as free. @endif
+                        @if ($yearlySaving)The yearly plan’s {{ str_starts_with($yearlySaving, 'save ') ? 'saving is' : $yearlySaving.' are' }} in its price: {{ $yearly }} instead of {{ $twelveMonths }}.@endif
+                    </p>
                     <button class="btn">Subscribe</button>
                 </form>
             @else

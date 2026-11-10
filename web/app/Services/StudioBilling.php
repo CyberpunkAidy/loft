@@ -187,7 +187,34 @@ class StudioBilling
         $trialEnd = $state->status === BillingState::TRIAL && $state->trialEndsAt->gt(now()->addHours(49)) ? $state->trialEndsAt : null;
         $price = $this->planPrice($interval);
 
-        return (string) $this->stripe->createBillingCheckout($studio, $studio->billing_customer_id, $price, $trialEnd, $successUrl, $cancelUrl, (bool) config('loft.billing.automatic_tax'))['url'];
+        return (string) $this->stripe->createBillingCheckout($studio, $studio->billing_customer_id, $price, $trialEnd, $successUrl, $cancelUrl,
+            (bool) config('loft.billing.automatic_tax'), $this->checkoutMessage($studio, $interval, $trialEnd))['url'];
+    }
+
+    /**
+     * The line by Stripe Checkout's pay button. Stripe shows the rest of Loft's trial as days free,
+     * which owners can mistake for the yearly plan's free months; this says which is which.
+     */
+    public function checkoutMessage(Studio $studio, string $interval, ?Carbon $trialEnd): ?string
+    {
+        $plan = $interval === 'year' ? $this->yearlyPriceLabel().' a year' : $this->priceLabel().' a month';
+        $saving = $interval === 'year' ? $this->yearlySaving() : null;
+        $saving = match (true) {
+            $saving === null => '',
+            str_starts_with($saving, 'save ') => ', which saves '.substr($saving, 5).' compared with paying monthly',
+            default => ', which is '.$saving.' compared with paying monthly',
+        };
+        if ($trialEnd) {
+            return 'Your Loft free trial carries on until '.$studio->local($trialEnd)->format('F j').', so your card isn’t charged until then. After that it’s '.$plan.$saving.'.';
+        }
+
+        return $saving !== '' ? ucfirst($plan).$saving.'.' : null;
+    }
+
+    /** "$588": twelve months on the monthly plan, to set the yearly price against. */
+    public function monthlyForAYearLabel(): string
+    {
+        return $this->label(12 * (int) config('loft.billing.monthly_cents'));
     }
 
     /** Back from Checkout: record the subscription now rather than wait for the webhook. True if it was this studio's. */

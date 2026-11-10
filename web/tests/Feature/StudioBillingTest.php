@@ -330,6 +330,7 @@ class StudioBillingTest extends TestCase
         $owner = $this->userIn($studio, 'owner');
         $this->actingAs($owner)->post("/{$studio->slug}/admin/subscription/checkout")->assertRedirect('https://checkout.stripe.com/c/cs_1');
         $this->assertArrayNotHasKey('trial_end', $this->sent('POST', 'checkout/sessions')[0]['subscription_data']);
+        $this->assertArrayNotHasKey('custom_text', $this->sent('POST', 'checkout/sessions')[0]->data(), 'monthly with no trial left: nothing to explain');
 
         $this->travelTo(now()->addDays(20)); // paused: subscribing is the one thing left to do
         $this->assertTrue($studio->refresh()->isPaused());
@@ -467,6 +468,13 @@ class StudioBillingTest extends TestCase
         $this->assertSame([49000, 'usd', 'year', 'Loft yearly'], [$price['unit_amount'], $price['currency'], $price['recurring']['interval'], $price['nickname']]);
         $this->assertSame('price_1', $this->sent('POST', 'checkout/sessions')[0]['line_items'][0]['price']);
         $this->assertSame($studio->trial_ends_at->getTimestamp(), $this->sent('POST', 'checkout/sessions')[0]['subscription_data']['trial_end'], 'the trial is kept on yearly too');
+        // Stripe shows the rest of the trial as days free; the line by the pay button says that's the trial, and where the 2 months are.
+        $day = $studio->local($studio->trial_ends_at)->format('F j');
+        $this->assertSame("Your Loft free trial carries on until {$day}, so your card isn’t charged until then. After that it’s \$490 a year, which is 2 months free compared with paying monthly.",
+            $this->sent('POST', 'checkout/sessions')[0]['custom_text']['submit']['message']);
+        $this->get("/{$studio->slug}/admin/subscription")->assertOk()
+            ->assertSee('Your free trial carries on until '.$studio->local($studio->trial_ends_at)->format('F j, Y').' on either plan, so Stripe’s page shows that time as free.', false)
+            ->assertSee('The yearly plan’s 2 months free are in its price: $490 instead of $588.', false);
 
         $this->post("/{$studio->slug}/admin/subscription/checkout", ['interval' => 'week'])->assertSessionHas('error', 'Choose monthly or yearly billing.');
         $this->assertCount(1, $this->sent('POST', 'checkout/sessions'));
@@ -477,6 +485,19 @@ class StudioBillingTest extends TestCase
         $this->post("/{$studio->slug}/admin/subscription/checkout", ['interval' => 'year'])->assertSessionHas('error', 'Choose monthly billing.');
         $this->post("/{$studio->slug}/admin/subscription/checkout")->assertRedirect('https://checkout.stripe.com/c/cs_1');
         $this->assertSame('loft_studio_monthly_usd_4900', $this->sent('GET', 'prices')[1]['lookup_keys'][0]);
+        $this->assertSame("Your Loft free trial carries on until {$day}, so your card isn’t charged until then. After that it’s \$49 a month.",
+            $this->sent('POST', 'checkout/sessions')[1]['custom_text']['submit']['message']);
+    }
+
+    public function test_the_checkout_line_names_the_saving_without_a_trial(): void
+    {
+        $billing = app(StudioBilling::class);
+        $studio = $this->payingStudio(-30);
+        $this->assertSame('$490 a year, which is 2 months free compared with paying monthly.', $billing->checkoutMessage($studio, 'year', null));
+        $this->assertNull($billing->checkoutMessage($studio, 'month', null), 'nothing to explain');
+
+        config(['loft.billing.yearly_cents' => 50000]);
+        $this->assertSame('$500 a year, which saves $88 compared with paying monthly.', $billing->checkoutMessage($studio, 'year', null));
     }
 
     public function test_the_plan_comes_from_stripe_and_its_price_stays_locked(): void

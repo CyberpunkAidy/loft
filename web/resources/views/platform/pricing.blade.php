@@ -63,7 +63,7 @@
         ],
         $yearly ? [
             'q' => 'Is there a yearly plan?',
-            'a' => "Yes: {$yearly} a year".($yearlySaving ? ", which is {$yearlySaving}" : '').". Choose it when you subscribe, or switch from monthly any time in the billing portal; Stripe takes off what’s left of the month you’ve paid for.",
+            'a' => "Yes: {$yearly} a year".($yearlySaving ? ", which is {$yearlySaving}" : '').". The saving is in the price; your {$trialDays}-day free trial comes first either way. Choose yearly when you subscribe, or switch from monthly any time in the billing portal; Stripe takes off what’s left of the month you’ve paid for.",
         ] : null,
         [
             'q' => 'Will my price go up?',

@@ -598,7 +598,7 @@ class StripeClient
      * Checkout for a studio's subscription. A $trialEnd keeps the rest of Loft's free trial: the
      * card is saved now and first charged then. Promotion codes are allowed, for launch offers.
      */
-    public function createBillingCheckout(Studio $studio, string $customerId, string $priceId, ?Carbon $trialEnd, string $successUrl, string $cancelUrl, bool $automaticTax = false): array
+    public function createBillingCheckout(Studio $studio, string $customerId, string $priceId, ?Carbon $trialEnd, string $successUrl, string $cancelUrl, bool $automaticTax = false, ?string $message = null): array
     {
         $params = [
             'mode' => 'subscription',
@@ -621,6 +621,9 @@ class StripeClient
                 'billing_address_collection' => 'required',
                 'customer_update' => ['address' => 'auto', 'name' => 'auto'],
             ];
+        }
+        if ($message) {
+            $params['custom_text'] = ['submit' => ['message' => $message]]; // shown by the pay button
         }
 
         return $this->post('checkout/sessions', $params);
