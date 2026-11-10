@@ -15,9 +15,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Loft's own subscription (decision 36): each studio pays Loft monthly, on the platform Stripe
- * account. A studio starts with a free trial (no card), subscribes through Stripe Checkout and
- * manages its card in Stripe's billing portal. When the trial or subscription ends, or payments
+ * Loft's own subscription (decision 36): each studio pays Loft monthly or yearly (decision 40), on
+ * the platform Stripe account. A studio starts with a free trial (no card), subscribes through
+ * Stripe Checkout and manages its card and plan in Stripe's billing portal. A subscription keeps
+ * the price it started at (the price lock), so changing the price in config affects only new ones. When the trial or subscription ends, or payments
  * fail, it has grace_days of reminders with everything working, then pauses until it pays.
  * Studios can also be comped (free), as every studio already on Loft was.
  *
@@ -34,6 +35,9 @@ class StudioBilling
 
     /** A subscription that's over for good. */
     public const ENDED = ['canceled', 'incomplete_expired'];
+
+    /** Billing periods a studio can subscribe for. */
+    public const INTERVALS = ['month', 'year'];
 
     public function __construct(
         private readonly StripeClient $stripe,
@@ -87,10 +91,69 @@ class StudioBilling
         return max(0, (int) config('loft.billing.grace_days'));
     }
 
-    /** "$49", or "$49.50": the price of a new subscription. */
+    /** "$49", or "$49.50": the monthly price of a new subscription. */
     public function priceLabel(): string
     {
-        return str_replace('.00', '', Money::format((int) config('loft.billing.monthly_cents'), (string) config('loft.billing.currency')));
+        return $this->label((int) config('loft.billing.monthly_cents'));
+    }
+
+    /** The yearly price in cents, or null when there's no yearly plan (LOFT_YEARLY_PRICE_CENTS=0). */
+    public function yearlyCents(): ?int
+    {
+        $cents = (int) config('loft.billing.yearly_cents');
+
+        return $cents > 0 ? $cents : null;
+    }
+
+    /** "$490", or null when there's no yearly plan. */
+    public function yearlyPriceLabel(): ?string
+    {
+        return ($cents = $this->yearlyCents()) ? $this->label($cents) : null;
+    }
+
+    /** What yearly works out at each month: "$40.83". */
+    public function yearlyMonthlyLabel(): ?string
+    {
+        return ($cents = $this->yearlyCents()) ? $this->label((int) round($cents / 12)) : null;
+    }
+
+    /**
+     * What a year on the yearly plan saves over twelve months: "2 months free" when it's a whole
+     * number of months, otherwise "save $98". Null without a yearly plan or a saving.
+     */
+    public function yearlySaving(): ?string
+    {
+        $monthly = (int) config('loft.billing.monthly_cents');
+        $saved = $monthly * 12 - (int) $this->yearlyCents();
+        if (! $this->yearlyCents() || $monthly <= 0 || $saved <= 0) {
+            return null;
+        }
+
+        return $saved % $monthly === 0 ? ($saved / $monthly === 1 ? '1 month free' : ($saved / $monthly).' months free') : 'save '.$this->label($saved);
+    }
+
+    /** "$49 a month" or, with a yearly plan, "$49 a month or $490 a year". */
+    public function offerLabel(): string
+    {
+        return $this->priceLabel().' a month'.(($yearly = $this->yearlyPriceLabel()) ? ' or '.$yearly.' a year' : '');
+    }
+
+    /**
+     * The plan a subscribed studio is on, as Stripe charges it (which can differ from today's
+     * prices): "$49 a month", "$490 a year". Studios synced before plans were recorded show today's
+     * monthly price.
+     */
+    public function planLabel(Studio $studio): string
+    {
+        $interval = $studio->billing_interval === 'year' ? 'year' : 'month';
+        $cents = $studio->billing_amount_cents ?? (int) config('loft.billing.'.($interval === 'year' ? 'yearly_cents' : 'monthly_cents'));
+
+        return $this->label($cents).' a '.$interval;
+    }
+
+    private function label(int $cents): string
+    {
+        return str_replace('.00', '', Money::format($cents, (string) config('loft.billing.currency')));
     }
 
     /* ------------------------------------------------------------------ Subscribing */
@@ -101,8 +164,11 @@ class StudioBilling
      *
      * @throws CheckoutException
      */
-    public function checkoutUrl(Studio $studio, User $owner, string $successUrl, string $cancelUrl): string
+    public function checkoutUrl(Studio $studio, User $owner, string $successUrl, string $cancelUrl, string $interval = 'month'): string
     {
+        if (! in_array($interval, self::INTERVALS, true) || ($interval === 'year' && ! $this->yearlyCents())) {
+            throw new CheckoutException('Choose monthly'.($this->yearlyCents() ? ' or yearly' : '').' billing.');
+        }
         $state = $this->state($studio);
         if (! $state->canSubscribe()) {
             throw new CheckoutException(match (true) {
@@ -119,7 +185,7 @@ class StudioBilling
             $studio->update(['billing_customer_id' => $this->stripe->createBillingCustomer($studio, $owner)]);
         }
         $trialEnd = $state->status === BillingState::TRIAL && $state->trialEndsAt->gt(now()->addHours(49)) ? $state->trialEndsAt : null;
-        $price = $this->stripe->loftPrice((int) config('loft.billing.monthly_cents'), (string) config('loft.billing.currency'));
+        $price = $this->planPrice($interval);
 
         return (string) $this->stripe->createBillingCheckout($studio, $studio->billing_customer_id, $price, $trialEnd, $successUrl, $cancelUrl, (bool) config('loft.billing.automatic_tax'))['url'];
     }
@@ -139,14 +205,42 @@ class StudioBilling
         return true;
     }
 
-    /** Stripe's billing portal: change the card, see invoices, cancel at the end of the month. */
-    public function portalUrl(Studio $studio, string $returnUrl): string
+    /**
+     * Today's Stripe prices for new subscriptions, by interval (found or created by lookup key).
+     *
+     * @return array<string, string> interval => price ID
+     */
+    public function planPrices(): array
+    {
+        $prices = [];
+        foreach ($this->yearlyCents() ? self::INTERVALS : ['month'] as $interval) {
+            $prices[$interval] = $this->planPrice($interval);
+        }
+
+        return $prices;
+    }
+
+    /** Today's Stripe price for a new monthly or yearly subscription. */
+    private function planPrice(string $interval): string
+    {
+        $cents = $interval === 'year' ? (int) $this->yearlyCents() : (int) config('loft.billing.monthly_cents');
+
+        return $this->stripe->loftPrice($cents, (string) config('loft.billing.currency'), $interval);
+    }
+
+    /**
+     * Stripe's billing portal: change the card, see invoices, cancel at the end of the period and,
+     * with a yearly plan, switch between monthly and yearly ($switch opens straight on that).
+     */
+    public function portalUrl(Studio $studio, string $returnUrl, bool $switch = false): string
     {
         if (! $studio->billing_customer_id) {
             throw new CheckoutException('There’s no subscription to manage yet.');
         }
+        $plans = $this->yearlyCents() ? array_values($this->planPrices()) : [];
+        $subscription = $switch && in_array($studio->billing_status, self::LIVE, true) ? $studio->billing_subscription_id : null;
 
-        return $this->stripe->createBillingPortal($studio->billing_customer_id, $returnUrl);
+        return $this->stripe->createBillingPortal($studio->billing_customer_id, $returnUrl, $plans, $subscription);
     }
 
     /* ------------------------------------------------------------------ Keeping in step with Stripe */
@@ -184,7 +278,10 @@ class StudioBilling
             }
         }
 
-        $periodEnd = $subscription['current_period_end'] ?? $subscription['items']['data'][0]['current_period_end'] ?? null;
+        $item = $subscription['items']['data'][0] ?? [];
+        $periodEnd = $subscription['current_period_end'] ?? $item['current_period_end'] ?? null;
+        $price = $item['price'] ?? $subscription['plan'] ?? [];
+        $interval = $price['recurring']['interval'] ?? $price['interval'] ?? null;
         $cancelAt = $subscription['cancel_at'] ?? (! empty($subscription['cancel_at_period_end']) ? $periodEnd : null);
         $live = $this->stillLive($status);
         $customer = $subscription['customer'] ?? null;
@@ -193,6 +290,8 @@ class StudioBilling
             'billing_subscription_id' => $id,
             'billing_customer_id' => $studio->billing_customer_id ?? (is_string($customer) ? $customer : null),
             'billing_status' => $status,
+            'billing_interval' => in_array($interval, self::INTERVALS, true) ? $interval : $studio->billing_interval,
+            'billing_amount_cents' => is_numeric($price['unit_amount'] ?? $price['amount'] ?? null) ? (int) ($price['unit_amount'] ?? $price['amount']) : $studio->billing_amount_cents,
             'billing_period_ends_at' => self::time($periodEnd),
             'billing_cancels_at' => $live ? self::time($cancelAt) : null,
             'billing_payment_failed_at' => in_array($status, self::FAILING, true) ? ($studio->billing_payment_failed_at ?? now()) : null,
@@ -300,13 +399,13 @@ class StudioBilling
     public function notice(Studio $studio, BillingState $state, string $kind): LoftNotice
     {
         $date = fn (?Carbon $at) => $at ? $studio->local($at)->format('l, F j') : '';
-        $price = $this->priceLabel();
+        $offer = $this->offerLabel();
         $url = route('studio.admin.subscription', $studio);
 
         return match ($kind) {
             'billing_trial_ending' => new LoftNotice($studio, 'Your Loft trial ends '.$studio->local($state->trialEndsAt)->format('F j'), [
                 "Your free trial of Loft for {$studio->name} ends on {$date($state->trialEndsAt)}.",
-                "Subscribe for {$price} a month to keep everything running. If you subscribe now, your card isn’t charged until the trial ends.",
+                "Subscribe for {$offer} to keep everything running. If you subscribe now, your card isn’t charged until the trial ends.",
             ], [], [], $url, 'Subscribe', $kind),
             'billing_grace' => match ($state->reason) {
                 'payment_failed' => new LoftNotice($studio, 'Your Loft payment didn’t go through', [
@@ -315,11 +414,11 @@ class StudioBilling
                 ], [], [], $url, 'Update your card', $kind),
                 'cancelled' => new LoftNotice($studio, 'Your Loft subscription has ended', [
                     "{$studio->name}’s Loft subscription has ended.",
-                    "Online booking, payments and staff access keep working until {$date($state->pausesAt)}. Subscribe again for {$price} a month to keep them running.",
+                    "Online booking, payments and staff access keep working until {$date($state->pausesAt)}. Subscribe again for {$offer} to keep them running.",
                 ], [], [], $url, 'Subscribe', $kind),
                 default => new LoftNotice($studio, 'Your Loft trial has ended', [
                     "Your free trial of Loft for {$studio->name} has ended.",
-                    "Online booking, payments and staff access keep working until {$date($state->pausesAt)}. Subscribe for {$price} a month to keep them running.",
+                    "Online booking, payments and staff access keep working until {$date($state->pausesAt)}. Subscribe for {$offer} to keep them running.",
                 ], [], [], $url, 'Subscribe', $kind),
             },
             default => new LoftNotice($studio, $studio->name.' is paused on Loft', [

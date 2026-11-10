@@ -4,7 +4,19 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **A new home page** ([Home Page](Home-Page))
+- **Yearly plan, price lock and a new pricing page** ([Loft Subscription](Loft-Subscription))
+  - **Yearly billing:** studios choose $49 a month or $490 a year (two months free) when they subscribe. Monthly subscribers can **Switch to yearly** from Admin → Subscription, or switch either way in the billing portal; Stripe prorates it.
+  - **Price lock:** a studio keeps the price it subscribed at for as long as it stays on that plan. The Subscription page shows the plan and amount it pays, and the terms (section 4) now promise the lock instead of 30 days' notice of a change.
+  - **/pricing, rebuilt:** a monthly/yearly switch, the price lock, everything included by area, what else you pay (Stripe's card fees) with the savings calculator, a comparison with what studios often find elsewhere, nine questions (including one studio per location), and structured data for both prices.
+  - **Home page:** the price card mentions the yearly plan and the price lock; the calculator notes the yearly price.
+  - **Owner emails** offer both plans.
+  - **Decision 40.**
+  - **Database:** `studios.billing_interval` and `billing_amount_cents`.
+  - **Settings:** `LOFT_YEARLY_PRICE_CENTS` (optional; ten months of the monthly price by default, `0` turns yearly off).
+
+## 2026-11-10
+
+- **A new home page** ([Home Page](Home-Page), [#34](https://github.com/CyberpunkAidy/loft-studio/pull/34))
   - **loftstudio.app** now sells one flat price with everything included: "Your whole studio, one flat price." Real screenshots from a demo studio (the owner's dashboard, a parent's phone, booking a silk or hoop, the check-in roster, sales, members at risk, an import preview) replace the drawn schedule.
   - **For every class-based studio,** with a section on booking by apparatus for aerial, pole and reformer studios.
   - **A savings calculator:** a studio's current software bill and any fee on card sales, against a year of Loft. It names no other products, leaves Stripe's own fees out of both sides, and says so when Loft would cost more.
@@ -14,8 +26,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Dashboard:** once every setup step is done, the Setup card becomes **Your schedule**, with the studio's link (now clickable, without `https://`).
   - **Decision 39.**
   - **Action needed:** forward hello@loftstudio.app to your inbox (Porkbun).
-
-## 2026-11-10
 
 - **Terms of Service and Privacy Policy** ([Legal](Legal), [#33](https://github.com/CyberpunkAidy/loft-studio/pull/33))
   - **/terms and /privacy**, written from how Loft works: the studio subscription (prices, trial and grace from the billing settings), studios' responsibilities (their own Stripe accounts, classes, waivers, members' data, marketing), members' terms, data processing terms for studios (subprocessors, security, breaches, deletion, EU and UK transfer clauses), and what's collected, kept and shared. Goldseam Tech LLC, Wyoming law, privacy@loftstudio.app.

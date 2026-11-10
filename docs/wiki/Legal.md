@@ -17,6 +17,7 @@ Both name **Goldseam Tech LLC** and **privacy@loftstudio.app**.
 | Operator, state, contact email | `config/loft.php` → `legal`, or `LOFT_LEGAL_ENTITY`, `LOFT_LEGAL_STATE`, `LOFT_LEGAL_EMAIL` |
 | Versions (shown as "Last updated") | `config/loft.php` → `legal.terms_version`, `legal.privacy_version` |
 | Prices, trial and grace in the terms | Read from the billing settings, so they always match the pricing page |
+| The price lock (section 4) | "Your price is locked": a subscription keeps its price while it continues on the same plan; a new price applies only to new subscriptions or plan switches. With the yearly plan on, section 4 also covers monthly or yearly billing and switching. Matches how billing works ([Loft Subscription](Loft-Subscription)) |
 
 Links: the site, studio and admin footers; the studio signup form (a **required** checkbox); the member join form, the welcome page for imported members, and the mobile app's sign-up and Account screens (a line saying creating an account agrees to them).
 

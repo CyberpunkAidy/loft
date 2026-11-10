@@ -560,15 +560,15 @@ class StripeClient
     }
 
     /**
-     * The monthly price for $cents, found by its lookup key or created (with Loft's product) the
-     * first time that amount is used. So the price follows config, and subscriptions already made
-     * keep theirs.
+     * The monthly or yearly price for $cents, found by its lookup key or created (with Loft's
+     * product) the first time that amount is used. So the price follows config, and subscriptions
+     * already made keep theirs.
      */
-    public function loftPrice(int $cents, string $currency): string
+    public function loftPrice(int $cents, string $currency, string $interval = 'month'): string
     {
-        $key = "loft_studio_monthly_{$currency}_{$cents}";
+        $key = ($interval === 'year' ? 'loft_studio_yearly_' : 'loft_studio_monthly_')."{$currency}_{$cents}";
 
-        return Cache::remember('stripe.price.'.$key, 86400, function () use ($key, $cents, $currency) {
+        return Cache::remember('stripe.price.'.$key, 86400, function () use ($key, $cents, $currency, $interval) {
             $found = $this->get('prices', ['lookup_keys' => [$key], 'active' => true, 'limit' => 1]);
             if ($id = $found['data'][0]['id'] ?? null) {
                 return $id;
@@ -586,10 +586,10 @@ class StripeClient
                 'product' => self::LOFT_PRODUCT,
                 'currency' => $currency,
                 'unit_amount' => $cents,
-                'recurring' => ['interval' => 'month'],
+                'recurring' => ['interval' => $interval],
                 'tax_behavior' => 'exclusive',
                 'lookup_key' => $key,
-                'nickname' => 'Loft monthly',
+                'nickname' => $interval === 'year' ? 'Loft yearly' : 'Loft monthly',
             ], null, 'loft-price-'.$key)['id'];
         });
     }
@@ -653,25 +653,48 @@ class StripeClient
         }
     }
 
-    /** The billing portal for a studio's Loft subscription: card, invoices, cancel at period end. */
-    public function createBillingPortal(string $customerId, string $returnUrl): string
+    /**
+     * The billing portal for a studio's Loft subscription: card, invoices, cancel at period end and,
+     * given $plans (the monthly and yearly price IDs), switching between them. Stripe prorates the
+     * switch: moving to yearly charges the year now, less what's left of the month. One portal
+     * configuration per set of plans, made once. $switchSubscription opens straight on choosing a
+     * plan for that subscription.
+     *
+     * @param  list<string>  $plans
+     */
+    public function createBillingPortal(string $customerId, string $returnUrl, array $plans = [], ?string $switchSubscription = null): string
     {
-        $configuration = Cache::rememberForever('stripe.loft_portal_configuration', fn () => $this->post('billing_portal/configurations', [
+        $features = [
+            'invoice_history' => ['enabled' => true],
+            'payment_method_update' => ['enabled' => true],
+            'customer_update' => ['enabled' => true, 'allowed_updates' => ['email', 'address', 'name']],
+            'subscription_cancel' => ['enabled' => true, 'mode' => 'at_period_end'],
+        ];
+        if (count($plans) > 1) {
+            $features['subscription_update'] = [
+                'enabled' => true,
+                'default_allowed_updates' => ['price'],
+                'products' => [['product' => self::LOFT_PRODUCT, 'prices' => array_values($plans)]],
+                'proration_behavior' => 'create_prorations',
+            ];
+        }
+        $cacheKey = 'stripe.loft_portal_configuration'.(isset($features['subscription_update']) ? '.'.md5(implode(',', $plans)) : '');
+        $configuration = Cache::rememberForever($cacheKey, fn () => $this->post('billing_portal/configurations', [
             'business_profile' => ['headline' => 'Your Loft subscription'],
-            'features' => [
-                'invoice_history' => ['enabled' => true],
-                'payment_method_update' => ['enabled' => true],
-                'customer_update' => ['enabled' => true, 'allowed_updates' => ['email', 'address', 'name']],
-                'subscription_cancel' => ['enabled' => true, 'mode' => 'at_period_end'],
-            ],
+            'features' => $features,
             'metadata' => ['loft' => 'studio_billing'],
         ])['id']);
 
-        return $this->post('billing_portal/sessions', [
-            'customer' => $customerId,
-            'return_url' => $returnUrl,
-            'configuration' => $configuration,
-        ])['url'];
+        $params = ['customer' => $customerId, 'return_url' => $returnUrl, 'configuration' => $configuration];
+        if ($switchSubscription && isset($features['subscription_update'])) {
+            $params['flow_data'] = [
+                'type' => 'subscription_update',
+                'subscription_update' => ['subscription' => $switchSubscription],
+                'after_completion' => ['type' => 'redirect', 'redirect' => ['return_url' => $returnUrl]],
+            ];
+        }
+
+        return $this->post('billing_portal/sessions', $params)['url'];
     }
 
     /* ------------------------------------------------------------------ Webhooks */
