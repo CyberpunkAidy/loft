@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureStudioActive;
 use App\Http\Middleware\Idempotency;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
+use App\Http\Middleware\SecurityHeaders;
 use App\Models\Studio;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotent' => Idempotency::class,
             'device' => AuthenticateDevice::class,
         ]);
+        // First in, last out: every response gets them, the maintenance page and errors included.
+        $middleware->prepend(SecurityHeaders::class);
         // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
         // for one-click unsubscribe (RFC 8058) without a session.
         $middleware->validateCsrfTokens(except: ['stripe/webhook', 'stripe/billing-webhook', '*/unsubscribe/*']);
