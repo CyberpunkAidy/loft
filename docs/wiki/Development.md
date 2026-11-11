@@ -17,7 +17,7 @@ Open http://localhost:8000/skyline. The demo accounts all use the password `pass
 | parent@example.com | Member with two children and a membership |
 | adult@example.com | Member with a class pack |
 
-- **Reset the demo:** `php artisan migrate:fresh --seed`.
+- **Reset the sample studio:** `php artisan migrate:fresh --seed`. Add `SEED_BUSY=1` for a lived-in month (60 members, a booked-up week, sales), the same as each [demo studio](Demo-Studio) gets.
 - **Emails locally** go to `storage/logs/laravel.log` (`MAIL_MAILER=log`, debug level).
 - **Testing Stripe webhooks** with the Stripe CLI: `stripe listen --forward-connect-to localhost:8000/stripe/webhook`.
 

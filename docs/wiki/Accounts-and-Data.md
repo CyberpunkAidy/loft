@@ -51,6 +51,7 @@ The [Privacy Policy](https://loftstudio.app/privacy) describes this page to memb
 | Nightly activity snapshots | `member_snapshots` (deleted with the account) |
 | Videos watched | `video_views`: which video, who, which day (deleted with the account). Mux sees playback only by video, with no cookies and no member details |
 | How a studio found Loft: its owner's answer, where the visit began, its referral code | `studios.heard_from`, `heard_from_detail`, `signup_source`, `referral_code_id` (deleted with the studio). A guest's visit is kept only in their session until they start a studio ([Referrals and Signups](Referrals)) |
+| Demo studios and the accounts made in them | Deleted 24 hours after the demo starts, with everything in them. `demo_runs` keeps only a count ([Demo Studio](Demo-Studio)) |
 | Card details | Never in Loft; only in Stripe |
 | Studio customer records, charges, invoices | The studio's own Stripe account |
 

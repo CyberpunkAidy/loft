@@ -43,6 +43,18 @@ return [
     ],
 
     /*
+    | "Try the demo" (decision 44): each visitor's private copy of the sample studio lasts this many
+    | hours, and no more than max_live exist at once (a guard against a flood of them). `pool` are
+    | built ahead, so starting one is instant; a spare nobody takes is replaced after spare_hours.
+    */
+    'demo' => [
+        'hours' => (int) env('LOFT_DEMO_HOURS', 24),
+        'max_live' => (int) env('LOFT_DEMO_MAX_LIVE', 100),
+        'pool' => (int) env('LOFT_DEMO_POOL', 2),
+        'spare_hours' => 12,
+    ],
+
+    /*
     | Referrals (decision 43). A studio that joins with a referral code gets this many days free on
     | top of the trial; once it first pays, the studio that referred it gets a month's credit on its
     | Loft bill, or this many more trial days if it hasn't subscribed yet.
@@ -99,7 +111,7 @@ return [
     */
     'reserved_slugs' => [
         'admin', 'api', 'app', 'account', 'billing', 'blog', 'css', 'dashboard', 'docs', 'favicon', 'forgot-password',
-        'help', 'home', 'images', 'img', 'js', 'join', 'login', 'logout', 'mail', 'platform', 'pricing', 'privacy',
+        'demo', 'help', 'home', 'images', 'img', 'js', 'join', 'login', 'logout', 'mail', 'platform', 'pricing', 'privacy',
         'register', 'reset-password', 'robots', 'signup', 'static', 'storage', 'stripe', 'studios', 'support',
         'terms', 'up', 'www',
     ],

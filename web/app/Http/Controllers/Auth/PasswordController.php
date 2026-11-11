@@ -22,7 +22,10 @@ class PasswordController extends Controller
     public function email(Request $request): RedirectResponse
     {
         $request->validate(['email' => ['required', 'email']]);
-        Password::sendResetLink($request->only('email'));
+        // Demo accounts (decision 44) have made-up addresses and vanish within a day: no email.
+        if (! User::where('email', strtolower((string) $request->input('email')))->whereNotNull('demo_expires_at')->exists()) {
+            Password::sendResetLink($request->only('email'));
+        }
 
         // Same answer whether or not the address has an account.
         return back()->with('status', 'If that email has an account, a reset link is on its way.');

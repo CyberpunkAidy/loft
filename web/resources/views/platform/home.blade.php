@@ -85,7 +85,7 @@
         @auth
             <a class="btn btn-large btn-secondary" href="{{ route('studios') }}">Go to my studios</a>
         @else
-            <a class="btn btn-large btn-secondary" href="#tour">See how it works</a>
+            <a class="btn btn-large btn-secondary" href="{{ route('demo') }}">Try the demo</a>
         @endauth
     </div>
     <p class="hero-note"><span><x-icon name="check" /> Free for {{ $trialDays }} days</span><span><x-icon name="check" /> No card needed</span><span><x-icon name="check" /> Cancel any time</span></p>
@@ -272,7 +272,10 @@
 <section class="cta">
     <h2>Ready when your students are.</h2>
     <p>Set up your schedule today; families book, sign and pay from one link. Free for {{ $trialDays }} days, then {{ $price }} a month.</p>
-    <a class="btn btn-large" href="{{ route('signup') }}">Start your free trial <x-icon name="arrow-right" /></a>
+    <div class="actions">
+        <a class="btn btn-large" href="{{ route('signup') }}">Start your free trial <x-icon name="arrow-right" /></a>
+        <a class="btn btn-large btn-secondary" href="{{ route('demo') }}">Try the demo first</a>
+    </div>
     <p class="cta-help"><x-icon name="life-buoy" /> Questions first? Email <a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a></p>
 </section>
 @endsection

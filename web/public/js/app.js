@@ -32,6 +32,14 @@
 		else { document.execCommand('copy'); done(); }
 	});
 
+	// "Try the demo": building one can take a few seconds when no spare is ready, so say so.
+	document.querySelectorAll('[data-demo-start]').forEach(function (form) {
+		form.addEventListener('submit', function () {
+			var btn = form.querySelector('button');
+			if (btn) { btn.disabled = true; btn.textContent = 'Setting up your studio…'; }
+		});
+	});
+
 	// Studio signup: suggest a web address from the studio name until it's edited by hand.
 	var name = document.querySelector('[data-slug-source]');
 	var slug = document.querySelector('[data-slug-target]');

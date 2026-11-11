@@ -8,6 +8,7 @@ use App\Models\Entitlement;
 use App\Models\Studio;
 use App\Services\Automations;
 use App\Services\ChurnScores;
+use App\Services\Demo\DemoStudios;
 use App\Services\DomainEvents;
 use App\Services\Imports\Imports;
 use App\Services\MemberInvitations;
@@ -40,7 +41,7 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers, Videos $videos, StudioBilling $billing, MemberInvitations $invitations, Imports $imports): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers, Videos $videos, StudioBilling $billing, MemberInvitations $invitations, Imports $imports, DemoStudios $demos): int
     {
         $reminders = 0;
         $snapshotted = 0;
@@ -63,9 +64,11 @@ class Housekeeping extends Command
         $billingEmails = $billing->remind();
         $renewals = $invitations->remindRenewals();
         $pruned = $imports->prune();
+        $demosRemoved = $demos->cleanup();
+        $demosBuilt = $demos->refill();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Subscriptions synced: {$subscriptions}. Billing emails: {$billingEmails}. Renewal reminders: {$renewals}. Import drafts cleared: {$pruned}. Events relayed: {$relayed}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Subscriptions synced: {$subscriptions}. Billing emails: {$billingEmails}. Renewal reminders: {$renewals}. Import drafts cleared: {$pruned}. Events relayed: {$relayed}. Demo studios removed: {$demosRemoved}. Spare demos built: {$demosBuilt}.");
 
         return self::SUCCESS;
     }

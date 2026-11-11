@@ -55,7 +55,8 @@ Elsewhere in the repository:
 
 | Table | Holds |
 |---|---|
-| `studios` | Name, slug, time zone, currency, brand color, the logo's hash, type and size (`logo_hash`, `logo_type`, `logo_width`, `logo_height`), contact email, settings (JSON), Stripe account state; how it found Loft (`heard_from`, `heard_from_detail`, `signup_source`), the referral code it joined with and its referrer's reward (`referral_code_id`, `referral_rewarded_at`, `referral_reward`, `referral_reward_cents`) ([decision 43](Decisions)) |
+| `studios` | Name, slug, time zone, currency, brand color, the logo's hash, type and size (`logo_hash`, `logo_type`, `logo_width`, `logo_height`), contact email, settings (JSON), Stripe account state; how it found Loft (`heard_from`, `heard_from_detail`, `signup_source`), the referral code it joined with and its referrer's reward (`referral_code_id`, `referral_rewarded_at`, `referral_reward`, `referral_reward_cents`) ([decision 43](Decisions)); for a demo studio, when it goes and whether a visitor has it (`demo_expires_at`, `demo_claimed_at`) ([decision 44](Decisions)) |
+| `demo_runs` | One row per demo started, and the real studio that browser went on to start, if any ([Demo Studio](Demo-Studio)) |
 | `referral_codes` | Referral codes: one per studio (`studio_id`), or a partner's (`name`); `disabled_at` turns one off ([Referrals and Signups](Referrals)) |
 | `studio_logos` | The studio's logo image, base64, one row per studio, written only by `App\Services\StudioLogos` and served at `/{studio}/logo/{hash}.{type}` ([decision 41](Decisions)) |
 | `studio_users` | A user's role at a studio, their Stripe customer ID on that studio's account, and marketing email consent (when, where, and when they unsubscribed) |
@@ -115,6 +116,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
 - **`Imports\Imports`, `PeopleImporter`, `PlansImporter`:** data import from another system: preview, run (on the queue), undo. **`MemberInvitations`:** invitations to imported members, and carrying their memberships on in Loft.
+- **`Demo\DemoStudios`** and **`Demo\SampleStudio`:** "Try the demo": spare demo studios built ahead, starting and switching, and the hourly cleanup; and the sample studio both the demos and the local seed are built from ([Demo Studio](Demo-Studio)).
 - **`Referrals`:** studios' referral codes, checking a code at signup, and the referrer's reward when a referred studio first pays (a Stripe customer-balance credit, or more trial), with its thank-you email ([Referrals and Signups](Referrals)). `SignupSource` holds the "How did you hear about Loft?" answers and records where a guest's visit began.
 - **`Consent`:** marketing email opt-in and opt-out, recorded with its source.
 - **`MemberSnapshots`:** each night's member snapshot.

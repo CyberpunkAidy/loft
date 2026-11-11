@@ -8,6 +8,7 @@
 - [Payments](Payments)
 - [Loft Subscription](Loft-Subscription)
 - [Referrals and Signups](Referrals)
+- [Demo Studio](Demo-Studio)
 - [Data Import](Data-Import)
 - [Legal](Legal)
 - [Home Page](Home-Page)

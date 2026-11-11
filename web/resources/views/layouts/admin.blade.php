@@ -63,6 +63,7 @@
         </div>
     </aside>
     <main class="admin-main">
+        <x-demo-banner :studio="$studio" />
         @include('partials.flash')
         @unless (request()->routeIs('studio.admin.subscription*'))
             @include('admin._subscription-banner', ['billing' => $billing])

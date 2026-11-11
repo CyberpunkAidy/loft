@@ -21,8 +21,13 @@
 <div class="card narrow subscription">
     @switch($state->status)
         @case(BillingState::COMPED)
-            <h2>Free <span class="badge">Comped</span></h2>
-            <p class="muted" style="margin:0">Loft is free for {{ $studio->name }}. There’s nothing to pay.</p>
+            @if ($studio->isDemo())
+                <h2>Demo studio <span class="badge">Free</span></h2>
+                <p class="muted" style="margin:0">There’s nothing to pay in the demo. In your own studio, this is where you subscribe: {{ $offer }}, after a {{ $trialDays }}-day free trial.</p>
+            @else
+                <h2>Free <span class="badge">Comped</span></h2>
+                <p class="muted" style="margin:0">Loft is free for {{ $studio->name }}. There’s nothing to pay.</p>
+            @endif
             @break
 
         @case(BillingState::SUBSCRIBED)

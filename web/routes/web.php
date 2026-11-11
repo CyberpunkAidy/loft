@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\StudioSignupController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Studio;
@@ -25,6 +26,11 @@ Route::get('/', [PlatformController::class, 'home'])->name('home');
 Route::get('/pricing', [PlatformController::class, 'pricing'])->name('pricing');
 Route::get('/terms', [PlatformController::class, 'terms'])->name('terms');
 Route::get('/privacy', [PlatformController::class, 'privacy'])->name('privacy');
+// "Try the demo" (decision 44): the visitor's own copy of the sample studio for a day.
+Route::get('/demo', [DemoController::class, 'show'])->name('demo');
+Route::post('/demo', [DemoController::class, 'store'])->middleware('throttle:demo')->name('demo.store');
+Route::post('/demo/switch', [DemoController::class, 'switch'])->middleware('auth')->name('demo.switch');
+Route::post('/demo/leave', [DemoController::class, 'leave'])->name('demo.leave');
 // A studio's or partner's referral link: remembers the code for the signup form (decision 43).
 Route::get('/r/{code}', [PlatformController::class, 'referral'])->where('code', '[A-Za-z0-9]{1,20}')->name('referral');
 
@@ -115,8 +121,8 @@ Route::prefix('{studio}')
             Route::post('/bookings/{booking}/cancel', [Studio\BookingController::class, 'cancel'])->name('bookings.cancel');
             Route::get('/bookings/{booking}/join', [Studio\BookingController::class, 'join'])->name('bookings.join');
 
-            Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->name('checkout');
-            Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware('throttle:20,1')->name('shop.checkout');
+            Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->middleware('demo.off:payments')->name('checkout');
+            Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware(['throttle:20,1', 'demo.off:payments'])->name('shop.checkout');
             Route::get('/shop/complete', [Studio\ShopController::class, 'complete'])->name('shop.complete');
             Route::get('/checkout/complete', [Studio\CheckoutController::class, 'complete'])->name('checkout.complete');
             Route::post('/billing-portal', [Studio\CheckoutController::class, 'portal'])->name('billing.portal');
@@ -127,9 +133,9 @@ Route::prefix('{studio}')
             // The studio's Loft subscription: the one page left open while the studio is paused.
             Route::get('/subscription', [Admin\SubscriptionController::class, 'show'])->name('subscription');
             Route::middleware('studio.role:owner')->group(function () {
-                Route::post('/subscription/checkout', [Admin\SubscriptionController::class, 'checkout'])->middleware('throttle:10,1')->name('subscription.checkout');
+                Route::post('/subscription/checkout', [Admin\SubscriptionController::class, 'checkout'])->middleware(['throttle:10,1', 'demo.off:subscription'])->name('subscription.checkout');
                 Route::get('/subscription/complete', [Admin\SubscriptionController::class, 'complete'])->name('subscription.complete');
-                Route::post('/subscription/portal', [Admin\SubscriptionController::class, 'portal'])->middleware('throttle:10,1')->name('subscription.portal');
+                Route::post('/subscription/portal', [Admin\SubscriptionController::class, 'portal'])->middleware(['throttle:10,1', 'demo.off:subscription'])->name('subscription.portal');
             });
 
             Route::get('/', Admin\DashboardController::class)->name('dashboard');
@@ -188,7 +194,7 @@ Route::prefix('{studio}')
                 Route::patch('staff/{studioUser}', [Admin\StaffController::class, 'update'])->name('staff.update');
                 Route::delete('staff/{studioUser}', [Admin\StaffController::class, 'destroy'])->name('staff.destroy');
 
-                Route::resource('videos', Admin\VideoController::class)->except(['show', 'create']);
+                Route::resource('videos', Admin\VideoController::class)->except(['show', 'create'])->middlewareFor('store', 'demo.off:video');
                 Route::get('videos/{video}/status', [Admin\VideoController::class, 'status'])->name('videos.status');
                 Route::resource('products', Admin\ProductController::class)->except('show');
                 Route::get('pos', [Admin\PointOfSaleController::class, 'show'])->name('pos');
@@ -205,17 +211,17 @@ Route::prefix('{studio}')
                 Route::post('pos/orders/{order}/reader/simulate', [Admin\PointOfSaleController::class, 'simulateReader'])->name('pos.reader.simulate');
                 Route::post('orders/{order}/void', [Admin\PointOfSaleController::class, 'void'])->name('orders.void');
                 Route::get('orders/{order}/refund', [Admin\RefundController::class, 'show'])->name('orders.refund');
-                Route::post('orders/{order}/refund', [Admin\RefundController::class, 'store'])->middleware('throttle:20,1')->name('orders.refund.store');
+                Route::post('orders/{order}/refund', [Admin\RefundController::class, 'store'])->middleware(['throttle:20,1', 'demo.off:payments'])->name('orders.refund.store');
 
                 Route::get('sales', [Admin\SalesController::class, 'index'])->name('sales.index');
                 Route::get('sales/export', [Admin\SalesController::class, 'export'])->name('sales.export');
                 Route::post('orders/{order}/picked-up', [Admin\SalesController::class, 'pickedUp'])->name('orders.picked_up');
 
                 Route::get('payments', [Admin\PaymentsController::class, 'show'])->name('payments');
-                Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->name('payments.connect');
+                Route::post('payments/connect', [Admin\PaymentsController::class, 'connect'])->middleware('demo.off:payments')->name('payments.connect');
                 Route::get('payments/readers', [Admin\CardReaderController::class, 'index'])->name('payments.readers');
-                Route::post('payments/readers/location', [Admin\CardReaderController::class, 'location'])->name('payments.readers.location');
-                Route::post('payments/readers', [Admin\CardReaderController::class, 'store'])->middleware('throttle:20,1')->name('payments.readers.store');
+                Route::post('payments/readers/location', [Admin\CardReaderController::class, 'location'])->middleware('demo.off:payments')->name('payments.readers.location');
+                Route::post('payments/readers', [Admin\CardReaderController::class, 'store'])->middleware(['throttle:20,1', 'demo.off:payments'])->name('payments.readers.store');
                 Route::delete('payments/readers/{cardReader}', [Admin\CardReaderController::class, 'destroy'])->name('payments.readers.destroy');
                 Route::get('payments/return', [Admin\PaymentsController::class, 'return'])->name('payments.return');
                 Route::post('payments/{payment}/void', [Admin\PaymentsController::class, 'void'])->name('payments.void');

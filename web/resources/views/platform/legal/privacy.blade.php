@@ -115,6 +115,7 @@
             <li><strong>When you delete your account</strong>, we remove your account, your family members, your plans and your bookings at every studio, cancel any renewing memberships, sign you out everywhere, and delete your activity summaries and risk scores. Your activity history and email log are kept without anything that identifies you.</li>
             <li><strong>Some records stay with each studio</strong>, without a link to your account, because they’re the studio’s business records: signed waivers (with the names, signature drawing, IP address and browser), sales and payments it recorded, and its payment history in its own Stripe account.</li>
             <li><strong>When a studio closes</strong>, everything in it is deleted, including its signed waivers, which its owner can download first.</li>
+            <li><strong>Demo studios</strong> (from “Try the demo”) are deleted with everything in them, including any accounts made inside them, a day after they’re opened.</li>
             <li><strong>Files a studio uploads to import its members</strong> are kept only until they’re imported; unused uploads are deleted after a week.</li>
             <li><strong>Backups and server logs</strong> are kept by our host for a limited time and then overwritten.</li>
         </ul>
