@@ -4,6 +4,7 @@ namespace App\Services\Stripe;
 
 use App\Models\StripeEvent;
 use App\Models\Studio;
+use App\Services\Referrals;
 use App\Services\StudioBilling;
 use Throwable;
 
@@ -21,6 +22,7 @@ class StudioBillingWebhooks
     public function __construct(
         private readonly StripeClient $stripe,
         private readonly StudioBilling $billing,
+        private readonly Referrals $referrals,
     ) {}
 
     /** @return array{0: int, 1: array<string, mixed>} HTTP status and JSON body */
@@ -68,6 +70,7 @@ class StudioBillingWebhooks
             return null;
         }
 
+        $invoice = in_array($event['type'], ['invoice.paid', 'invoice.payment_failed'], true) ? $this->stripe->retrieveBillingInvoice($id) : null;
         $subscription = match ($event['type']) {
             'checkout.session.completed' => ($object['mode'] ?? null) === 'subscription' ? ($this->stripe->retrieveBillingCheckout($id)['subscription'] ?? null) : null,
             'customer.subscription.created',
@@ -76,13 +79,17 @@ class StudioBillingWebhooks
             'customer.subscription.paused',
             'customer.subscription.resumed' => $this->stripe->retrieveBillingSubscription($id),
             'invoice.paid',
-            'invoice.payment_failed' => $this->invoiceSubscription($this->stripe->retrieveBillingInvoice($id)),
+            'invoice.payment_failed' => $this->invoiceSubscription($invoice),
             default => null,
         };
         if (! is_array($subscription) || ! ($studio = $this->billing->studioFor($subscription))) {
             return null; // not a studio subscription we know
         }
         $this->billing->sync($studio, $subscription);
+        // Its first real payment: the studio whose code it joined with earns its reward (decision 43).
+        if ($event['type'] === 'invoice.paid' && (int) ($invoice['amount_paid'] ?? 0) > 0) {
+            $this->referrals->reward($studio->refresh());
+        }
 
         return $studio;
     }

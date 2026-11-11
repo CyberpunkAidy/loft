@@ -80,6 +80,9 @@
             @endif
             <li><strong>Your price is locked.</strong> The price you subscribe at stays the same for as long as your subscription continues{{ $yearly ? ' on the same plan (monthly or yearly)' : '' }}. A new price applies only to subscriptions started{{ $yearly ? ', or switched to the other plan,' : '' }} after it takes effect. If your subscription ends and you subscribe again later, the price at that time applies.</li>
             <li><strong>Offers.</strong> We may offer discounts, promotion codes or free access. Each offer lasts as long as it says, and we can end free access by telling the studio’s owners at least 30 days ahead.</li>
+            @if ($bonusDays)
+                <li><strong>Referrals.</strong> A studio that starts with another studio’s or a Loft partner’s referral code gets {{ $bonusDays }} more days of free trial. Once it has made its first payment to Loft, the studio whose code it used gets a credit worth one month of its plan on its next Loft bills, or {{ $bonusDays }} more days of free trial if it hasn’t subscribed yet. A studio that Loft is free for earns nothing more. Credits can’t be exchanged for cash or moved to another studio, the owners and admins of a studio can’t use its code for a studio of their own, and we may change or end referrals at any time; what’s already been earned is kept.</li>
+            @endif
             <li><strong>If you don’t pay.</strong> If your trial ends without a subscription, your subscription ends, or a payment fails, everything keeps working for {{ $graceDays }} more days. After that your studio is paused: staff can see only the subscription page, and members can’t book or pay online, until you subscribe or update your card. Nothing is deleted while a studio is paused. We may close a studio that has stayed paused for more than 12 months, after emailing its owners at least 30 days before.</li>
         </ul>
     </section>

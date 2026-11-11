@@ -7,6 +7,7 @@
 - [Email](Email)
 - [Payments](Payments)
 - [Loft Subscription](Loft-Subscription)
+- [Referrals and Signups](Referrals)
 - [Data Import](Data-Import)
 - [Legal](Legal)
 - [Home Page](Home-Page)

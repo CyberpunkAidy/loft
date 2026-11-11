@@ -7,7 +7,7 @@
     <div class="page-head">
         <div>
             <h1>Start your studio</h1>
-            <p>Free for {{ $trialDays }} days, no card needed. Then {{ $price }} a month for your studio. You’ll connect Stripe when you’re ready to take payments.</p>
+            <p>Free for {{ $invite && $bonusDays ? $trialDays + $bonusDays : $trialDays }} days, no card needed. Then {{ $price }} a month for your studio. You’ll connect Stripe when you’re ready to take payments.</p>
         </div>
     </div>
     <form method="post" action="{{ route('signup') }}" class="form">
@@ -37,6 +37,16 @@
                 <x-select name="timezone" label="Time zone" :options="\App\Support\Timezones::options()" value="America/Denver" hint="Every class time uses this." />
                 <x-select name="currency" label="Currency" :options="$currencies" value="usd" />
             </div>
+        </fieldset>
+        <fieldset class="fieldset form">
+            <legend>How you found Loft</legend>
+            <x-select name="heard_from" label="How did you hear about Loft?" :options="$heardFrom" :value="$invite?->studio ? 'studio' : null" placeholder="Choose one" required />
+            <x-field name="heard_from_detail" label="Tell us more (optional)" maxlength="200" placeholder="Which studio, group, search or event?" />
+            <details class="code-entry" @if (old('referral_code', $invite?->code) || $errors->has('referral_code')) open @endif>
+                <summary>Have a referral code?</summary>
+                <x-field name="referral_code" label="Referral code" :value="$invite?->code" maxlength="200" autocapitalize="characters" autocomplete="off" spellcheck="false"
+                    :hint="$bonusDays ? 'A code from another studio or a Loft partner adds '.$bonusDays.' days to your free trial.' : null" />
+            </details>
         </fieldset>
         <x-checkbox name="terms" required>I agree to Loft’s <a href="{{ route('terms') }}" target="_blank">Terms of Service</a>, including the data processing terms, and its <a href="{{ route('privacy') }}" target="_blank">Privacy Policy</a>.</x-checkbox>
         <button class="btn btn-block">Create studio</button>

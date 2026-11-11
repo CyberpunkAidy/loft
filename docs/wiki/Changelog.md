@@ -4,7 +4,21 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Security headers** ([decision 42](Decisions), [Architecture](Architecture))
+- **How studios find Loft, and referrals** ([decision 43](Decisions), [Referrals and Signups](Referrals))
+  - **"How did you hear about Loft?"** is now asked when a studio starts (required, with optional details), and the first page of the visit is saved with the studio: campaign tags (`utm_*`), the site that linked to Loft, and the landing page.
+  - **Every studio has a referral link and code,** like `loftstudio.app/r/SKYLINE`, under **Admin → Subscription → Give a month, get a month**, with a Copy button and the studios it has brought in.
+  - **Studios that join with a code get 60 days free** instead of 30. Loft's pages say who invited them, and the signup form fills in the code.
+  - **The referrer gets a month off its Loft bill** once the new studio first pays (or 30 more trial days if it hasn't subscribed), with a thank-you email. Comped studios earn nothing more.
+  - **Partner codes** for instructors and others: `php artisan loft:partner-code MAYA --name="Maya"`.
+  - **Report:** `php artisan loft:signups` shows new studios by answer and by code, and how many have subscribed.
+  - **Terms and Privacy Policy** (now dated November 11, 2026): a "Referrals" paragraph in section 4; the privacy policy covers the signup answer, where a visit began, and the referral cookie.
+  - **Decision 43.**
+  - **Database:** `referral_codes`; `studios.referral_code_id`, `referral_rewarded_at`, `referral_reward`, `referral_reward_cents`, `heard_from`, `heard_from_detail` and `signup_source`.
+  - **Settings:** `LOFT_REFERRAL_BONUS_DAYS` (optional, `30` by default; `0` turns rewards off).
+
+## 2026-11-11
+
+- **Security headers** ([decision 42](Decisions), [Architecture](Architecture), [#38](https://github.com/CyberpunkAidy/loft-studio/pull/38))
   - **Every response** now tells browsers: only Loft can show its pages in a frame; stay on HTTPS for a year, subdomains included; don't guess file types; give other sites only `loftstudio.app` as the referrer; no camera, microphone or location. Error pages, redirects, the API and the maintenance page included.
   - **Static files** (styles, scripts, images, fonts) are sent with `nosniff` by Apache.
   - **Decision 42.**

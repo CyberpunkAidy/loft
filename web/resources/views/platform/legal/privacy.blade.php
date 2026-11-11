@@ -43,7 +43,7 @@
             <li><strong>Your account:</strong> name, email address, phone number (optional) and password (stored only as a one-way hash).</li>
             <li><strong>Your family:</strong> the names, birthdays, medical notes and emergency contacts of people you book for, including your children. Medical notes can include health information; add only what the studio needs to keep everyone safe in class.</li>
             <li><strong>Waivers:</strong> when you sign one, your typed name, your relationship to the person it covers, the drawing of your signature, the exact version of the text, and the time.</li>
-            <li><strong>Studios:</strong> if you run a studio, its name, address, settings and branding; the classes, plans, products and videos you add; and your staff’s names and emails.</li>
+            <li><strong>Studios:</strong> if you run a studio, its name, address, settings and branding; the classes, plans, products and videos you add; your staff’s names and emails; and, when you start it, how you heard about Loft and any referral code you used.</li>
             <li><strong>Messages to us:</strong> anything you send when you contact us.</li>
         </ul>
         <h3>Created as you use Loft</h3>
@@ -55,6 +55,7 @@
             <li><strong>Videos:</strong> which of the studio’s videos you watched, and on which day.</li>
             <li><strong>Activity and risk scores:</strong> a history of the things above, nightly summaries of your activity at each studio, and, for studios, an “at risk of leaving” score worked out from them with simple rules (for example, not having booked in a while). Studios use these scores to check in with members; they don’t lead to any automatic decision about you.</li>
             <li><strong>Technical information:</strong> your IP address and browser when you sign in, sign a waiver or use the Service, the name of the device you sign in to the app on, and the records our host keeps of requests to the Service.</li>
+            <li><strong>Where a new studio’s visit began:</strong> when you start a studio, the site that linked you to Loft (just its name, like google.com), any campaign tags in that link, and the first page you opened. It’s kept for your visit only, and saved only if you start a studio.</li>
         </ul>
         <h3>From others</h3>
         <ul>
@@ -71,7 +72,8 @@
             <li>to send emails about your bookings, payments and account, and, for studios, about their Loft subscription;</li>
             <li>to send a studio’s news and offers on its behalf, only if you agreed to receive them;</li>
             <li>to keep the Service secure, prevent abuse and fix problems;</li>
-            <li>to bill studios for Loft;</li>
+            <li>to bill studios for Loft, and to reward studios that bring other studios to Loft;</li>
+            <li>to see which ways of finding Loft work for studios;</li>
             <li>to improve the Service; and</li>
             <li>to meet legal obligations and enforce our terms.</li>
         </ul>
@@ -103,7 +105,7 @@
 
     <section id="cookies">
         <h2>6. Cookies</h2>
-        <p>Loft uses only the cookies it needs to work: one that keeps you signed in during a visit, one that protects forms from forgery, and, if you choose “remember me”, one that keeps you signed in on that device until you sign out. We don’t use advertising or analytics cookies, and the video player is set to use none. The mobile app keeps your sign-in in your phone’s secure storage.</p>
+        <p>Loft uses only the cookies it needs to work: one that keeps you signed in during a visit, one that protects forms from forgery, and, if you choose “remember me”, one that keeps you signed in on that device until you sign out. If you follow a referral link, one more remembers its code for 30 days, so the form for starting a studio can fill it in. We don’t use advertising or analytics cookies, and the video player is set to use none. The mobile app keeps your sign-in in your phone’s secure storage.</p>
     </section>
 
     <section id="keep">

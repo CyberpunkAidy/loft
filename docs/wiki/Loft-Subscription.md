@@ -68,6 +68,8 @@ That shows where the studio stands. The options:
 
 Comping a studio that already pays doesn't cancel its Stripe subscription; the command says so. Cancel it in the Stripe Dashboard.
 
+A studio that joined with a referral code starts with 60 days instead of 30, and studios that bring others to Loft earn a month off their bill ([Referrals and Signups](Referrals)).
+
 Closing a studio (its last owner deleting their account, [Accounts and Data](Accounts-and-Data)) cancels its Loft subscription straight away.
 
 ## How it's built

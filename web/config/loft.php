@@ -43,6 +43,15 @@ return [
     ],
 
     /*
+    | Referrals (decision 43). A studio that joins with a referral code gets this many days free on
+    | top of the trial; once it first pays, the studio that referred it gets a month's credit on its
+    | Loft bill, or this many more trial days if it hasn't subscribed yet.
+    */
+    'referrals' => [
+        'bonus_days' => (int) env('LOFT_REFERRAL_BONUS_DAYS', 30),
+    ],
+
+    /*
     | The Terms of Service and Privacy Policy (/terms, /privacy; decision 38): who operates Loft,
     | whose law governs the terms, where privacy and legal requests go, and the version (the date)
     | of each document. Change a version when its text changes; acceptance is recorded with it.
@@ -51,8 +60,8 @@ return [
         'entity' => env('LOFT_LEGAL_ENTITY', 'Goldseam Tech LLC'),
         'state' => env('LOFT_LEGAL_STATE', 'Wyoming'),
         'email' => env('LOFT_LEGAL_EMAIL', 'privacy@loftstudio.app'),
-        'terms_version' => '2026-11-10',
-        'privacy_version' => '2026-11-10',
+        'terms_version' => '2026-11-11',
+        'privacy_version' => '2026-11-11',
     ],
 
     /*

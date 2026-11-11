@@ -151,7 +151,8 @@ class StudioBilling
         return $this->label($cents).' a '.$interval;
     }
 
-    private function label(int $cents): string
+    /** An amount in Loft's billing currency, without ".00": $49, $40.83. */
+    public function label(int $cents): string
     {
         return str_replace('.00', '', Money::format($cents, (string) config('loft.billing.currency')));
     }

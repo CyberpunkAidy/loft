@@ -4,7 +4,7 @@
 
 - **Home page:** what Loft does and costs, with real screenshots, a savings calculator, free help moving from another system, questions and answers, and a way to start a studio ([Home Page](Home-Page)). Every platform page's footer has a **Contact** address.
 - **Pricing** (`/pricing`): $49 a month or $490 a year per studio (two months free), everything included, a 30-day free trial, the price locked while a studio stays subscribed, the full feature list, what studios pay Stripe, the savings calculator, a comparison with typical studio software, and questions ([Loft Subscription](Loft-Subscription)).
-- **Start your studio** (`/signup`): creates the studio with its name, web address (slug), time zone and currency. The person who signs up becomes its owner, and the studio starts its 30-day free trial.
+- **Start your studio** (`/signup`): creates the studio with its name, web address (slug), time zone and currency, and asks how they heard about Loft. The person who signs up becomes its owner, and the studio starts its 30-day free trial, or 60 days with a referral code ([Referrals and Signups](Referrals)).
 - **Signing in:** one login for every studio someone belongs to. **My studios** (`/studios`) lists them, with links to each schedule, account and studio admin.
 - **Password reset:** also used to invite new staff (see [Email](Email)). Changing or resetting a password signs the mobile app out.
 - **Mobile API** (`/api/v1`): what the mobile app will use. Members sign in or register, see the schedule and their bookings, book and cancel (with the same rules and stable error codes), manage their family, sign waivers, see their plans and purchases, and buy plans through Stripe Checkout. See [API](API).
@@ -60,7 +60,7 @@
 | Waivers | Several waivers, each for every class or only chosen classes, with its own validity. Text is versioned: once anyone has signed, changing it publishes a new version and everyone signs again. Turn waivers on or off. **Download signed waivers** as a ZIP | admin |
 | Staff | Add instructors and admins (new people get an email to set a password); owners can make other owners | admin |
 | Settings | **Logo** (PNG, JPEG or WebP, with a preview of the header; replace or remove), name, brand color, time zone, currency, email sender name and reply-to, booking policies, sales tax on products | admin |
-| Subscription | The studio's Loft subscription: the free trial and days left, choosing monthly or yearly and subscribing through Stripe Checkout, the plan and locked price the studio pays, the billing portal (card, invoices, switching plans, cancelling) and **Switch to yearly**, and what happens if it lapses. The only page left while the studio is paused. Banners elsewhere in the admin during the trial and before a pause | owners subscribe; all staff see it |
+| Subscription | The studio's Loft subscription: the free trial and days left, choosing monthly or yearly and subscribing through Stripe Checkout, the plan and locked price the studio pays, the billing portal (card, invoices, switching plans, cancelling) and **Switch to yearly**, and what happens if it lapses. The only page left while the studio is paused. Banners elsewhere in the admin during the trial and before a pause. **Give a month, get a month:** the studio's referral link and code, with the studios it has brought in ([Referrals and Signups](Referrals)) | owners subscribe; all staff see it; owners and admins see the referral card |
 
 ## Booking rules (studio settings)
 

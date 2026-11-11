@@ -629,6 +629,19 @@ class StripeClient
         return $this->post('checkout/sessions', $params);
     }
 
+    /**
+     * A credit on a studio's Loft bill (a referral reward, decision 43): Stripe takes it off the
+     * customer's next invoices. The key makes a retried webhook credit once.
+     */
+    public function creditBillingCustomer(string $customerId, int $cents, string $currency, string $description, string $idempotencyKey): array
+    {
+        return $this->post('customers/'.$customerId.'/balance_transactions', [
+            'amount' => -$cents,
+            'currency' => $currency,
+            'description' => $description,
+        ], null, $idempotencyKey);
+    }
+
     public function retrieveBillingCheckout(string $id): array
     {
         return $this->get('checkout/sessions/'.$id, ['expand' => ['subscription']]);

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -28,6 +29,8 @@ use Illuminate\Support\Carbon;
     'billing_period_ends_at', 'billing_cancels_at', 'billing_payment_failed_at', 'billing_ended_at',
     'billing_interval', 'billing_amount_cents',
     'logo_hash', 'logo_type', 'logo_width', 'logo_height',
+    'referral_code_id', 'referral_rewarded_at', 'referral_reward', 'referral_reward_cents',
+    'heard_from', 'heard_from_detail', 'signup_source',
 ])]
 class Studio extends Model
 {
@@ -71,6 +74,9 @@ class Studio extends Model
             'billing_ended_at' => 'datetime',
             'billing_amount_cents' => 'integer',
             'terms_accepted_at' => 'datetime',
+            'referral_rewarded_at' => 'datetime',
+            'referral_reward_cents' => 'integer',
+            'signup_source' => 'array',
         ];
     }
 
@@ -134,6 +140,18 @@ class Studio extends Model
     public function initial(): string
     {
         return mb_strtoupper(mb_substr(trim($this->name), 0, 1)) ?: '?';
+    }
+
+    /** The studio's own referral code (decision 43), made by Referrals::codeFor() when first needed. */
+    public function ownReferralCode(): HasOne
+    {
+        return $this->hasOne(ReferralCode::class);
+    }
+
+    /** The code this studio joined Loft with, if any. */
+    public function referralCode(): BelongsTo
+    {
+        return $this->belongsTo(ReferralCode::class);
     }
 
     /** The uploaded logo image (decision 41); pages use logoUrl() and never load this. */
