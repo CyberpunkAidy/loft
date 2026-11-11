@@ -4,10 +4,15 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Yearly checkout explains the free time** ([Loft Subscription](Loft-Subscription))
-  - Stripe Checkout shows the rest of Loft's trial as days free, which owners took for the yearly plan's 2 free months. A line by the pay button now says the free period is the trial and the 2 months are in the price; the Subscription page and the pricing page's yearly question say the same.
+- **Security headers** ([decision 42](Decisions), [Architecture](Architecture))
+  - **Every response** now tells browsers: only Loft can show its pages in a frame; stay on HTTPS for a year, subdomains included; don't guess file types; give other sites only `loftstudio.app` as the referrer; no camera, microphone or location. Error pages, redirects, the API and the maintenance page included.
+  - **Static files** (styles, scripts, images, fonts) are sent with `nosniff` by Apache.
+  - **Decision 42.**
 
 ## 2026-11-10
+
+- **Yearly checkout explains the free time** ([Loft Subscription](Loft-Subscription), [#37](https://github.com/CyberpunkAidy/loft-studio/pull/37))
+  - Stripe Checkout shows the rest of Loft's trial as days free, which owners took for the yearly plan's 2 free months. A line by the pay button now says the free period is the trial and the 2 months are in the price; the Subscription page and the pricing page's yearly question say the same.
 
 - **Studio logos** ([decision 41](Decisions), [#36](https://github.com/CyberpunkAidy/loft-studio/pull/36))
   - **Admin → Settings → Logo:** upload a PNG, JPEG or WebP (up to 2 MB), see how it looks in the header, replace or remove it. SVG isn't accepted.

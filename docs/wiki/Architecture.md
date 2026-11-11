@@ -195,6 +195,13 @@ The total (0 to 100) gives the level: **high** at 60, **medium** at 35, otherwis
 - **Stripe webhooks:** checked against the signing secret. Each event is processed once (`stripe_events`); a failure returns 500 so Stripe retries.
 - **Forms:** use CSRF tokens. Destructive actions ask for confirmation.
 - **Proxy:** the app trusts Render's proxy (`TRUSTED_PROXIES=*`), so it sees HTTPS and the real client IP. Session cookies are secure-only in production.
+- **Security headers** on every response, error and maintenance pages included ([decision 42](Decisions)), from `App\Http\Middleware\SecurityHeaders`, the first global middleware:
+  - `Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'` and `X-Frame-Options: SAMEORIGIN`: only Loft can frame its pages.
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`, over HTTPS only.
+  - `X-Content-Type-Options: nosniff`. Apache adds it to static files too (`docker/apache.conf`).
+  - `Referrer-Policy: strict-origin-when-cross-origin`, so signed links never leak to other sites.
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`. A feature that needs the camera (say, scanning QR codes at the kiosk) must allow it here first.
+  - A response can send its own instead; logos send `default-src 'none'`. To let other sites frame a page (an embeddable schedule, say), that page sets its own `frame-ancestors` and `X-Frame-Options`.
 - **Waiver signatures:** the drawn signature images are stored on a private disk, not in the web root.
 - **Check-in devices** have their own tokens (stored hashed, revocable, tied to one studio); member tokens don't work for them, nor theirs for members. Tag UIDs are stored as keyed hashes; QR codes are signed and expire within about a minute.
 - **The API** takes bearer tokens only (Sanctum's session guard is off), so a signed-in browser can't be used against it and it needs no CSRF tokens. Tokens are stored hashed, revoked on password change or reset and account deletion, and rate-limited; studio routes are scoped like the website's ([API](API)).
