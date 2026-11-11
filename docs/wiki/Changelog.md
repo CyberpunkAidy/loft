@@ -4,6 +4,9 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
+- **Render: a Loft project** ([Deployment](Deployment))
+  - `loft-web`, `loft-worker`, `loft-housekeeping`, `loft-db` and the `loft-shared` group now sit in a **Loft** project with a **Production** environment, set in `render.yaml`. Nothing is recreated or restarted; settings are unchanged.
+
 - **How studios find Loft, and referrals** ([decision 43](Decisions), [Referrals and Signups](Referrals))
   - **"How did you hear about Loft?"** is now asked when a studio starts (required, with optional details), and the first page of the visit is saved with the studio: campaign tags (`utm_*`), the site that linked to Loft, and the landing page.
   - **Every studio has a referral link and code,** like `loftstudio.app/r/SKYLINE`, under **Admin → Subscription → Give a month, get a month**, with a Copy button and the studios it has brought in.
