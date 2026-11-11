@@ -31,14 +31,21 @@ Every account made inside a demo is marked with it and deleted with it (`users.d
 
 ## Spares, so it starts instantly
 
-Building a demo takes a few seconds (about 6,000 queries). So `LOFT_DEMO_POOL` (default 2) spares are built ahead:
-- "Try the demo" claims one, gives it a fresh day, and queues `RefillDemoPool` on the worker to build the next.
-- A spare nobody takes is deleted after 12 hours, so its week of bookings stays current.
-- If none is ready, the demo is built on the spot while the button says "Setting up your studio…".
+Building a demo takes about 5,300 queries, about 5 seconds locally but about half a minute on Render's small database. So `LOFT_DEMO_POOL` (default 2) spares are built ahead on the worker, and a visitor's request never builds one:
+
+- **A spare ready:** "Try the demo" claims it and gives it a fresh day. `RefillDemoPool` is queued to build a replacement. Each run builds one spare and queues itself again while the pool is short, so a run stays well inside the queue's 90-second retry window.
+- **No spare ready:** the visitor goes to `/demo/wait`, "Setting up your studio…". That page asks `/demo/status` every few seconds and opens the demo by itself as soon as the worker has one.
+  - Each check also asks for a build, so one that stalled starts again; only one waits in the queue at a time.
+  - After two minutes the page says it's taking longer than usual.
+- **Retries:** the job tries 3 times. A worker still on the previous release can't run it (the class isn't there yet), and that happens right after a deploy.
+- **Unclaimed spares:** deleted after 12 hours, so their week of bookings stays current.
+- **Only so far ahead:** a demo's classes run eight weeks ahead, not a whole season, to keep the build short.
+
+With `LOFT_DEMO_POOL=0` (tests, local), the demo is built in the request instead.
 
 ## Limits and cleanup
 
-- **Starting demos:** at most 6 an hour from one IP address (the `demo` rate limiter), and no more than `LOFT_DEMO_MAX_LIVE` (default 100) at once.
+- **Starting demos:** at most 10 starts an hour from one IP address (the `demo` rate limiter; the waiting page's own start counts too), and no more than `LOFT_DEMO_MAX_LIVE` (default 100) at once.
 - **Hourly housekeeping:**
   - deletes demos (and spares) whose time is up, with everything in them, every account made in them, and their sessions;
   - then builds spares back up to the pool size.
@@ -62,7 +69,7 @@ Change the sample studio there, and both follow.
 
 | What | Where |
 |---|---|
-| Pages and switching | `DemoController` (`/demo`, `/demo/switch`, `/demo/leave`), `platform/demo.blade.php`, `components/demo-banner.blade.php` |
+| Pages and switching | `DemoController` (`/demo`, `/demo/wait`, `/demo/status`, `/demo/switch`, `/demo/leave`), `platform/demo.blade.php`, `platform/demo-wait.blade.php`, `components/demo-banner.blade.php` |
 | Starting, spares and cleanup | `App\Services\Demo\DemoStudios`, `App\Jobs\RefillDemoPool`, `loft:housekeeping` |
 | The sample studio | `App\Services\Demo\SampleStudio` (also `DatabaseSeeder`) |
 | Switched-off actions | `App\Http\Middleware\NotInDemo` (`demo.off`) |

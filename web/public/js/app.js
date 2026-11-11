@@ -40,6 +40,25 @@
 		});
 	});
 
+	// The demo's waiting page: ask every few seconds whether a studio is ready, then open it.
+	var wait = document.querySelector('[data-demo-wait]');
+	if (wait && window.fetch) {
+		var form = wait.querySelector('form');
+		var button = form.querySelector('button');
+		var started = Date.now();
+		var open = function () { button.disabled = false; button.textContent = 'Opening your studio…'; form.submit(); };
+		var check = function () {
+			fetch(wait.getAttribute('data-demo-wait'), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+				.then(function (r) { return r.ok ? r.json() : { ready: false }; })
+				.then(function (d) {
+					if (d.ready) return open();
+					if (Date.now() - started > 120000) wait.querySelector('[data-demo-slow]').hidden = false;
+					setTimeout(check, 2500);
+				}, function () { setTimeout(check, 5000); });
+		};
+		if (!button.disabled) open(); else setTimeout(check, 1500);
+	}
+
 	// Studio signup: suggest a web address from the studio name until it's edited by hand.
 	var name = document.querySelector('[data-slug-source]');
 	var slug = document.querySelector('[data-slug-target]');

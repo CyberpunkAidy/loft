@@ -29,6 +29,8 @@ Route::get('/privacy', [PlatformController::class, 'privacy'])->name('privacy');
 // "Try the demo" (decision 44): the visitor's own copy of the sample studio for a day.
 Route::get('/demo', [DemoController::class, 'show'])->name('demo');
 Route::post('/demo', [DemoController::class, 'store'])->middleware('throttle:demo')->name('demo.store');
+Route::get('/demo/wait', [DemoController::class, 'wait'])->name('demo.wait');
+Route::get('/demo/status', [DemoController::class, 'status'])->middleware('throttle:60,1')->name('demo.status');
 Route::post('/demo/switch', [DemoController::class, 'switch'])->middleware('auth')->name('demo.switch');
 Route::post('/demo/leave', [DemoController::class, 'leave'])->name('demo.leave');
 // A studio's or partner's referral link: remembers the code for the signup form (decision 43).

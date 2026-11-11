@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\RefillDemoPool;
 use App\Models\Booking;
 use App\Models\DemoRun;
 use App\Models\MessageDelivery;
@@ -12,6 +13,7 @@ use App\Services\Memberships;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -209,10 +211,34 @@ class DemoStudiosTest extends TestCase
         $this->assertSame(1, $demos->cleanup());
     }
 
+    public function test_with_no_spare_ready_the_visitor_waits_while_the_worker_builds_one(): void
+    {
+        config(['loft.demo.pool' => 1]);
+        Queue::fake();
+
+        // Nothing is built in the visitor's request: they wait, and the worker is asked for one.
+        $this->startDemo()->assertRedirect('/demo/wait');
+        $this->assertGuest();
+        $this->assertSame(0, Studio::count());
+        Queue::assertPushed(RefillDemoPool::class);
+        $this->get('/demo/wait')->assertOk()->assertSee('Setting up your studio…')->assertSee('data-demo-wait="'.route('demo.status').'"', false)
+            ->assertSee('<button class="btn btn-large btn-block" disabled>Getting it ready…</button>', false);
+        $this->getJson('/demo/status')->assertExactJson(['ready' => false]);
+        Queue::assertPushed(RefillDemoPool::class, 1); // only one waits in the queue at a time
+
+        // The worker's job builds one spare at a time.
+        (new RefillDemoPool)->handle(app(DemoStudios::class));
+        $this->getJson('/demo/status')->assertExactJson(['ready' => true]);
+        $this->get('/demo/wait')->assertOk()->assertSee('Your demo studio is ready')->assertSee('Open the demo studio');
+        $spare = Studio::sole();
+        $this->startDemo()->assertRedirect("/{$spare->slug}/admin");
+        $this->assertTrue(auth()->user()->hasRoleIn($spare, 'owner'));
+    }
+
     public function test_starting_demos_is_limited(): void
     {
         $limit = RateLimiter::limiter('demo')(Request::create('/demo', 'POST', server: ['REMOTE_ADDR' => '203.0.113.9']));
-        $this->assertSame([6, 3600, 'demo:203.0.113.9'], [$limit->maxAttempts, $limit->decaySeconds, $limit->key]);
+        $this->assertSame([10, 3600, 'demo:203.0.113.9'], [$limit->maxAttempts, $limit->decaySeconds, $limit->key]);
 
         config(['loft.demo.max_live' => 0]);
         $this->from('/demo')->startDemo()->assertRedirect('/demo')->assertSessionHas('warning');
