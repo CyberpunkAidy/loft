@@ -50,9 +50,10 @@ class SampleStudio
     /**
      * @param  callable(string): string  $email  each sample person's address, from a key: owner, coach, parent, adult, jordan, or first.last
      * @param  array<string, mixed>  $userAttributes  set on every account made, over the defaults (a demo's User::madeIn(), or the seeder's password)
+     * @param  int  $weeksAhead  how far the season (and so every class's sessions) runs: a demo needs a few weeks, not months
      * @return array{owner: User, coach: User, parent: User, adult: User}
      */
-    public function build(Studio $studio, callable $email, array $userAttributes = [], bool $busy = false): array
+    public function build(Studio $studio, callable $email, array $userAttributes = [], bool $busy = false, int $weeksAhead = 30): array
     {
         Category::seedDefaults($studio);
         // One slow hash for every sample account, not one each: nobody signs in to them with a password.
@@ -70,7 +71,7 @@ class SampleStudio
         $season = $studio->seasons()->create([
             'name' => now()->year.'–'.(now()->year + 1).' Season',
             'starts_on' => now()->subWeeks(6)->toDateString(),
-            'ends_on' => now()->addMonths(7)->toDateString(),
+            'ends_on' => now()->addWeeks($weeksAhead)->toDateString(), // every class's sessions run to here
             'is_current' => true,
         ]);
 

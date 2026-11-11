@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\Demo\DemoStudios;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,9 @@ class DemoController extends Controller
             return back()->with('warning', 'Lots of people are trying Loft right now. Please try the demo again in a little while.');
         }
         $demo = $demos->start();
+        if (! $demo) {
+            return redirect()->route('demo.wait'); // none ready: the worker is building one
+        }
 
         // Signed out of any other account first: the demo is its own sign-in.
         Auth::logout();
@@ -36,6 +40,23 @@ class DemoController extends Controller
         return redirect()->route('studio.admin.dashboard', ['studio' => $demo['studio']])
             ->with('success', 'This is your own demo studio, with a month of classes, members and sales. Change anything you like.')
             ->withCookie($demos->cookie($demo));
+    }
+
+    /** While the worker builds a demo: this page checks /demo/status and opens it when it's ready. */
+    public function wait(DemoStudios $demos): View
+    {
+        return view('platform.demo-wait', ['ready' => $demos->spareReady()]);
+    }
+
+    /** For the waiting page: is one ready? Asking again also restarts a build that stalled. */
+    public function status(DemoStudios $demos): JsonResponse
+    {
+        $ready = $demos->spareReady();
+        if (! $ready) {
+            $demos->requestSpares();
+        }
+
+        return response()->json(['ready' => $ready]);
     }
 
     /** Owner ⇄ member, only for the browser that started the demo. */

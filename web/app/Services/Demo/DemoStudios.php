@@ -44,22 +44,48 @@ class DemoStudios
         return Studio::whereNotNull('demo_claimed_at')->whereNotNull('demo_expires_at')->count() < (int) config('loft.demo.max_live');
     }
 
-    /**
-     * A visitor's demo: a spare if one is ready, otherwise built now. Its day starts now.
-     *
-     * @return array{studio: Studio, owner: User, member: User, run: DemoRun}
-     */
-    public function start(): array
+    /** Whether spares are built ahead (on the worker) rather than in the visitor's request. */
+    public function pooled(): bool
     {
-        $studio = $this->claimSpare() ?? $this->build(claimed: true);
+        return (int) config('loft.demo.pool') > 0;
+    }
+
+    /** Whether a spare is ready to be taken now. */
+    public function spareReady(): bool
+    {
+        return Studio::whereNotNull('demo_expires_at')->whereNull('demo_claimed_at')->where('demo_expires_at', '>', now()->addHour())->exists();
+    }
+
+    /** Asks the worker to build spares, unless that's already queued (the job is unique). */
+    public function requestSpares(): void
+    {
+        if ($this->pooled()) {
+            RefillDemoPool::dispatch();
+        }
+    }
+
+    /**
+     * A visitor's demo, its day starting now: a spare if one is ready. With spares built ahead, a
+     * visitor never waits on a build in their own request (it can take half a minute on a small
+     * database), so this returns null and the visitor waits on /demo/wait instead. Without a pool
+     * (tests, local), it's built here.
+     *
+     * @return array{studio: Studio, owner: User, member: User, run: DemoRun}|null
+     */
+    public function start(): ?array
+    {
+        $studio = $this->claimSpare() ?? ($this->pooled() ? null : $this->build(claimed: true));
+        if (! $studio) {
+            $this->requestSpares();
+
+            return null;
+        }
         $expires = now()->addHours($this->hours());
         DB::transaction(function () use ($studio, $expires) {
             $studio->update(['demo_expires_at' => $expires, 'demo_claimed_at' => $studio->demo_claimed_at ?? now()]);
             User::where('demo_studio_id', $studio->id)->update(['demo_expires_at' => $expires]);
         });
-        if ((int) config('loft.demo.pool') > 0) {
-            RefillDemoPool::dispatch();
-        }
+        $this->requestSpares(); // replace the one just taken
         $token = Str::after($studio->slug, 'demo-');
 
         return [
@@ -70,11 +96,11 @@ class DemoStudios
         ];
     }
 
-    /** Builds spares until config('loft.demo.pool') are ready. */
-    public function refill(): int
+    /** Builds spares until config('loft.demo.pool') are ready, or $max of them. */
+    public function refill(int $max = PHP_INT_MAX): int
     {
         $built = 0;
-        while (Studio::whereNotNull('demo_expires_at')->whereNull('demo_claimed_at')->count() < (int) config('loft.demo.pool')) {
+        while ($built < $max && Studio::whereNotNull('demo_expires_at')->whereNull('demo_claimed_at')->count() < (int) config('loft.demo.pool')) {
             $this->build(claimed: false);
             $built++;
         }
@@ -96,7 +122,8 @@ class DemoStudios
                 'demo_claimed_at' => $claimed ? now() : null,
             ]);
             // Made-up addresses on a reserved domain (RFC 2606): nothing could ever be delivered to them.
-            $this->sample->build($studio, fn (string $key) => "{$key}@{$token}.example", User::madeIn($studio), busy: true);
+            // Eight weeks of sessions: plenty for a day's look, and far fewer rows to write than a season.
+            $this->sample->build($studio, fn (string $key) => "{$key}@{$token}.example", User::madeIn($studio), busy: true, weeksAhead: 8);
 
             return $studio;
         });

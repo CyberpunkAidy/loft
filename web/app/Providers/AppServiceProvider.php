@@ -45,8 +45,8 @@ class AppServiceProvider extends ServiceProvider
         // and registration, 10 a minute per address.
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by('api:'.($request->user('sanctum')?->id ?? $request->ip())));
         RateLimiter::for('auth', fn (Request $request) => Limit::perMinute(10)->by('auth:'.$request->ip()));
-        // Starting a demo builds a studio: a few an hour from one address, whoever is signed in (decision 44).
-        RateLimiter::for('demo', fn (Request $request) => Limit::perHour(6)->by('demo:'.$request->ip()));
+        // Starting a demo takes a studio (and the waiting page asks again): a few an hour from one address, whoever is signed in (decision 44).
+        RateLimiter::for('demo', fn (Request $request) => Limit::perHour(10)->by('demo:'.$request->ip()));
 
         // Password resets and staff invitations: a Loft-branded email instead of Laravel's default.
         ResetPassword::toMailUsing(fn (object $user, string $token) => (new MailMessage)

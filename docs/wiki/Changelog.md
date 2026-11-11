@@ -4,7 +4,14 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Try the demo** ([decision 44](Decisions), [Demo Studio](Demo-Studio))
+- **The demo never builds in the visitor's request** ([Demo Studio](Demo-Studio))
+  - On Render, building a demo took 33 seconds, too long to hold a request open: the first live try never reached its dashboard. Now a ready spare opens at once, and with none ready the visitor waits on "Setting up your studio…", which opens the demo by itself when the worker has built one.
+  - The spare-building job builds one at a time, retries (right after a deploy, the outgoing worker can't run it), and is restarted by the waiting page if it stalls.
+  - A demo's classes run eight weeks ahead instead of a whole season: about 780 fewer queries per build.
+
+## 2026-11-11
+
+- **Try the demo** ([decision 44](Decisions), [Demo Studio](Demo-Studio), [#42](https://github.com/CyberpunkAidy/loft-studio/pull/42))
   - **[loftstudio.app/demo](https://loftstudio.app/demo):** each visitor gets their own copy of a sample aerial and pole studio (63 members, a booked-up week, a month of sales), signed in as the owner, for a day. The home page's second button is now **Try the demo**.
   - **See it as a member:** switch to a parent with two kids to book, sign a waiver or see a check-in code, and back.
   - **Nothing real happens:** no emails, no payments, refunds or Stripe accounts, no video uploads; accounts made inside a demo are deleted with it. The Payments and Subscription pages explain.
@@ -14,8 +21,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Privacy Policy:** demo studios are deleted after a day.
   - **Database:** `demo_runs`; `studios.demo_expires_at` and `demo_claimed_at`; `users.demo_expires_at` and `demo_studio_id`.
   - **Settings:** `LOFT_DEMO_HOURS`, `LOFT_DEMO_POOL`, `LOFT_DEMO_MAX_LIVE` (optional).
-
-## 2026-11-11
 
 - **Render: a Loft project** ([Deployment](Deployment), [#41](https://github.com/CyberpunkAidy/loft-studio/pull/41))
   - `loft-web`, `loft-worker`, `loft-housekeeping`, `loft-db` and the `loft-shared` group now sit in a **Loft** project with a **Production** environment, set in `render.yaml`. Nothing is recreated or restarted; settings are unchanged.
