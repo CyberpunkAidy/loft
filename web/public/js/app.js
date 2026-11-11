@@ -17,6 +17,21 @@
 		});
 	});
 
+	// <button data-copy="#input"> copies that field's text, and says so.
+	document.addEventListener('click', function (e) {
+		var btn = e.target.closest('[data-copy]');
+		var field = btn && document.querySelector(btn.getAttribute('data-copy'));
+		if (!field) return;
+		var done = function () {
+			var label = btn.textContent;
+			btn.textContent = 'Copied';
+			setTimeout(function () { btn.textContent = label; }, 1600);
+		};
+		field.select();
+		if (navigator.clipboard) navigator.clipboard.writeText(field.value).then(done, function () { document.execCommand('copy'); done(); });
+		else { document.execCommand('copy'); done(); }
+	});
+
 	// Studio signup: suggest a web address from the studio name until it's edited by hand.
 	var name = document.querySelector('[data-slug-source]');
 	var slug = document.querySelector('[data-slug-target]');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Studio;
+use App\Services\Referrals;
 use App\Services\Stripe\StripeClient;
 use App\Services\Stripe\StripeException;
 use App\Services\StudioBilling;
@@ -21,8 +22,12 @@ use Illuminate\View\View;
  */
 class SubscriptionController extends Controller
 {
-    public function show(Request $request, Studio $studio, StudioBilling $billing, StripeClient $stripe): View
+    public function show(Request $request, Studio $studio, StudioBilling $billing, StripeClient $stripe, Referrals $referrals): View
     {
+        // Owners and admins share the studio's referral link (decision 43); instructors don't see it,
+        // and nobody does while referral rewards are off.
+        $code = $referrals->bonusDays() > 0 && $request->user()->hasRoleIn($studio, 'admin') ? $referrals->codeFor($studio) : null;
+
         return view('admin.subscription', [
             'state' => $billing->state($studio),
             'price' => $billing->priceLabel(),
@@ -34,6 +39,11 @@ class SubscriptionController extends Controller
             'isOwner' => $request->user()->hasRoleIn($studio, 'owner'),
             'owners' => $billing->owners($studio),
             'configured' => $stripe->configured(),
+            'referralCode' => $code,
+            'referred' => $code ? $code->referredStudios()->latest()->get(['id', 'name', 'created_at', 'referral_rewarded_at', 'referral_reward', 'referral_reward_cents']) : collect(),
+            'trialDays' => $billing->trialDays(),
+            'bonusDays' => $referrals->bonusDays(),
+            'billing' => $billing,
         ]);
     }
 

@@ -21,6 +21,7 @@
 <main class="site-main">
     <div class="container">
         @include('partials.flash')
+        <x-referral-invite />
         @yield('content')
     </div>
 </main>

@@ -672,6 +672,22 @@ form.inline { display: inline; }
 }
 
 /* Admin → Subscription (decision 36) */
+/* Referrals (decision 43): the invite on platform pages, the code on signup, the Subscription card */
+.invite-banner { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: 0 0 1.5rem; padding: .8rem 1rem; border: 1px solid var(--info-line); border-radius: var(--radius); background: var(--info-bg); color: var(--ink); }
+.invite-banner > svg { width: 1.25rem; height: 1.25rem; color: var(--info); flex-shrink: 0; }
+.invite-banner p { margin: 0; flex: 1 1 14rem; }
+.code-entry summary { cursor: pointer; font-weight: 600; color: var(--accent); width: fit-content; }
+.code-entry[open] summary { margin-bottom: .75rem; }
+.copy-field { display: flex; gap: .5rem; align-items: center; }
+.copy-field input { flex: 1; min-width: 0; font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: .9rem; }
+.referral h3 { display: flex; align-items: center; gap: .5rem; }
+.referral h3 svg { width: 1.15rem; height: 1.15rem; color: var(--accent); }
+.referral h4 { margin: 1.4rem 0 .6rem; font-size: .95rem; }
+.referral .code { letter-spacing: .04em; }
+.referred { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.referred li { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: .6rem 0; border-top: 1px solid var(--line); }
+.referred .grow { flex: 1 1 12rem; }
+
 .included { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .6rem; }
 .included li { display: flex; gap: .6rem; align-items: flex-start; font-size: .93rem; color: var(--ink-2); }
 .included .icon { flex-shrink: 0; width: 1.05rem; height: 1.05rem; margin-top: .2rem; color: var(--ok); }

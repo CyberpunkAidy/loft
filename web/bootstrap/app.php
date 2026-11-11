@@ -4,6 +4,7 @@ use App\Http\ApiErrors;
 use App\Http\Middleware\AuthenticateDevice;
 use App\Http\Middleware\EnsureStudioActive;
 use App\Http\Middleware\Idempotency;
+use App\Http\Middleware\RememberSignupSource;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
 use App\Http\Middleware\SecurityHeaders;
@@ -30,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         // First in, last out: every response gets them, the maintenance page and errors included.
         $middleware->prepend(SecurityHeaders::class);
+        // Where a guest's visit began, saved with the studio if they start one (decision 43).
+        $middleware->web(append: RememberSignupSource::class);
         // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
         // for one-click unsubscribe (RFC 8058) without a session.
         $middleware->validateCsrfTokens(except: ['stripe/webhook', 'stripe/billing-webhook', '*/unsubscribe/*']);

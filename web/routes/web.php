@@ -25,6 +25,8 @@ Route::get('/', [PlatformController::class, 'home'])->name('home');
 Route::get('/pricing', [PlatformController::class, 'pricing'])->name('pricing');
 Route::get('/terms', [PlatformController::class, 'terms'])->name('terms');
 Route::get('/privacy', [PlatformController::class, 'privacy'])->name('privacy');
+// A studio's or partner's referral link: remembers the code for the signup form (decision 43).
+Route::get('/r/{code}', [PlatformController::class, 'referral'])->where('code', '[A-Za-z0-9]{1,20}')->name('referral');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');

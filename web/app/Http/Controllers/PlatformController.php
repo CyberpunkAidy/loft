@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Referrals;
 use App\Services\StudioBilling;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -13,6 +15,18 @@ class PlatformController extends Controller
     public function home(StudioBilling $billing): View
     {
         return view('platform.home', $this->marketing($billing));
+    }
+
+    /**
+     * loftstudio.app/r/{code}: a referral link (decision 43). The code is kept in a cookie for the
+     * signup form, and the home page says who sent them. An unknown code just shows the home page.
+     */
+    public function referral(string $code, Referrals $referrals): RedirectResponse
+    {
+        $found = $referrals->find($code);
+        $home = redirect()->route('home');
+
+        return $found ? $home->withCookie(cookie(Referrals::COOKIE, $found->code, Referrals::COOKIE_DAYS * 24 * 60)) : $home;
     }
 
     /** The price of Loft for a studio (decisions 36 and 40): monthly or yearly, locked while subscribed. */
@@ -82,6 +96,7 @@ class PlatformController extends Controller
             'yearly' => $billing->yearlyPriceLabel(),
             'trialDays' => $billing->trialDays(),
             'graceDays' => $billing->graceDays(),
+            'bonusDays' => (int) app(Referrals::class)->bonusDays(),
         ];
     }
 

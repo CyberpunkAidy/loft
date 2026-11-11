@@ -100,6 +100,38 @@
     @endif
 </div>
 
+@if ($referralCode)
+    <section class="card narrow mt referral" id="refer">
+        <h3><x-icon name="gift" /> Give a month, get a month</h3>
+        @if ($state->status === BillingState::COMPED)
+            <p>Know a studio that would like Loft? Share your link and they get {{ $trialDays + $bonusDays }} days free instead of {{ $trialDays }}. Loft is already free for {{ $studio->name }}, so there’s nothing for you to earn, but they still get the extra month.</p>
+        @else
+            <p>Know a studio that would like Loft? Share your link. They get {{ $trialDays + $bonusDays }} days free instead of {{ $trialDays }}, and once they’ve made their first payment, you get a month free.</p>
+        @endif
+        <label class="field" for="f-referral-link">
+            <span>Your link</span>
+            <span class="copy-field"><input id="f-referral-link" value="{{ $referralCode->url() }}" readonly><button type="button" class="btn btn-secondary btn-small" data-copy="#f-referral-link">Copy</button></span>
+        </label>
+        <p class="small muted" style="margin:.5rem 0 0">Or they can enter your code, <strong class="code">{{ $referralCode->code }}</strong>, when they sign up.</p>
+        @if ($referred->isNotEmpty())
+            <h4>Studios you’ve brought to Loft</h4>
+            <ul class="referred">
+                @foreach ($referred as $joined)
+                    <li>
+                        <span class="grow"><strong>{{ $joined->name }}</strong> <span class="muted small">joined {{ $studio->local($joined->created_at)->format('M j, Y') }}</span></span>
+                        @switch($joined->referral_reward)
+                            @case('credit')<span class="badge">You earned {{ $billing->label((int) $joined->referral_reward_cents) }} off</span>@break
+                            @case('trial')<span class="badge">You earned {{ $bonusDays }} free days</span>@break
+                            @case(null)<span class="badge badge-info">On their free trial</span>@break
+                            @default<span class="badge">Subscribed</span>
+                        @endswitch
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </section>
+@endif
+
 @if ($state->status !== BillingState::COMPED)
     <section class="card narrow mt">
         <h3>What’s included</h3>
