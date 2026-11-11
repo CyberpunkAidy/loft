@@ -71,6 +71,14 @@ jobs:
         run: |
           curl --fail --silent --show-error -o /dev/null -D - http://localhost:8080/fonts/inter-latin-wght-normal.woff2 \
             | grep -i '^access-control-allow-origin: \*'
+      - name: Security headers on pages and static files, sent once
+        run: |
+          page=$(curl --fail --silent --show-error -o /dev/null -D - http://localhost:8080/up)
+          echo "$page" | grep -i "^content-security-policy: frame-ancestors 'self'"
+          echo "$page" | grep -i '^x-frame-options: SAMEORIGIN'
+          test "$(echo "$page" | grep -ci '^x-content-type-options: nosniff')" = 1
+          curl --fail --silent --show-error -o /dev/null -D - http://localhost:8080/css/app.css \
+            | grep -i '^x-content-type-options: nosniff'
       - name: Container logs
         if: always()
         run: docker logs loft || true
