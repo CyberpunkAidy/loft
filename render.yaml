@@ -1,133 +1,140 @@
 # Render Blueprint for the Loft web app (web/). In Render: New → Blueprint → this repository.
 # Creates a web service, a queue worker, an hourly cron job and a Postgres database, all from
 # the Docker image in web/Dockerfile. Setup notes: web/README.md → "Deploy on Render".
+# They all live in the "Loft" project's "Production" environment in the Render dashboard; a sync
+# moves existing resources there rather than recreating them. Add new ones under the same
+# environment, or they'll land outside the project.
 # With rootDir set, Render resolves dockerContext and dockerfilePath inside it, so they're "."
 # and "./Dockerfile" here (both mean web/). Changes outside web/ don't trigger a build.
 
-envVarGroups:
-  - name: loft-shared
-    envVars:
-      - key: APP_NAME
-        value: Loft
-      - key: APP_ENV
-        value: production
-      - key: APP_DEBUG
-        value: "false"
-      # Render generates this once; the start script adds Laravel's "base64:" prefix.
-      - key: APP_KEY
-        generateValue: true
-      # The site's public address, used for links in emails. loft-web also answers at
-      # https://loft-web.onrender.com.
-      - key: APP_URL
-        value: https://loftstudio.app
-      - key: LOG_CHANNEL
-        value: stderr
-      - key: LOG_LEVEL
-        value: info
-      - key: DB_CONNECTION
-        value: pgsql
-      - key: QUEUE_CONNECTION
-        value: database
-      - key: CACHE_STORE
-        value: database
-      - key: SESSION_DRIVER
-        value: database
-      - key: SESSION_SECURE_COOKIE
-        value: "true"
-      - key: TRUSTED_PROXIES
-        value: "*"
-      # Sender for all studio emails (the studio's name is the display name). mail.loftstudio.app
-      # must be verified in Resend.
-      - key: MAIL_FROM_ADDRESS
-        value: hello@mail.loftstudio.app
-      # Email is off until you turn it on in Render's dashboard (loft-shared group), so that a
-      # Blueprint sync never overwrites it: add RESEND_API_KEY and set MAIL_MAILER=resend.
-      # Without MAIL_MAILER the app writes emails to the log. See web/README.md.
-      # Video is off until you add the Mux keys here, in the dashboard (loft-shared group, so the
-      # hourly job can follow uploads too): MUX_TOKEN_ID, MUX_TOKEN_SECRET, MUX_SIGNING_KEY_ID and
-      # MUX_SIGNING_KEY. See the wiki's Deployment page.
+projects:
+  - name: Loft
+    environments:
+      - name: Production
+        envVarGroups:
+          - name: loft-shared
+            envVars:
+              - key: APP_NAME
+                value: Loft
+              - key: APP_ENV
+                value: production
+              - key: APP_DEBUG
+                value: "false"
+              # Render generates this once; the start script adds Laravel's "base64:" prefix.
+              - key: APP_KEY
+                generateValue: true
+              # The site's public address, used for links in emails. loft-web also answers at
+              # https://loft-web.onrender.com.
+              - key: APP_URL
+                value: https://loftstudio.app
+              - key: LOG_CHANNEL
+                value: stderr
+              - key: LOG_LEVEL
+                value: info
+              - key: DB_CONNECTION
+                value: pgsql
+              - key: QUEUE_CONNECTION
+                value: database
+              - key: CACHE_STORE
+                value: database
+              - key: SESSION_DRIVER
+                value: database
+              - key: SESSION_SECURE_COOKIE
+                value: "true"
+              - key: TRUSTED_PROXIES
+                value: "*"
+              # Sender for all studio emails (the studio's name is the display name). mail.loftstudio.app
+              # must be verified in Resend.
+              - key: MAIL_FROM_ADDRESS
+                value: hello@mail.loftstudio.app
+              # Email is off until you turn it on in Render's dashboard (loft-shared group), so that a
+              # Blueprint sync never overwrites it: add RESEND_API_KEY and set MAIL_MAILER=resend.
+              # Without MAIL_MAILER the app writes emails to the log. See web/README.md.
+              # Video is off until you add the Mux keys here, in the dashboard (loft-shared group, so the
+              # hourly job can follow uploads too): MUX_TOKEN_ID, MUX_TOKEN_SECRET, MUX_SIGNING_KEY_ID and
+              # MUX_SIGNING_KEY. See the wiki's Deployment page.
 
-services:
-  - type: web
-    name: loft-web
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    rootDir: web
-    dockerContext: .
-    dockerfilePath: ./Dockerfile
-    healthCheckPath: /up
-    # Render also adds www.loftstudio.app and redirects it here. DNS: web/README.md.
-    domains:
-      - loftstudio.app
-    preDeployCommand: /usr/local/bin/start migrate
-    # Waiver signature drawings. A service with a disk can't scale past one instance.
-    disk:
-      name: signatures
-      mountPath: /var/www/html/storage/app/private
-      sizeGB: 1
-    envVars:
-      - fromGroup: loft-shared
-      - key: DB_URL
-        fromDatabase:
-          name: loft-db
-          property: connectionString
-      - key: STRIPE_SECRET
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      # The billing webhook's secret: events on Loft's own Stripe account about studios' Loft
-      # subscriptions (/stripe/billing-webhook). Set it in loft-web → Environment.
-      - key: STRIPE_BILLING_WEBHOOK_SECRET
-        sync: false
-      - key: LOFT_PLATFORM_FEE_PERCENT
-        value: "0"
+        services:
+          - type: web
+            name: loft-web
+            runtime: docker
+            plan: 0.5c-512mb
+            region: oregon
+            rootDir: web
+            dockerContext: .
+            dockerfilePath: ./Dockerfile
+            healthCheckPath: /up
+            # Render also adds www.loftstudio.app and redirects it here. DNS: web/README.md.
+            domains:
+              - loftstudio.app
+            preDeployCommand: /usr/local/bin/start migrate
+            # Waiver signature drawings. A service with a disk can't scale past one instance.
+            disk:
+              name: signatures
+              mountPath: /var/www/html/storage/app/private
+              sizeGB: 1
+            envVars:
+              - fromGroup: loft-shared
+              - key: DB_URL
+                fromDatabase:
+                  name: loft-db
+                  property: connectionString
+              - key: STRIPE_SECRET
+                sync: false
+              - key: STRIPE_WEBHOOK_SECRET
+                sync: false
+              # The billing webhook's secret: events on Loft's own Stripe account about studios' Loft
+              # subscriptions (/stripe/billing-webhook). Set it in loft-web → Environment.
+              - key: STRIPE_BILLING_WEBHOOK_SECRET
+                sync: false
+              - key: LOFT_PLATFORM_FEE_PERCENT
+                value: "0"
 
-  - type: worker
-    name: loft-worker
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    rootDir: web
-    dockerContext: .
-    dockerfilePath: ./Dockerfile
-    dockerCommand: /usr/local/bin/start worker
-    envVars:
-      - fromGroup: loft-shared
-      - key: DB_URL
-        fromDatabase:
-          name: loft-db
-          property: connectionString
+          - type: worker
+            name: loft-worker
+            runtime: docker
+            plan: 0.5c-512mb
+            region: oregon
+            rootDir: web
+            dockerContext: .
+            dockerfilePath: ./Dockerfile
+            dockerCommand: /usr/local/bin/start worker
+            envVars:
+              - fromGroup: loft-shared
+              - key: DB_URL
+                fromDatabase:
+                  name: loft-db
+                  property: connectionString
 
-  - type: cron
-    name: loft-housekeeping
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    schedule: "0 * * * *"
-    rootDir: web
-    dockerContext: .
-    dockerfilePath: ./Dockerfile
-    dockerCommand: /usr/local/bin/start housekeeping
-    envVars:
-      - fromGroup: loft-shared
-      - key: DB_URL
-        fromDatabase:
-          name: loft-db
-          property: connectionString
-      # The same secret key as loft-web's. The hourly run asks Stripe about shop checkouts and card
-      # reader sales nobody finished; without it they stay pending and keep their stock. Declared
-      # here, not in loft-shared, because loft-worker doesn't need it. A Blueprint sync ignores
-      # sync: false keys on services that already exist, so set it in loft-housekeeping → Environment.
-      - key: STRIPE_SECRET
-        sync: false
+          - type: cron
+            name: loft-housekeeping
+            runtime: docker
+            plan: 0.5c-512mb
+            region: oregon
+            schedule: "0 * * * *"
+            rootDir: web
+            dockerContext: .
+            dockerfilePath: ./Dockerfile
+            dockerCommand: /usr/local/bin/start housekeeping
+            envVars:
+              - fromGroup: loft-shared
+              - key: DB_URL
+                fromDatabase:
+                  name: loft-db
+                  property: connectionString
+              # The same secret key as loft-web's. The hourly run asks Stripe about shop checkouts and card
+              # reader sales nobody finished; without it they stay pending and keep their stock. Declared
+              # here, not in loft-shared, because loft-worker doesn't need it. A Blueprint sync ignores
+              # sync: false keys on services that already exist, so set it in loft-housekeeping → Environment.
+              - key: STRIPE_SECRET
+                sync: false
 
-databases:
-  - name: loft-db
-    databaseName: loft
-    user: loft
-    plan: 0.1c-256mb
-    region: oregon
-    postgresMajorVersion: "16"
-    # Only Render services can connect. To reach it from your computer, add your IP here.
-    ipAllowList: []
+        databases:
+          - name: loft-db
+            databaseName: loft
+            user: loft
+            plan: 0.1c-256mb
+            region: oregon
+            postgresMajorVersion: "16"
+            # Only Render services can connect. To reach it from your computer, add your IP here.
+            ipAllowList: []

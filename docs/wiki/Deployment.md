@@ -2,6 +2,8 @@
 
 Loft runs on [Render](https://render.com), defined by the Blueprint in `render.yaml` at the repository root. Every merge to `main` deploys automatically.
 
+In the Render dashboard, everything below sits in the **Loft** project's **Production** environment, as `render.yaml` says (`projects:` at the top). Add new services, databases or environment groups under that environment in the file, or they'll land outside the project.
+
 ## Services
 
 | Render service | Type | What it runs |
