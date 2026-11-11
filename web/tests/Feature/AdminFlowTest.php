@@ -110,7 +110,8 @@ class AdminFlowTest extends TestCase
         $booking = app(Bookings::class)->book($session, $this->attendee($studio, $user, ['medical_notes' => 'Peanut allergy']), $user->id);
         $this->actingAs($this->userIn($studio, 'instructor'));
 
-        $this->get("/{$studio->slug}/admin/checkin")->assertOk()->assertSee('Peanut allergy');
+        // The class's own day: half an hour from now is tomorrow when it's late in the evening.
+        $this->get("/{$studio->slug}/admin/checkin?date=".$studio->local($session->starts_at)->toDateString())->assertOk()->assertSee('Peanut allergy');
         $this->post("/{$studio->slug}/admin/checkin/{$booking->id}", ['status' => 'attended'])->assertRedirect();
         $this->assertSame('attended', $booking->fresh()->status);
         $this->post("/{$studio->slug}/admin/checkin/{$booking->id}", ['status' => 'booked']);

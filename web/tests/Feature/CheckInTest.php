@@ -163,7 +163,8 @@ class CheckInTest extends TestCase
         $this->actingAs($this->userIn($studio, 'owner'));
         $this->get("/{$studio->slug}/admin/access")->assertOk()->assertSee('Checked in')->assertSee('Card or code not recognised')->assertSee('Waiver not signed')->assertSee('Front door');
         $this->get("/{$studio->slug}/admin/access?result=denied")->assertOk()->assertDontSee('Already checked in')->assertSee('On the waitlist');
-        $this->get("/{$studio->slug}/admin/checkin?session={$session->id}")->assertOk()->assertSee('Maya');
+        // The class's own day: half an hour from now is tomorrow when it's late in the evening.
+        $this->get("/{$studio->slug}/admin/checkin?date=".$studio->local($session->starts_at)->toDateString()."&session={$session->id}")->assertOk()->assertSee('Maya');
     }
 
     public function test_rotating_check_in_codes_and_the_device_api(): void
