@@ -17,7 +17,7 @@ use Laravel\Sanctum\HasApiTokens;
  * A person with a login. Users are global: the same account can be a member of one
  * studio and staff at another. Their role per studio lives in studio_users.
  */
-#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password', 'import_id', 'terms_accepted_at', 'terms_version'])]
+#[Fillable(['first_name', 'last_name', 'email', 'phone', 'password', 'import_id', 'terms_accepted_at', 'terms_version', 'demo_expires_at', 'demo_studio_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -33,7 +33,25 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'terms_accepted_at' => 'datetime',
+            'demo_expires_at' => 'datetime',
         ];
+    }
+
+    /** An account made inside a demo studio (decision 44), deleted with it. */
+    public function isDemo(): bool
+    {
+        return $this->demo_expires_at !== null;
+    }
+
+    /**
+     * What a new account made inside $studio gets, so a demo's accounts go when it does. Every
+     * place that makes accounts for a studio (joining, staff, imports) adds this.
+     *
+     * @return array<string, mixed>
+     */
+    public static function madeIn(Studio $studio): array
+    {
+        return $studio->isDemo() ? ['demo_expires_at' => $studio->demo_expires_at, 'demo_studio_id' => $studio->id] : [];
     }
 
     /** They agree to the current Terms of Service and Privacy Policy (account creation, invitation accepted). */

@@ -174,7 +174,7 @@ final class PeopleImporter
                         'phone' => $account['phone'],
                         'password' => Str::random(40), // replaced when they accept the invitation
                         'import_id' => $import->id,
-                    ]);
+                    ] + User::madeIn($studio));
                     $done['created_accounts']++;
                 }
 
@@ -203,7 +203,7 @@ final class PeopleImporter
                         'medical_notes' => $person['medical_notes'],
                         'emergency_contact' => $person['emergency_contact'],
                         'import_id' => $import->id,
-                    ]);
+                    ] + User::madeIn($studio));
                     $done['added_people']++;
                 }
             });

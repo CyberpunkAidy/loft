@@ -4,10 +4,23 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Render: a Loft project** ([Deployment](Deployment))
+- **Try the demo** ([decision 44](Decisions), [Demo Studio](Demo-Studio))
+  - **[loftstudio.app/demo](https://loftstudio.app/demo):** each visitor gets their own copy of a sample aerial and pole studio (63 members, a booked-up week, a month of sales), signed in as the owner, for a day. The home page's second button is now **Try the demo**.
+  - **See it as a member:** switch to a parent with two kids to book, sign a waiver or see a check-in code, and back.
+  - **Nothing real happens:** no emails, no payments, refunds or Stripe accounts, no video uploads; accounts made inside a demo are deleted with it. The Payments and Subscription pages explain.
+  - **Instant:** two spares are built ahead on the worker; housekeeping deletes finished demos hourly.
+  - **Counting:** `loft:signups` shows demos started and how many went on to start a studio.
+  - **One sample studio:** the local seed and the demos are built by the same code; `SEED_BUSY=1` seeds the lived-in month.
+  - **Privacy Policy:** demo studios are deleted after a day.
+  - **Database:** `demo_runs`; `studios.demo_expires_at` and `demo_claimed_at`; `users.demo_expires_at` and `demo_studio_id`.
+  - **Settings:** `LOFT_DEMO_HOURS`, `LOFT_DEMO_POOL`, `LOFT_DEMO_MAX_LIVE` (optional).
+
+## 2026-11-11
+
+- **Render: a Loft project** ([Deployment](Deployment), [#41](https://github.com/CyberpunkAidy/loft-studio/pull/41))
   - `loft-web`, `loft-worker`, `loft-housekeeping`, `loft-db` and the `loft-shared` group now sit in a **Loft** project with a **Production** environment, set in `render.yaml`. Nothing is recreated or restarted; settings are unchanged.
 
-- **How studios find Loft, and referrals** ([decision 43](Decisions), [Referrals and Signups](Referrals))
+- **How studios find Loft, and referrals** ([decision 43](Decisions), [Referrals and Signups](Referrals), [#39](https://github.com/CyberpunkAidy/loft-studio/pull/39))
   - **"How did you hear about Loft?"** is now asked when a studio starts (required, with optional details), and the first page of the visit is saved with the studio: campaign tags (`utm_*`), the site that linked to Loft, and the landing page.
   - **Every studio has a referral link and code,** like `loftstudio.app/r/SKYLINE`, under **Admin → Subscription → Give a month, get a month**, with a Copy button and the studios it has brought in.
   - **Studios that join with a code get 60 days free** instead of 30. Loft's pages say who invited them, and the signup form fills in the code.
@@ -18,8 +31,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Decision 43.**
   - **Database:** `referral_codes`; `studios.referral_code_id`, `referral_rewarded_at`, `referral_reward`, `referral_reward_cents`, `heard_from`, `heard_from_detail` and `signup_source`.
   - **Settings:** `LOFT_REFERRAL_BONUS_DAYS` (optional, `30` by default; `0` turns rewards off).
-
-## 2026-11-11
 
 - **Security headers** ([decision 42](Decisions), [Architecture](Architecture), [#38](https://github.com/CyberpunkAidy/loft-studio/pull/38))
   - **Every response** now tells browsers: only Loft can show its pages in a frame; stay on HTTPS for a year, subdomains included; don't guess file types; give other sites only `loftstudio.app` as the referrer; no camera, microphone or location. Error pages, redirects, the API and the maintenance page included.

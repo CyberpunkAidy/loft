@@ -70,6 +70,8 @@ final class SignupSource
         $tags = array_filter([$source['utm_source'] ?? null, $source['utm_medium'] ?? null]);
         $line = $tags ? implode(' / ', $tags).(isset($source['utm_campaign']) ? " ({$source['utm_campaign']})" : '') : ($source['referrer'] ?? '');
 
-        return trim($line.(isset($source['landing']) && $source['landing'] !== '/' ? ' → '.$source['landing'] : ''), ' →');
+        $line = trim($line.(isset($source['landing']) && $source['landing'] !== '/' ? ' → '.$source['landing'] : ''), ' →');
+
+        return ltrim($line.(! empty($source['tried_demo']) ? ' · tried the demo' : ''), ' ·');
     }
 }

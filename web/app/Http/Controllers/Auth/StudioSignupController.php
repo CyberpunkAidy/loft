@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\ReferralCode;
 use App\Models\Studio;
 use App\Models\User;
+use App\Services\Demo\DemoStudios;
 use App\Services\Referrals;
 use App\Services\StudioBilling;
 use App\Support\SignupSource;
@@ -26,8 +27,11 @@ class StudioSignupController extends Controller
 {
     public const CURRENCIES = ['usd' => 'USD', 'cad' => 'CAD', 'gbp' => 'GBP', 'eur' => 'EUR', 'aud' => 'AUD', 'nzd' => 'NZD'];
 
-    public function create(Request $request, StudioBilling $billing, Referrals $referrals): View
+    public function create(Request $request, StudioBilling $billing, Referrals $referrals): View|RedirectResponse
     {
+        if ($request->user()?->isDemo()) {
+            return $this->leaveDemo($request); // a real studio needs a real account
+        }
         $invite = $referrals->fromCookie($request);
         if ($invite && $referrals->refusal($invite, $request->user())) {
             $invite = null; // their own studio's link
@@ -43,8 +47,11 @@ class StudioSignupController extends Controller
         ]);
     }
 
-    public function store(Request $request, Referrals $referrals): RedirectResponse
+    public function store(Request $request, Referrals $referrals, DemoStudios $demos): RedirectResponse
     {
+        if ($request->user()?->isDemo()) {
+            return $this->leaveDemo($request);
+        }
         /** @var ReferralCode|null $code */
         $code = null;
         $rules = [
@@ -83,7 +90,7 @@ class StudioSignupController extends Controller
         ]);
         $trialDays = app(StudioBilling::class)->trialDays() + ($code ? $referrals->bonusDays() : 0);
 
-        $studio = DB::transaction(function () use ($request, $data, $code, $trialDays) {
+        $studio = DB::transaction(function () use ($request, $data, $code, $trialDays, $demos) {
             $user = $request->user() ?? User::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -103,7 +110,8 @@ class StudioSignupController extends Controller
                 'referral_code_id' => $code?->id,
                 'heard_from' => $data['heard_from'],
                 'heard_from_detail' => trim((string) ($data['heard_from_detail'] ?? '')) ?: null,
-                'signup_source' => SignupSource::recorded($request),
+                // Whether this browser tried the demo first (decision 44).
+                'signup_source' => ($demos->runFromCookie($request) ? ['tried_demo' => true] : []) + (SignupSource::recorded($request) ?? []) ?: null,
             ]);
             $studio->studioUsers()->create(['user_id' => $user->id, 'role' => 'owner']);
             Category::seedDefaults($studio);
@@ -111,6 +119,7 @@ class StudioSignupController extends Controller
             return [$studio, $user];
         });
         [$studio, $user] = $studio;
+        $demos->runFromCookie($request)?->update(['studio_id' => $studio->id, 'converted_at' => now()]);
 
         if (! $request->user()) {
             Auth::login($user, true);
@@ -120,5 +129,15 @@ class StudioSignupController extends Controller
         return redirect()->route('studio.admin.dashboard', ['studio' => $studio])
             ->with('success', "Welcome to {$studio->name}! Work through the checklist below to start taking bookings.")
             ->withoutCookie(Referrals::COOKIE);
+    }
+
+    /** Out of a demo account, back to an empty signup form. */
+    private function leaveDemo(Request $request): RedirectResponse
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('signup');
     }
 }

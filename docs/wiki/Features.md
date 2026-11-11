@@ -4,6 +4,7 @@
 
 - **Home page:** what Loft does and costs, with real screenshots, a savings calculator, free help moving from another system, questions and answers, and a way to start a studio ([Home Page](Home-Page)). Every platform page's footer has a **Contact** address.
 - **Pricing** (`/pricing`): $49 a month or $490 a year per studio (two months free), everything included, a 30-day free trial, the price locked while a studio stays subscribed, the full feature list, what studios pay Stripe, the savings calculator, a comparison with typical studio software, and questions ([Loft Subscription](Loft-Subscription)).
+- **Try the demo** (`/demo`): a private copy of a sample aerial and pole studio for a day, signed in as its owner, with a sample member to switch to ([Demo Studio](Demo-Studio)).
 - **Start your studio** (`/signup`): creates the studio with its name, web address (slug), time zone and currency, and asks how they heard about Loft. The person who signs up becomes its owner, and the studio starts its 30-day free trial, or 60 days with a referral code ([Referrals and Signups](Referrals)).
 - **Signing in:** one login for every studio someone belongs to. **My studios** (`/studios`) lists them, with links to each schedule, account and studio admin.
 - **Password reset:** also used to invite new staff (see [Email](Email)). Changing or resetting a password signs the mobile app out.

@@ -21,5 +21,7 @@ class DemoSeederTest extends TestCase
         $this->assertSame([[1001, 'card', 11000, null], [1002, 'stripe', 1287, 'to_pick_up']], $studio->orders()->orderBy('number')->get()
             ->map(fn ($o) => [$o->number, $o->method, $o->total_cents, $o->fulfillment_status])->all());
         $this->get('/skyline')->assertOk();
+        $this->post('/login', ['email' => 'owner@example.com', 'password' => 'password'])->assertRedirect();
+        $this->assertAuthenticated();
     }
 }

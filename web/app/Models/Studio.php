@@ -30,7 +30,7 @@ use Illuminate\Support\Carbon;
     'billing_interval', 'billing_amount_cents',
     'logo_hash', 'logo_type', 'logo_width', 'logo_height',
     'referral_code_id', 'referral_rewarded_at', 'referral_reward', 'referral_reward_cents',
-    'heard_from', 'heard_from_detail', 'signup_source',
+    'heard_from', 'heard_from_detail', 'signup_source', 'demo_expires_at', 'demo_claimed_at',
 ])]
 class Studio extends Model
 {
@@ -77,6 +77,8 @@ class Studio extends Model
             'referral_rewarded_at' => 'datetime',
             'referral_reward_cents' => 'integer',
             'signup_source' => 'array',
+            'demo_expires_at' => 'datetime',
+            'demo_claimed_at' => 'datetime',
         ];
     }
 
@@ -140,6 +142,12 @@ class Studio extends Model
     public function initial(): string
     {
         return mb_strtoupper(mb_substr(trim($this->name), 0, 1)) ?: '?';
+    }
+
+    /** A visitor's private copy of the sample studio (decision 44): no email, no payments, gone after a day. */
+    public function isDemo(): bool
+    {
+        return $this->demo_expires_at !== null;
     }
 
     /** The studio's own referral code (decision 43), made by Referrals::codeFor() when first needed. */

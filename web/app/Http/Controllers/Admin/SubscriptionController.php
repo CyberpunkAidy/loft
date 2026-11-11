@@ -26,7 +26,7 @@ class SubscriptionController extends Controller
     {
         // Owners and admins share the studio's referral link (decision 43); instructors don't see it,
         // and nobody does while referral rewards are off.
-        $code = $referrals->bonusDays() > 0 && $request->user()->hasRoleIn($studio, 'admin') ? $referrals->codeFor($studio) : null;
+        $code = $referrals->bonusDays() > 0 && ! $studio->isDemo() && $request->user()->hasRoleIn($studio, 'admin') ? $referrals->codeFor($studio) : null;
 
         return view('admin.subscription', [
             'state' => $billing->state($studio),

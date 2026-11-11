@@ -4,7 +4,7 @@ The marketing page at [loftstudio.app](https://loftstudio.app) ([decision 39](De
 
 ## What's on it, top to bottom
 
-1. **Hero:** "Your whole studio, one flat price.", with screenshots of the owner's dashboard and a parent's phone.
+1. **Hero:** "Your whole studio, one flat price.", with screenshots of the owner's dashboard and a parent's phone. The buttons are **Start your free trial** and **Try the demo** ([Demo Studio](Demo-Studio)); signed in, the second is **Go to my studios**.
 2. **Facts:** the price, unlimited members and staff, the Loft fee on sales (0% unless `LOFT_PLATFORM_FEE_PERCENT` is set), no contract.
 3. **Booking that fills every spot:** apparatus booking and waitlists, aimed at aerial, pole and reformer studios.
 4. **Tour:** waivers and check-in, payments into the studio's own Stripe account, and members at risk of leaving. Each section has a real screenshot.
@@ -37,7 +37,7 @@ The product images are in `public/images/home/` as WebP files, about 300 KB in a
 
 To retake them after the screens change:
 
-1. Seed a demo database with `php artisan migrate --seed`, then add members, bookings and sales so the pages aren't empty.
+1. Seed the busy sample studio with `SEED_BUSY=1 php artisan migrate:fresh --seed` (the month a demo has), so the pages aren't empty.
 2. Take each screen at 2x with Playwright:
    - the dashboard at 1200 px wide;
    - check-in at 1040 px;

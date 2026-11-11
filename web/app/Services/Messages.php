@@ -32,7 +32,9 @@ class Messages
         }
         $studio = $message->studio;
         $marketing = $category === 'marketing';
-        $suppressed = $marketing && ! StudioUser::where('studio_id', $studio->id)->where('user_id', $user->id)->first()?->allowsMarketingEmail();
+        // A demo studio (decision 44) never emails anyone: logged as suppressed, never sent.
+        $suppressed = $studio->isDemo()
+            || ($marketing && ! StudioUser::where('studio_id', $studio->id)->where('user_id', $user->id)->first()?->allowsMarketingEmail());
         $key = $dedupeKey ?? $message->kind.':'.Str::uuid();
 
         // ON CONFLICT DO NOTHING: safe inside a transaction on Postgres, unlike catching a violation.

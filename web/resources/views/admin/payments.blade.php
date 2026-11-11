@@ -12,7 +12,10 @@
 @if ($error)<div class="alert alert-error">Stripe: {{ $error }}</div>@endif
 
 <div class="card narrow">
-    @if (! $configured)
+    @if ($studio->isDemo())
+        <h2>Payments are off in the demo</h2>
+        <p class="muted" style="margin:0">Nothing here charges a card. In your own studio, you connect your Stripe account on this page in a few minutes, and members pay you directly: plans, drop-ins, the shop and the front desk.</p>
+    @elseif (! $configured)
         <h2>Not available yet</h2>
         <p class="muted" style="margin:0">Online payments haven’t been switched on for this server. (Operator: set <code>STRIPE_SECRET</code> and <code>STRIPE_WEBHOOK_SECRET</code>.)</p>
     @elseif ($studio->stripeReady())

@@ -4,6 +4,7 @@ use App\Http\ApiErrors;
 use App\Http\Middleware\AuthenticateDevice;
 use App\Http\Middleware\EnsureStudioActive;
 use App\Http\Middleware\Idempotency;
+use App\Http\Middleware\NotInDemo;
 use App\Http\Middleware\RememberSignupSource;
 use App\Http\Middleware\RequireStudioRole;
 use App\Http\Middleware\ResolveStudio;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'studio.active' => EnsureStudioActive::class,
             'idempotent' => Idempotency::class,
             'device' => AuthenticateDevice::class,
+            'demo.off' => NotInDemo::class,
         ]);
         // First in, last out: every response gets them, the maintenance page and errors included.
         $middleware->prepend(SecurityHeaders::class);

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DemoRun;
 use App\Models\Studio;
 use App\Support\BillingState;
 use App\Support\SignupSource;
@@ -27,8 +28,12 @@ class SignupsCommand extends Command
 
             return self::FAILURE;
         }
-        $studios = Studio::with('referralCode.studio')->where('created_at', '>=', now()->subDays((int) $days))->latest()->get();
+        $since = now()->subDays((int) $days);
+        $studios = Studio::with('referralCode.studio')->whereNull('demo_expires_at')->where('created_at', '>=', $since)->latest()->get();
         $this->info("Studios started in the last {$days} days: {$studios->count()}");
+        // Demos are deleted after a day; demo_runs keeps the count (decision 44).
+        $demos = DemoRun::where('created_at', '>=', $since)->count();
+        $this->line("Demos started: {$demos}, and ".DemoRun::where('created_at', '>=', $since)->whereNotNull('converted_at')->count().' of those browsers went on to start a studio.');
         if ($studios->isEmpty()) {
             return self::SUCCESS;
         }

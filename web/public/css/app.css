@@ -393,6 +393,9 @@ form.inline { display: inline; }
 .cta p { color: #cfcad8; margin: 0 auto 1.6rem; max-width: 36rem; }
 .cta .btn { --btn-bg: #fff; --btn-ink: var(--ink); }
 .cta .btn:hover { box-shadow: 0 10px 30px -10px rgba(255, 255, 255, .5); }
+.cta .actions { justify-content: center; }
+.cta .btn-secondary { --btn-bg: transparent; --btn-ink: #fff; --btn-border: rgba(255, 255, 255, .45); box-shadow: none; }
+.cta .btn-secondary:hover { background: rgba(255, 255, 255, .1); border-color: #fff; }
 .cta .cta-help { display: flex; align-items: center; justify-content: center; gap: .4rem; flex-wrap: wrap; margin: 1.4rem auto 0; font-size: .9rem; }
 .cta .cta-help a { color: #fff; }
 
@@ -672,6 +675,21 @@ form.inline { display: inline; }
 }
 
 /* Admin → Subscription (decision 36) */
+/* Demo studios (decision 44): the banner on every demo page, and /demo */
+.demo-banner { display: flex; align-items: center; justify-content: space-between; gap: .6rem 1rem; flex-wrap: wrap; padding: .6rem 1rem; background: var(--ink); color: #fff; font-size: .9rem; }
+.demo-banner p { margin: 0; flex: 1 1 18rem; color: #e7e3ef; }
+.demo-banner strong { color: #fff; }
+.demo-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.demo-actions form { margin: 0; }
+.demo-banner .btn { --btn-bg: #fff; --btn-ink: var(--ink); }
+.demo-banner .btn-secondary { --btn-bg: transparent; --btn-ink: #fff; --btn-border: rgba(255, 255, 255, .45); box-shadow: none; }
+.admin-main > .demo-banner { margin: -2rem -2.5rem 1.5rem; }
+.demo-page .demo-points { list-style: none; padding: 0; margin: 1.25rem 0 1.5rem; display: flex; flex-direction: column; gap: .55rem; }
+.demo-page .demo-points li { display: flex; gap: .55rem; align-items: flex-start; }
+.demo-page .demo-points svg { width: 1.1rem; height: 1.1rem; color: var(--accent); flex-shrink: 0; margin-top: .2rem; }
+.demo-page form { margin: 0; }
+@media (max-width: 860px) { .admin-main > .demo-banner { margin: -1.4rem -1rem 1.25rem; } }
+
 /* Referrals (decision 43): the invite on platform pages, the code on signup, the Subscription card */
 .invite-banner { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: 0 0 1.5rem; padding: .8rem 1rem; border: 1px solid var(--info-line); border-radius: var(--radius); background: var(--info-bg); color: var(--ink); }
 .invite-banner > svg { width: 1.25rem; height: 1.25rem; color: var(--info); flex-shrink: 0; }

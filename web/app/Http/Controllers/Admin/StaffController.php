@@ -47,8 +47,10 @@ class StaffController extends Controller
                 'last_name' => $data['last_name'],
                 'email' => $email,
                 'password' => Str::random(40),
-            ]);
-            Password::sendResetLink(['email' => $email]);
+            ] + User::madeIn($studio));
+            if (! $studio->isDemo()) { // a demo emails nobody
+                Password::sendResetLink(['email' => $email]);
+            }
             $invited = true;
         }
 

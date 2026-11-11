@@ -6,6 +6,7 @@
     $isMember = $me && $me->hasRoleIn($studio);
     $isStaff = $me && $me->hasRoleIn($studio, 'instructor');
 @endphp
+<x-demo-banner :studio="$studio" />
 <header class="site-header">
     <div class="container">
         <a class="brand" href="{{ route('studio.schedule') }}"><x-studio-brand :studio="$studio" /></a>
