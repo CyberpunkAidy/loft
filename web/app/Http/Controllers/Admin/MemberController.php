@@ -55,7 +55,7 @@ class MemberController extends Controller
 
     public function show(Studio $studio, User $member, Waivers $waivers): View
     {
-        $attendees = $studio->attendees()->where('user_id', $member->id)->orderBy('status')->orderBy('first_name')->get();
+        $attendees = $studio->attendees()->with('photoConsentBy')->where('user_id', $member->id)->orderBy('status')->orderBy('first_name')->get();
 
         return view('admin.members.show', [
             'member' => $member,

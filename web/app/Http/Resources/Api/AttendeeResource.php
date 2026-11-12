@@ -23,6 +23,9 @@ class AttendeeResource extends ApiResource
             'health_answered_at' => self::utc($this->health_answered_at),
             'photo_consent' => $this->photo_consent,
             'photo_consent_at' => self::utc($this->photo_consent_at),
+            // Recorded by staff from what the member told them (decision 46), and how they heard.
+            'photo_consent_by_studio' => $this->photoRecordedByStudio(),
+            'photo_consent_note' => $this->photoRecordedByStudio() ? $this->photo_consent_note : null,
             'questions_needed' => $this->questionsNeeded($this->studio),
         ];
     }

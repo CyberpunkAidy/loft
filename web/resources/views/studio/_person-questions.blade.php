@@ -30,6 +30,9 @@
     <fieldset class="question">
         <legend>Photos and video</legend>
         <p class="small muted">{{ $studio->name }} sometimes takes photos and short videos in class. Is that OK?</p>
+        @if ($attendee->exists && $attendee->photoRecordedByStudio())
+            <p class="small notice-line">{{ $studio->name }} recorded this answer on {{ $studio->local($attendee->photo_consent_at)->format('M j, Y') }}, from what you told them (“{{ $attendee->photo_consent_note }}”). If it isn’t right, choose another.</p>
+        @endif
         <div class="list" role="radiogroup">
             @foreach (\App\Models\Attendee::PHOTO_CONSENT as $value => $label)
                 <label class="pick">

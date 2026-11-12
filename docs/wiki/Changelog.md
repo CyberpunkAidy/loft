@@ -4,7 +4,17 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Injury and photo questions** ([decision 45](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions))
+- **Staff record photo answers** ([decision 46](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions#when-staff-record-a-photo-answer))
+  - **Record photo answer** under each person on Check-in, and on the member page: the answer, and a note on how they heard ("At the front desk").
+  - **The member is emailed** with the answer and how the studio heard, and can change it; their Family page and the app say the studio recorded it.
+  - **The record:** the member page shows who recorded it and the note; Activity keeps it.
+  - **API:** `photo_consent_by_studio` and `photo_consent_note` on people.
+  - **Privacy Policy and Terms:** staff may record your photo answer from what you tell them, and you're emailed so you can check it.
+  - **Database:** `attendees.photo_consent_note`.
+
+## 2026-11-12
+
+- **Injury and photo questions** ([decision 45](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions), [#44](https://github.com/CyberpunkAidy/loft-studio/pull/44))
   - **Two questions about each person:** any injuries, health conditions or allergies (No, or Yes with the details), and photos and video (yes, including social media; only inside the studio; or no). Asked when someone is added; everyone else answers before their next booking, before the waiver. Parents answer for their children; answers can be changed under Family.
   - **App:** the same questions when adding someone and before booking; Family now opens each person to edit their details and answers.
   - **Staff:** check-in and class rosters name who to leave out of a photo, and badge **No photos**, **In-studio photos only** and **Not asked yet**. The member page shows each answer and when it was given; photo answers appear in Activity.

@@ -145,6 +145,7 @@ Route::prefix('{studio}')
             Route::get('/', Admin\DashboardController::class)->name('dashboard');
             Route::get('/checkin', [Admin\CheckinController::class, 'index'])->name('checkin');
             Route::post('/checkin/{booking}', [Admin\CheckinController::class, 'mark'])->name('checkin.mark');
+            Route::post('/people/{attendee}/photos', [Admin\PhotoAnswerController::class, 'store'])->name('people.photos');
 
             Route::middleware('studio.role:admin')->group(function () {
                 Route::resource('programs', Admin\ProgramController::class)->except('show');

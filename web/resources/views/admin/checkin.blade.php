@@ -44,6 +44,7 @@
                             @include('admin._person-flags', ['person' => $b->attendee])
                             <div class="muted small">{{ collect([$b->user->name, $b->user->phone])->filter()->join(' · ') }}</div>
                             @if ($b->attendee->medical_notes)<div class="medical">⚠ {{ $b->attendee->medical_notes }}</div>@endif
+                            @include('admin._photo-record', ['person' => $b->attendee, 'account' => $b->user])
                         </div>
                         <div class="item-actions">
                             @if ($b->status === 'waitlisted')
