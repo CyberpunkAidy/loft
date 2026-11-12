@@ -155,10 +155,13 @@ class SampleStudio
             $studio->automations()->create(['trigger' => $trigger, 'active' => $trigger === 'first_class'] + Automation::defaults($trigger));
         }
 
-        // A family with a membership, booked into this week's kids class.
-        $maya = $studio->attendees()->create(['user_id' => $parent->id, 'first_name' => 'Maya', 'last_name' => 'Shah', 'dob' => now()->subYears(9)->toDateString(), 'medical_notes' => 'Mild asthma — inhaler in bag.', 'emergency_contact' => 'Dev Shah 303-555-0143']);
+        // A family with a membership, booked into this week's kids class. Maya has answered the
+        // studio's questions (decision 45); Leo was booked before the studio asked, so his parent
+        // answers them at his next booking.
+        $maya = $studio->attendees()->create(['user_id' => $parent->id, 'first_name' => 'Maya', 'last_name' => 'Shah', 'dob' => now()->subYears(9)->toDateString(), 'medical_notes' => 'Mild asthma — inhaler in bag.', 'emergency_contact' => 'Dev Shah 303-555-0143']
+            + $this->answered($parent, 'studio'));
         $leo = $studio->attendees()->create(['user_id' => $parent->id, 'first_name' => 'Leo', 'last_name' => 'Shah', 'dob' => now()->subYears(7)->toDateString(), 'emergency_contact' => 'Dev Shah 303-555-0143']);
-        $alex = $studio->attendees()->create(['user_id' => $adult->id, 'first_name' => 'Alex', 'last_name' => 'Kim', 'dob' => now()->subYears(29)->toDateString(), 'is_self' => true]);
+        $alex = $studio->attendees()->create(['user_id' => $adult->id, 'first_name' => 'Alex', 'last_name' => 'Kim', 'dob' => now()->subYears(29)->toDateString(), 'is_self' => true] + $this->answered($adult, 'public'));
         foreach ([[$maya, $parent, 'Priya Shah'], [$leo, $parent, 'Priya Shah'], [$alex, $adult, 'Alex Kim']] as [$attendee, $signer, $name]) {
             $this->waivers->sign($studio, $attendee, $waiver, $signer, $name, null, '127.0.0.1', 'sample');
         }
@@ -177,12 +180,13 @@ class SampleStudio
 
         $next = fn (Program $p) => $p->sessions()->where('starts_at', '>', now())->orderBy('starts_at')->first();
         $this->bookings->book($next($kids), $maya, $parent->id, 'web', $membership);
-        $this->bookings->book($next($kids), $leo, $parent->id, 'web', $membership);
+        $this->bookings->book($next($kids), $leo, $parent->id, 'web', $membership, skipQuestions: true);
         $this->bookings->book($next($adultSilks), $alex, $adult->id, 'web', $pack);
 
         // Fill the small adult class so the next booking waitlists.
         $walkIn = $user('Jordan', 'Lee', 'jordan', 'member');
-        $jordan = $studio->attendees()->create(['user_id' => $walkIn->id, 'first_name' => 'Jordan', 'last_name' => 'Lee', 'is_self' => true]);
+        $jordan = $studio->attendees()->create(['user_id' => $walkIn->id, 'first_name' => 'Jordan', 'last_name' => 'Lee', 'is_self' => true, 'medical_notes' => 'Healing a sprained left wrist: no weight on it yet.']
+            + $this->answered($walkIn, 'none'));
         $this->waivers->sign($studio, $jordan, $waiver, $walkIn, 'Jordan Lee', null, '127.0.0.1', 'sample');
         $this->bookings->book($next($adultSilks), $jordan, $walkIn->id, 'admin', null, skipEntitlement: true);
 
@@ -195,6 +199,12 @@ class SampleStudio
         app(ChurnScores::class)->scoreLatest($studio);
 
         return ['owner' => $owner, 'coach' => $coach, 'parent' => $parent, 'adult' => $adult];
+    }
+
+    /** Answers to the studio's questions (decision 45), given by the account holder. */
+    private function answered(User $by, string $photos): array
+    {
+        return ['health_answered_at' => now(), 'photo_consent' => $photos, 'photo_consent_at' => now(), 'photo_consent_by' => $by->id];
     }
 
     /** A lived-in month: more classes, about 60 members on plans, bookings, attendance and sales. */
@@ -239,6 +249,7 @@ class SampleStudio
 
         $firsts = ['Ava', 'Sofia', 'Chloe', 'Zoe', 'Hannah', 'Grace', 'Lily', 'Nora', 'Leah', 'Ruby', 'Isla', 'Mia', 'Elena', 'Camila', 'Aaliyah', 'Naomi', 'Jade', 'Iris', 'Tessa', 'Julia', 'Priya', 'Mei', 'Ana', 'Fatima', 'Rhea', 'Kira', 'Sasha', 'Dana', 'Erin', 'Lena', 'Marcus', 'Theo', 'Sam', 'Jamie', 'Riley', 'Morgan', 'Quinn', 'Avery', 'Noah', 'Ethan', 'Luis', 'Omar', 'Kai', 'Ben', 'Tomás', 'Bianca', 'Yara', 'Paige', 'Harper', 'Willa', 'Eden', 'Skye', 'Maren', 'Talia', 'Ines', 'Freya', 'Alma', 'Celeste', 'Hazel', 'June'];
         $lasts = ['Nguyen', 'Garcia', 'Patel', 'Johnson', 'Martinez', 'Chen', 'Brooks', 'Rivera', 'Kowalski', 'Hughes', 'Okafor', 'Silva', 'Tanaka', 'Novak', 'Fischer', 'Bennett', 'Reyes', 'Cohen', 'Morales', 'Ward', 'Ali', 'Larsen', 'Moreau', 'Flores', 'Park', 'Hayes', 'Romero', 'Walsh', 'Kim', 'Bauer'];
+        $injuries = ['Lower back gets tight: easy on backbends.', 'Old right shoulder injury, fine with care.', 'Asthma; inhaler in bag.', 'Hypermobile elbows.', 'Recovering from a sprained ankle.'];
         $kidsNames = ['Ella', 'Max', 'Lucy', 'Finn', 'Rosie', 'Milo', 'Ivy', 'Owen', 'Clara', 'Jude', 'Poppy', 'Ezra'];
         $plans = $studio->plans()->get()->keyBy('name');
 
@@ -249,12 +260,13 @@ class SampleStudio
                 'phone' => '303-555-'.str_pad((string) (200 + $i), 4, '0', STR_PAD_LEFT)]);
             $studio->studioUsers()->create(['user_id' => $u->id, 'role' => 'member'])->forceFill(['created_at' => now()->subDays($int(50, 400))])->save();
             $self = $studio->attendees()->create(['user_id' => $u->id, 'first_name' => $first, 'last_name' => $last, 'dob' => now()->subYears($int(19, 48))->subDays($int(0, 300))->toDateString(),
-                'is_self' => true, 'emergency_contact' => $firsts[($i + 17) % count($firsts)].' '.$last.' 303-555-0'.$int(100, 999)]);
+                'is_self' => true, 'emergency_contact' => $firsts[($i + 17) % count($firsts)].' '.$last.' 303-555-0'.$int(100, 999),
+                'medical_notes' => $i % 8 === 3 ? $injuries[intdiv($i, 8) % count($injuries)] : null] + $this->answered($u, $i % 9 === 4 ? 'none' : ($i % 7 === 2 ? 'studio' : 'public')));
             $this->waivers->sign($studio, $self, $waiver, $u, "$first $last", null, '127.0.0.1', 'sample');
             $kids = [];
             if ($i % 6 === 0) {
                 $kid = $studio->attendees()->create(['user_id' => $u->id, 'first_name' => $kidsNames[intdiv($i, 6) % count($kidsNames)], 'last_name' => $last,
-                    'dob' => now()->subYears($int(6, 11))->toDateString(), 'emergency_contact' => "$first $last 303-555-0".$int(100, 999)]);
+                    'dob' => now()->subYears($int(6, 11))->toDateString(), 'emergency_contact' => "$first $last 303-555-0".$int(100, 999)] + $this->answered($u, $i % 12 === 6 ? 'studio' : 'public'));
                 $this->waivers->sign($studio, $kid, $waiver, $u, "$first $last", null, '127.0.0.1', 'sample');
                 $kids[] = $kid;
             }

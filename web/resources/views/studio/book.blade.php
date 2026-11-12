@@ -43,7 +43,7 @@
                 @foreach ($attendees as $a)
                     @php $st = $states[$a->id]; $disabled = $st['booking'] || $st['age_error']; @endphp
                     <label @class(['pick', 'disabled' => $disabled])>
-                        <input type="radio" name="attendee_id" value="{{ $a->id }}" @disabled($disabled) @checked(! $disabled && $bookable->count() === 1)>
+                        <input type="radio" name="attendee_id" value="{{ $a->id }}" @disabled($disabled) @checked(! $disabled && ($bookable->count() === 1 || (int) old('attendee_id', $picked) === $a->id))>
                         <span class="grow">
                             <strong>{{ $a->name }}</strong>
                             <span class="muted small" style="display:block">
@@ -51,8 +51,9 @@
                                     Already {{ $st['booking']->status === 'waitlisted' ? 'on the waitlist' : 'booked' }}
                                 @elseif ($st['age_error'])
                                     {{ $st['age_error'] }}
-                                @elseif ($st['needs_waiver'])
-                                    We’ll ask you to sign the waiver first
+                                @elseif ($st['questions'] || $st['needs_waiver'])
+                                    @php $ask = $st['questions'] === 1 ? 'a quick question' : 'two quick questions'; @endphp
+                                    {{ match (true) { $st['questions'] && $st['needs_waiver'] => "We’ll ask {$ask} and for the waiver first", (bool) $st['questions'] => "We’ll ask {$ask} first", default => 'We’ll ask you to sign the waiver first' } }}
                                 @endif
                             </span>
                         </span>

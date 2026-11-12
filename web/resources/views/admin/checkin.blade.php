@@ -30,6 +30,7 @@
         @if ($roster->isEmpty())
             <div class="card empty">Nobody booked.</div>
         @else
+            @include('admin._photo-summary')
             <div class="list">
                 @foreach ($roster as $b)
                     <div class="card item roster-row status-{{ $b->status }}">
@@ -40,6 +41,7 @@
                             @if ($b->online_spot)<span class="badge badge-info">Online</span>@endif
                             @unless ($waiverOk[$b->id])<span class="badge badge-full">No waiver</span>@endunless
                             @if (isset($overrides[$b->id]))<span class="badge badge-warn" title="Let in without a signed waiver">Waiver override</span>@endif
+                            @include('admin._person-flags', ['person' => $b->attendee])
                             <div class="muted small">{{ collect([$b->user->name, $b->user->phone])->filter()->join(' · ') }}</div>
                             @if ($b->attendee->medical_notes)<div class="medical">⚠ {{ $b->attendee->medical_notes }}</div>@endif
                         </div>

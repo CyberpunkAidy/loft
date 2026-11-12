@@ -75,13 +75,14 @@ class SessionController extends Controller
         return $resource->response();
     }
 
-    /** One person's line: can they book, and if not, why (a stable code, a message, the waiver to sign). */
+    /** One person's line: can they book, and if not, why (a stable code, a message, the questions or waiver first). */
     private function option(array $o, array $found): array
     {
         [$reason, $message] = match (true) {
             $o['booking'] !== null => ['already_booked', "{$o['attendee']->first_name} is already in this class."],
             $found['closed_code'] !== null => [$found['closed_code'], $found['closed']],
             $o['age_error'] !== null => ['age', $o['age_error']],
+            $o['questions'] !== [] => ['questions_required', $o['attendee']->questionsMessage($o['questions'])],
             $o['waiver'] !== null => ['waiver_required', "{$o['attendee']->first_name} needs to sign “{$o['waiver']->title}” first."],
             default => [null, null],
         };
@@ -92,6 +93,7 @@ class SessionController extends Controller
             'can_book' => $reason === null,
             'reason' => $reason,
             'message' => $message,
+            'questions' => $o['questions'],
             'waiver_id' => $o['waiver']?->id,
         ];
     }

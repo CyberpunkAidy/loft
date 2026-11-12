@@ -97,6 +97,7 @@
 
         <h3>5.3 Waivers</h3>
         <p>Loft lets you publish waivers and collect signatures. You write the waivers and decide when they’re needed. Loft doesn’t give legal advice and doesn’t promise that a waiver will be enforceable; have yours reviewed by a lawyer where you operate.</p>
+        <p>Loft can also ask your members about injuries and about photos and video, and shows you their answers. Following those answers (keeping someone out of photos, or a photo off social media) is up to you, as is any further consent your local law needs before you publish someone’s image.</p>
 
         <h3>5.4 Your members’ information</h3>
         <p>You’re responsible for having a lawful basis to collect your members’ information and to put it into Loft, including information you import from another system and information about children; for telling your members how you use it; and for answering their requests about it. Section 15 explains how we handle that information for you.</p>
@@ -117,7 +118,7 @@
             <li>Bookings, plans, memberships, purchases and waivers are agreements between you and the studio, under the studio’s policies (for example its cancellation window, refunds and membership terms). Loft provides the software. It doesn’t run classes and isn’t a party to them.</li>
             <li>Payments you make to a studio are processed by Stripe on the studio’s own account. Questions about charges and refunds go to the studio.</li>
             <li>Recurring memberships renew as the studio’s plan describes until you cancel them, which you can do from your account.</li>
-            <li>What you add about yourself and your family, such as birthdays, medical notes and emergency contacts, is shared with the studio’s staff so they can run classes safely. Please keep it accurate.</li>
+            <li>What you add about yourself and your family, such as birthdays, medical notes, emergency contacts and your answers to the studio’s injury and photo questions, is shared with the studio’s staff so they can run classes safely and respect your wishes about photos. Please keep it accurate.</li>
             <li>Physical activity carries a risk of injury. If you’re unsure whether a class is right for you or your child, check with a doctor, and follow the studio’s instructions.</li>
         </ul>
     </section>
@@ -182,7 +183,7 @@
         <p>We process Studio Data only to provide the Service as these terms and the studio’s use of Loft’s features describe, which are the studio’s documented instructions, or where the law requires us to (and then we’ll tell the studio first, unless the law forbids it). We don’t sell Studio Data, use it for advertising, or keep, use or disclose it outside our relationship with the studio. We combine it with other information only where the Service needs to, for example so that one person’s login works at every studio they belong to.</p>
 
         <h3>15.3 What’s processed</h3>
-        <p>Subject matter and purpose: providing the Service. People: the studio’s members, their family members (including children), its staff, and people it imports from another system. Information: names and contact details; birthdays; medical notes and emergency contacts; bookings, attendance and waitlists; plans, purchases and payment records (not card numbers, which Stripe holds); waiver signatures, including the signer’s IP address and browser; check-in codes, tags and scans; marketing consent and the emails sent; videos watched; and activity history and the “at risk of leaving” scores Loft works out from it for the studio. Duration: while the studio uses Loft, then as in 15.8.</p>
+        <p>Subject matter and purpose: providing the Service. People: the studio’s members, their family members (including children), its staff, and people it imports from another system. Information: names and contact details; birthdays; medical notes and emergency contacts; answers to the studio’s injury and photo questions, and when each photo answer was given; bookings, attendance and waitlists; plans, purchases and payment records (not card numbers, which Stripe holds); waiver signatures, including the signer’s IP address and browser; check-in codes, tags and scans; marketing consent and the emails sent; videos watched; and activity history and the “at risk of leaving” scores Loft works out from it for the studio. Duration: while the studio uses Loft, then as in 15.8.</p>
 
         <h3>15.4 Confidentiality and security</h3>
         <p>Everyone who can access Studio Data on our side is bound to keep it confidential. We protect it with appropriate technical and organisational measures, including: encrypted connections (HTTPS); passwords stored only as one-way hashes; access to each studio’s data limited to the staff roles that studio grants, and on our side to people who need it; signed, expiring links for invitations and unsubscribes; card details never stored by Loft (Stripe handles them); and hosting with providers that maintain physical, network and backup security.</p>

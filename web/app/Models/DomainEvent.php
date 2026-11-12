@@ -43,6 +43,7 @@ class DomainEvent extends Model
         'video.watched' => 'Watched a video',
         'consent.email_marketing_granted' => 'Opted in to marketing emails',
         'consent.email_marketing_withdrawn' => 'Opted out of marketing emails',
+        'consent.photos_answered' => 'Answered the photo question',
     ];
 
     protected function casts(): array
@@ -105,6 +106,8 @@ class DomainEvent extends Model
             'order.refunded' => 'Refunded '.Money::format((int) ($p['amount_cents'] ?? 0), $p['currency'] ?? 'usd')
                 .(empty($p['full']) ? ' (part of the payment)' : '').(isset($p['number']) ? ' (#'.$p['number'].')' : '')
                 .(($p['by'] ?? null) === 'stripe' ? ' in Stripe' : ''),
+            'consent.photos_answered' => 'Photos and video: '.lcfirst(Attendee::PHOTO_CONSENT[$p['answer'] ?? ''] ?? 'answered')
+                .(isset($p['previous']) ? ' (was: '.lcfirst(Attendee::PHOTO_CONSENT[$p['previous']] ?? $p['previous']).')' : ''),
             'video.watched' => 'Watched '.(isset($p['title']) ? '“'.$p['title'].'”' : 'a video'),
             'waiver.signed' => 'Signed '.($p['waiver_title'] ?? 'a waiver').(isset($p['version']) ? ' (v'.$p['version'].')' : ''),
             default => $label,

@@ -81,11 +81,12 @@ class MemberFlowTest extends TestCase
         $user = $this->userIn($studio);
         $this->actingAs($user);
 
-        $this->post("/{$studio->slug}/account/family", ['first_name' => 'Maya', 'last_name' => 'Shah', 'dob' => '2017-03-04', 'medical_notes' => 'Asthma'])
+        $answers = ['has_health_notes' => '1', 'medical_notes' => 'Asthma', 'photo_consent' => 'studio'];
+        $this->post("/{$studio->slug}/account/family", ['first_name' => 'Maya', 'last_name' => 'Shah', 'dob' => '2017-03-04'] + $answers)
             ->assertRedirect("/{$studio->slug}/account/family");
         $maya = Attendee::where('first_name', 'Maya')->sole();
         $this->get("/{$studio->slug}/account/family")->assertOk()->assertSee('Maya Shah');
-        $this->put("/{$studio->slug}/account/family/{$maya->id}", ['first_name' => 'Maya', 'last_name' => 'Patel'])->assertRedirect();
+        $this->put("/{$studio->slug}/account/family/{$maya->id}", ['first_name' => 'Maya', 'last_name' => 'Patel'] + $answers)->assertRedirect();
         $this->assertSame('Patel', $maya->fresh()->last_name);
         $this->post("/{$studio->slug}/account/family/{$maya->id}/archive")->assertRedirect();
         $this->assertSame('archived', $maya->fresh()->status);
@@ -131,7 +132,7 @@ class MemberFlowTest extends TestCase
         $this->actingAs($user);
 
         $this->post("/{$studio->slug}/book/{$session->id}", ['attendee_id' => $attendee->id])
-            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?waiver={$waiver->id}&return=%2F{$studio->slug}%2Fbook%2F{$session->id}");
+            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?waiver={$waiver->id}&return=%2F{$studio->slug}%2Fbook%2F{$session->id}%3Fattendee%3D{$attendee->id}");
         $this->get("/{$studio->slug}/waiver/{$attendee->id}")->assertOk()->assertSee('Para two.')->assertSee('Parent or guardian');
 
         $png = 'data:image/png;base64,'.base64_encode("\x89PNG\r\n\x1a\n".str_repeat("\0", 20));

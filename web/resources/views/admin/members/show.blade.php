@@ -20,7 +20,7 @@
             @else
                 <div class="card card-flush table-wrap">
                     <table class="table">
-                        <thead><tr><th>Name</th><th>Age</th><th>Waiver</th><th>Notes</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Age</th><th>Waiver</th><th>Photos</th><th>Health</th></tr></thead>
                         <tbody>
                         @foreach ($attendees as $a)
                             @php $w = $waiverStatus[$a->id]; @endphp
@@ -28,7 +28,19 @@
                                 <td>{{ $a->name }}@if ($a->is_self) <span class="muted">(self)</span>@endif @if ($a->status === 'archived')<span class="badge badge-muted">Removed</span>@endif</td>
                                 <td>{{ $a->age() ?? '—' }}</td>
                                 <td>@if (! $w['required'])—@elseif ($w['signed'])<span class="badge">Signed</span>@else<span class="badge badge-full">Missing</span>@endif</td>
-                                <td class="small">{{ $a->medical_notes }}@if ($a->emergency_contact)<div class="muted">Emergency: {{ $a->emergency_contact }}</div>@endif</td>
+                                <td class="small">
+                                    @if ($a->photo_consent)
+                                        {{ \App\Models\Attendee::PHOTO_CONSENT_SHORT[$a->photo_consent] }}
+                                        <div class="muted" title="{{ \App\Models\Attendee::PHOTO_CONSENT[$a->photo_consent] }}">Answered {{ $studio->local($a->photo_consent_at)->format('M j, Y') }}</div>
+                                    @else
+                                        <span class="muted">Not asked yet</span>
+                                    @endif
+                                </td>
+                                <td class="small">
+                                    @if ($a->medical_notes)<span class="medical">{{ $a->medical_notes }}</span>@elseif ($a->health_answered_at)None@else<span class="muted">Not asked yet</span>@endif
+                                    @if ($a->health_answered_at)<div class="muted">Answered {{ $studio->local($a->health_answered_at)->format('M j, Y') }}</div>@endif
+                                    @if ($a->emergency_contact)<div class="muted">Emergency: {{ $a->emergency_contact }}</div>@endif
+                                </td>
                             </tr>
                         @endforeach
                         </tbody>

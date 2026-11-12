@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api;
 
+use App\Models\Attendee;
 use App\Models\Studio;
 use Illuminate\Http\Request;
 
@@ -26,6 +27,7 @@ class StudioResource extends ApiResource
                 'booking_opens_days_before' => (int) $this->setting('booking_opens_days_before'),
                 'booking_closes_minutes_before' => (int) $this->setting('booking_closes_minutes_before'),
                 'minor_age' => (int) $this->setting('minor_age'),
+                'questions' => Attendee::questionsAsked($this->resource), // asked of each person: health, photos
             ],
         ];
     }

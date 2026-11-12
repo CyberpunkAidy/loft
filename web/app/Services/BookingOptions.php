@@ -13,8 +13,9 @@ use Illuminate\Support\Collection;
 
 /**
  * What a member can do in one class, before they try: whether it takes bookings at all, and for each
- * person on their account, whether they're already in it, too young or old, or have a waiver to sign
- * first. The booking page and the API both show this; Bookings::book() enforces it.
+ * person on their account, whether they're already in it, too young or old, or have the studio's
+ * questions to answer (decision 45) or a waiver to sign first. The booking page and the API both show
+ * this; Bookings::book() enforces it.
  */
 class BookingOptions
 {
@@ -27,7 +28,7 @@ class BookingOptions
      * @return array{
      *     closed: ?string,
      *     closed_code: ?string,
-     *     attendees: Collection<int, array{attendee: Attendee, booking: ?Booking, age_error: ?string, waiver: ?Waiver}>
+     *     attendees: Collection<int, array{attendee: Attendee, booking: ?Booking, age_error: ?string, questions: list<string>, waiver: ?Waiver}>
      * }
      */
     public function for(Studio $studio, ClassSession $session, User $user): array
@@ -60,6 +61,7 @@ class BookingOptions
                     'attendee' => $attendee,
                     'booking' => $this->bookings->existing($session, $attendee),
                     'age_error' => $ageError,
+                    'questions' => $attendee->questionsNeeded($studio),
                     'waiver' => $this->waivers->nextUnsigned($studio, $attendee, $session->program),
                 ];
             });

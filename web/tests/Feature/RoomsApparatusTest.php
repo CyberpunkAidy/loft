@@ -289,7 +289,7 @@ class RoomsApparatusTest extends TestCase
         $this->waiver($studio);
         $sibling = $this->attendee($studio, $attendee->user);
         $this->post("/{$studio->slug}/book/{$session->id}", ['attendee_id' => $sibling->id, 'apparatus_id' => $a['Lyra']->id])
-            ->assertRedirectContains(urlencode("/{$studio->slug}/book/{$session->id}?apparatus={$a['Lyra']->id}"));
+            ->assertRedirectContains(urlencode("/{$studio->slug}/book/{$session->id}?attendee={$sibling->id}&apparatus={$a['Lyra']->id}"));
     }
 
     public function test_the_schedule_counts_apparatus_spots_without_a_query_per_class(): void

@@ -17,8 +17,16 @@ export type Studio = {
     booking_opens_days_before: number;
     booking_closes_minutes_before: number;
     minor_age: number;
+    /** The questions the studio asks of each person (decision 45): either, both or neither. */
+    questions: Question[];
   };
 };
+
+/** One of the studio's questions: injuries and health, or photos and video. */
+export type Question = 'health' | 'photos';
+
+/** The photo question's answers: yes (social media too), only inside the studio, or no. */
+export type PhotoConsent = 'public' | 'studio' | 'none';
 
 export type Membership = {
   id: number;
@@ -86,6 +94,13 @@ export type Attendee = {
   is_minor: boolean;
   emergency_contact: string | null;
   medical_notes: string | null;
+  /** The health question: null until answered, then whether medical_notes has anything. */
+  has_health_notes: boolean | null;
+  health_answered_at: string | null;
+  photo_consent: PhotoConsent | null;
+  photo_consent_at: string | null;
+  /** Questions to answer before booking (an older API leaves this out: treat as none). */
+  questions_needed?: Question[];
 };
 
 /** For each person on the account: can they book this class, and if not, why. */
@@ -95,6 +110,8 @@ export type BookingOption = {
   can_book: boolean;
   reason: string | null;
   message: string | null;
+  /** With reason questions_required: what to ask first. */
+  questions?: Question[];
   waiver_id: number | null;
 };
 

@@ -114,6 +114,8 @@ Route::prefix('{studio}')
             Route::get('/account/family/{attendee}', [Studio\AttendeeController::class, 'edit'])->name('attendees.edit');
             Route::put('/account/family/{attendee}', [Studio\AttendeeController::class, 'update'])->name('attendees.update');
             Route::post('/account/family/{attendee}/archive', [Studio\AttendeeController::class, 'archive'])->name('attendees.archive');
+            Route::get('/account/family/{attendee}/questions', [Studio\AttendeeController::class, 'questions'])->name('attendees.questions');
+            Route::put('/account/family/{attendee}/questions', [Studio\AttendeeController::class, 'answer'])->name('attendees.answer');
 
             Route::get('/waiver/{attendee}', [Studio\WaiverController::class, 'show'])->name('waiver');
             Route::post('/waiver/{attendee}', [Studio\WaiverController::class, 'sign'])->name('waiver.sign');

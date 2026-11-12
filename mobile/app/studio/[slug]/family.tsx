@@ -5,7 +5,7 @@ import { useAttendees, useWaivers } from '@/src/api/hooks';
 import { useSlug } from '@/src/api/studio';
 import { Badge, Button, Card, Divider, Empty, ErrorView, Loading, Muted, Row, Screen } from '@/src/ui';
 
-/** The people on the account, and any waivers they still need to sign. */
+/** The people on the account, and anything they still need: the studio's questions, or a waiver. */
 export default function Family() {
   const slug = useSlug();
   const attendees = useAttendees(slug);
@@ -22,21 +22,22 @@ export default function Family() {
         <Card style={{ paddingVertical: 4 }}>
           {(attendees.data ?? []).map((a, i) => {
             const n = needs(a.id);
+            const questions = a.questions_needed?.length ?? 0;
             return (
               <View key={a.id}>
                 {i > 0 ? <Divider /> : null}
                 <Row
                   title={`${a.first_name} ${a.last_name}`}
                   subtitle={[a.is_self ? 'You' : null, a.dob ? `Born ${a.dob}` : null].filter(Boolean).join(' · ') || undefined}
-                  onPress={n ? () => router.push({ pathname: '/studio/[slug]/waiver', params: { slug, attendee: String(a.id) } }) : undefined}
-                  right={n ? <Badge label={`${n} to sign`} tone="warn" /> : <Badge label="Waivers signed" tone="ok" />}
+                  onPress={() => router.push({ pathname: '/studio/[slug]/person', params: { slug, attendee: String(a.id), ...(questions ? { ask: '1' } : {}) } })}
+                  right={questions ? <Badge label={questions === 1 ? '1 question' : `${questions} questions`} tone="warn" /> : n ? <Badge label={`${n} to sign`} tone="warn" /> : <Badge label="All set" tone="ok" />}
                 />
               </View>
             );
           })}
         </Card>
       )}
-      <Button title="Add someone" icon="plus" variant="secondary" onPress={() => router.push(`/studio/${slug}/add-person`)} />
+      <Button title="Add someone" icon="plus" variant="secondary" onPress={() => router.push(`/studio/${slug}/person`)} />
     </Screen>
   );
 }

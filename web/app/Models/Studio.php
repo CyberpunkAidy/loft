@@ -53,6 +53,8 @@ class Studio extends Model
         'minor_age' => 18,
         'schedule_weeks' => 2,
         'sales_tax_milli' => 0, // sales tax on taxable products, in thousandths of a percent (8875 = 8.875%)
+        'ask_health' => true, // the injury question (decision 45)
+        'ask_photo_consent' => true, // the photo and video question
     ];
 
     /** @var Collection<int, Waiver>|null */

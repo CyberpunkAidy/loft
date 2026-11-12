@@ -13,7 +13,7 @@
   - six weeks of attendance (so a few members show as at risk of leaving);
   - this month's sales.
 - **Signed in as the owner,** Olivia Owens, with every admin page to click through and change.
-- **"See it as a member":** the banner switches to Priya Shah, a parent with two children and a membership, to book a class, sign a waiver or see a check-in code. "Back to the owner" switches back. Only the browser that started the demo can switch, because it holds the `loft_demo` cookie naming the demo and its two people.
+- **"See it as a member":** the banner switches to Priya Shah, a parent with two children and a membership, to book a class, sign a waiver or see a check-in code. Her son Leo was booked before the studio asked its [injury and photo questions](Injury-and-Photo-Questions), so booking him asks them first. "Back to the owner" switches back. Only the browser that started the demo can switch, because it holds the `loft_demo` cookie naming the demo and its two people.
 - **"Start your own studio":** signs out of the demo and opens a blank signup form.
 
 A banner on every page of a demo says what it is and when it's deleted. The pages carry `noindex`.

@@ -56,7 +56,7 @@ class WaiverRulesTest extends TestCase
 
         $silks = $this->classSession($aerial);
         $this->actingAs($user)->post("/{$studio->slug}/book/{$silks->id}", ['attendee_id' => $attendee->id])
-            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?waiver={$aerialWaiver->id}&return=%2F{$studio->slug}%2Fbook%2F{$silks->id}");
+            ->assertRedirect("/{$studio->slug}/waiver/{$attendee->id}?waiver={$aerialWaiver->id}&return=%2F{$studio->slug}%2Fbook%2F{$silks->id}%3Fattendee%3D{$attendee->id}");
         $this->get("/{$studio->slug}/waiver/{$attendee->id}?waiver={$aerialWaiver->id}")->assertOk()->assertSee('Aerial liability')->assertSee('needed for Silks');
 
         $this->post("/{$studio->slug}/waiver/{$attendee->id}", ['waiver_id' => $aerialWaiver->id, 'signed_name' => 'Pat Doe', 'agree' => '1', 'return' => "/{$studio->slug}/book/{$silks->id}"])
