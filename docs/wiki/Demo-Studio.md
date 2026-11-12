@@ -8,6 +8,7 @@
   - rooms with silks, lyra and poles;
   - 14 classes and a workshop;
   - plans, a waiver, products and automations;
+  - two [series](Series): an 8-week Teen Lyra term, and a 6-week Intro to Pole with five people signed up;
   - 63 members, some with children, most on a plan;
   - the coming week booked up, with waitlists;
   - six weeks of attendance (so a few members show as at risk of leaving);

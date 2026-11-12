@@ -40,6 +40,7 @@ function StudioStack() {
       <Stack.Screen name="class/[id]" options={{ title: 'Class' }} />
       <Stack.Screen name="waiver" options={{ title: 'Waiver' }} />
       <Stack.Screen name="plans" options={{ title: 'Plans' }} />
+      <Stack.Screen name="series/[id]" options={{ title: 'Series' }} />
       <Stack.Screen name="check-in" options={{ title: 'Check-in code' }} />
       <Stack.Screen name="family" options={{ title: 'Family' }} />
       <Stack.Screen name="person" options={{ title: 'Someone on your account', presentation: 'modal' }} />

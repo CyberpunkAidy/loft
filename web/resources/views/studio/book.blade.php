@@ -30,6 +30,9 @@
 
     @if ($closed)
         <div class="alert alert-warning">{{ $closed }}</div>
+        @if ($session->series_id && $session->series)
+            <a class="btn" href="{{ route('studio.series', ['series' => $session->series]) }}">See the series</a>
+        @endif
     @elseif ($attendees->isEmpty())
         <div class="card empty">
             <p>Who’s coming? Add yourself or a family member first.</p>

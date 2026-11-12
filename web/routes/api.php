@@ -30,6 +30,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('plans', [V1\StudioController::class, 'plans'])->name('plans');
         Route::get('sessions', [V1\SessionController::class, 'index'])->name('sessions.index');
         Route::get('sessions/{session}', [V1\SessionController::class, 'show'])->name('sessions.show');
+        Route::get('series', [V1\SeriesController::class, 'index'])->name('series.index');
+        Route::get('series/{series}', [V1\SeriesController::class, 'show'])->whereNumber('series')->name('series.show');
         Route::get('videos', [V1\VideoController::class, 'index'])->name('videos.index');
         Route::post('register', [V1\MembershipController::class, 'register'])->middleware('throttle:auth')->name('register');
 
@@ -56,6 +58,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('orders', [V1\PurchaseController::class, 'orders'])->name('orders');
                 Route::post('checkouts', [V1\CheckoutController::class, 'store'])->middleware(['idempotent', 'throttle:20,1'])->name('checkouts.store');
                 Route::get('checkouts/{checkout}', [V1\CheckoutController::class, 'show'])->name('checkouts.show');
+                Route::post('series/{series}/signups', [V1\SeriesController::class, 'store'])->whereNumber('series')->middleware(['idempotent', 'throttle:20,1'])->name('series.signups');
             });
         });
     });

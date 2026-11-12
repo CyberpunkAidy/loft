@@ -66,6 +66,13 @@ Admin → **Point of sale** is the front-desk till (`App\Services\PointOfSale`),
 - **Missed webhooks:** the hourly housekeeping job asks Stripe about any pending order whose Checkout should have finished: paid ones are fulfilled, expired ones released, failed bank payments released; ones still clearing are left. This also covers expired checkouts while `checkout.session.expired` isn't on the webhook. It needs `STRIPE_SECRET` on `loft-housekeeping` ([Deployment](Deployment#environment-variables)).
 - **Refunds:** **Refund** on Sales or the member's page puts the products back into stock, and clears "Ready to pick up" ([Refunds](#refunds)). If they keep what they bought, take it off the stock in Products.
 
+## 5a. Series sign-ups
+
+A series ([Series](Series)) is paid in full when signing up, as one order with a `series` line:
+- **Online:** like the shop: Stripe Checkout on the studio's account, a 30-minute hold (here, on the person's spot), the order numbered when paid, and the same handling of abandoned, expired and failed checkouts and missed webhooks. Late joiners pay for the classes left.
+- **At the desk:** staff add someone from the series page, paid by cash, card, check and so on, or free.
+- **Refunds and voids:** a full refund or a voided desk sale takes the person out of the series, cancelling their classes still to come.
+
 ## 6. Card readers
 
 Stripe Terminal readers (BBPOS WisePOS E, Stripe Reader S700) at the front desk, on the studio's own Stripe account ([decision 28](Decisions)). Admins and owners set them up and use them:

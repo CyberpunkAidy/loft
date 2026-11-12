@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  * apparatus it uses is full.
  */
 #[Fillable([
-    'studio_id', 'program_id', 'season_id', 'starts_at', 'ends_at', 'capacity', 'status', 'instructor_id', 'price_cents', 'notes',
+    'studio_id', 'program_id', 'series_id', 'season_id', 'starts_at', 'ends_at', 'capacity', 'status', 'instructor_id', 'price_cents', 'notes',
     'room_id', 'waitlist_capacity', 'delivery', 'online_capacity', 'meeting_url',
 ])]
 class ClassSession extends Model
@@ -67,6 +67,12 @@ class ClassSession extends Model
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
+    }
+
+    /** The series this class is part of (decision 47), if any. */
+    public function series(): BelongsTo
+    {
+        return $this->belongsTo(Series::class);
     }
 
     public function season(): BelongsTo

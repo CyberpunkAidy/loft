@@ -234,7 +234,7 @@ class BookingRulesTest extends TestCase
 
         $result = $this->bookings()->cancel($booking, $user->id);
 
-        $this->assertSame(['status' => 'cancelled', 'credit_refunded' => true], $result);
+        $this->assertSame(['status' => 'cancelled', 'credit_refunded' => true, 'makeup' => false], $result);
         $this->assertSame(5, $credits->fresh()->credits_remaining);
         $this->assertFalse($booking->fresh()->credit_consumed);
     }
@@ -247,12 +247,12 @@ class BookingRulesTest extends TestCase
         $program = $this->program($studio);
         $booking = $this->bookings()->book($this->classSession($program, ['starts_at' => now()->addHours(3)]), $this->attendee($studio, $user), $user->id);
 
-        $this->assertSame(['status' => 'late_cancelled', 'credit_refunded' => false], $this->bookings()->cancel($booking, $user->id));
+        $this->assertSame(['status' => 'late_cancelled', 'credit_refunded' => false, 'makeup' => false], $this->bookings()->cancel($booking, $user->id));
         $this->assertSame(4, $credits->fresh()->credits_remaining);
 
         $studio->update(['settings' => ['late_cancel_keeps_credit' => true]]);
         $again = $this->bookings()->book($this->classSession($program, ['starts_at' => now()->addHours(3)]), $this->attendee($studio, $user), $user->id);
-        $this->assertSame(['status' => 'late_cancelled', 'credit_refunded' => true], $this->bookings()->cancel($again->fresh(), $user->id));
+        $this->assertSame(['status' => 'late_cancelled', 'credit_refunded' => true, 'makeup' => false], $this->bookings()->cancel($again->fresh(), $user->id));
     }
 
     public function test_staff_cancels_are_never_late_and_members_cannot_cancel_others(): void
@@ -263,7 +263,7 @@ class BookingRulesTest extends TestCase
         $booking = $this->bookings()->book($this->classSession($this->program($studio), ['starts_at' => now()->addHour()]), $this->attendee($studio, $user), $user->id);
 
         $this->expectReason('forbidden', fn () => $this->bookings()->cancel($booking, $this->userIn($studio)->id));
-        $this->assertSame(['status' => 'cancelled', 'credit_refunded' => true], $this->bookings()->cancel($booking, null, byAdmin: true));
+        $this->assertSame(['status' => 'cancelled', 'credit_refunded' => true, 'makeup' => false], $this->bookings()->cancel($booking, null, byAdmin: true));
         $this->assertSame(5, $credits->fresh()->credits_remaining);
     }
 

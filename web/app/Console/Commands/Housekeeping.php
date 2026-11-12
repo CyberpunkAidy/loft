@@ -15,6 +15,7 @@ use App\Services\MemberInvitations;
 use App\Services\MemberSnapshots;
 use App\Services\Messages;
 use App\Services\ReaderPayments;
+use App\Services\SeriesSignups;
 use App\Services\Shop;
 use App\Services\StudioBilling;
 use App\Services\Videos;
@@ -41,7 +42,7 @@ class Housekeeping extends Command
 {
     protected $signature = 'loft:housekeeping';
 
-    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, ReaderPayments $readers, Videos $videos, StudioBilling $billing, MemberInvitations $invitations, Imports $imports, DemoStudios $demos): int
+    public function handle(DomainEvents $events, MemberSnapshots $snapshots, ChurnScores $churn, Automations $automations, Shop $shop, SeriesSignups $series, ReaderPayments $readers, Videos $videos, StudioBilling $billing, MemberInvitations $invitations, Imports $imports, DemoStudios $demos): int
     {
         $reminders = 0;
         $snapshotted = 0;
@@ -58,6 +59,7 @@ class Housekeeping extends Command
         $expired = $this->expire($events);
         $warnings = $this->creditWarnings();
         $shopOrders = $shop->sweep();
+        $seriesSignups = $series->sweep();
         $readerSales = $readers->sweep();
         $videosDone = $videos->sweep();
         $subscriptions = $billing->sweep();
@@ -68,7 +70,7 @@ class Housekeeping extends Command
         $demosBuilt = $demos->refill();
         $relayed = $events->relay();
 
-        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Subscriptions synced: {$subscriptions}. Billing emails: {$billingEmails}. Renewal reminders: {$renewals}. Import drafts cleared: {$pruned}. Events relayed: {$relayed}. Demo studios removed: {$demosRemoved}. Spare demos built: {$demosBuilt}.");
+        $this->info("Reminders: {$reminders}. Expired: {$expired}. Credit warnings: {$warnings}. Snapshots: {$snapshotted}. Risk scores: {$scored}. Automated emails: {$automated}. Shop orders settled: {$shopOrders}. Series sign-ups settled: {$seriesSignups}. Reader sales settled: {$readerSales}. Videos finished: {$videosDone}. Subscriptions synced: {$subscriptions}. Billing emails: {$billingEmails}. Renewal reminders: {$renewals}. Import drafts cleared: {$pruned}. Events relayed: {$relayed}. Demo studios removed: {$demosRemoved}. Spare demos built: {$demosBuilt}.");
 
         return self::SUCCESS;
     }

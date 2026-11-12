@@ -24,6 +24,7 @@
 - **Cancelling:**
   - From the account page, up to class start.
   - Inside the late-cancel window, the credit is kept by the studio, unless the studio's settings say otherwise.
+- **Series:** sign up once for a whole run of classes (an 8-week course), pay in full, and be booked into every class; late joiners pay for the classes left, and cancelling in time earns a make-up class ([Series](Series)).
 - **My account tabs:**
   - **Upcoming** and **History:** classes booked and attended.
   - **Family:** add, edit or remove attendees; emergency contacts, and the answers to the injury and photo questions.
@@ -46,6 +47,7 @@
 | Check-in | Today's classes (or any date), roster with waiver status, apparatus spot, injury notes and photo answers (who to leave out of a photo), record a photo answer someone tells you, mark attended or no-show | instructor+ |
 | Check-in devices | Kiosks and readers members check themselves in at (each with a device code, shown once), and every scan with its result. Tags (cards, fobs) are given out on a member's page | admin |
 | Sessions | Every class by date, rosters (people booked online are marked), capacity (raising it promotes the waitlist), waitlist limit, where it happens (in the studio, online, or both, with online spots and the meeting link), room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |
+| Series | A run of a weekly program's classes sold as one (an 8-week course, a term): dates, price, how late people can join (paying for the classes left), make-ups, drop-ins. Who's signed up, add someone (paid at the desk or free), take someone out. See [Series](Series) | admin |
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus, waitlist limit and where it happens (with online spots and the meeting link) for new sessions, and **Apply to upcoming sessions** to update existing ones. A class can't stop being in the studio and online while people hold online spots | admin |
 | Videos | The on-demand library: upload a file (straight to Mux, Loft's video host) or add one from a link; it shows **Processing** until it's ready. Title, description, who can watch (everyone with an account, or members whose plan includes videos), in the library or not; preview, views and viewers; delete (removed from Mux too). Each studio has an allowance of stored minutes (600 unless Loft changes it) | admin |
 | Seasons | Date ranges for weekly classes | admin |

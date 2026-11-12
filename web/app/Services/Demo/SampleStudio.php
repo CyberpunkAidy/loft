@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Category;
 use App\Models\ClassSession;
 use App\Models\Program;
+use App\Models\Series;
 use App\Models\Studio;
 use App\Models\User;
 use App\Services\Bookings;
@@ -15,6 +16,7 @@ use App\Services\Entitlements;
 use App\Services\MemberSnapshots;
 use App\Services\OfflinePayments;
 use App\Services\Orders;
+use App\Services\SeriesSignups;
 use App\Services\SessionGenerator;
 use App\Services\Waivers;
 use Illuminate\Support\Facades\Hash;
@@ -100,7 +102,7 @@ class SampleStudio
             'excerpt' => 'Climbs, wraps and drops for young aerialists.', 'dropin_price_cents' => 2500,
             'description' => "A playful introduction to aerial silks. We build grip strength, body awareness and confidence with climbs, foot locks and our first drops.\n\nWear fitted clothes that cover the backs of the knees.",
         ], [$cat('age_group', 'kids'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')], [$silks->id => $use(8, 1)]);
-        $program([
+        $teenLyra = $program([
             'title' => 'Teen Lyra', 'weekday' => 3, 'start_time' => '17:30', 'capacity' => 8, 'min_age' => 12, 'max_age' => 17, 'room_id' => $main->id,
             'excerpt' => 'Spins, poses and sequences on the aerial hoop.', 'dropin_price_cents' => 2500,
         ], [$cat('age_group', 'teens'), $cat('level', 'recreational'), $cat('plan_tag', 'recreational')], [$lyra->id => $use(4, 2)]);
@@ -122,6 +124,9 @@ class SampleStudio
             'start_time' => '13:00', 'duration_min' => 180, 'capacity' => 16, 'dropin_price_cents' => 6000, 'room_id' => $flex->id,
             'excerpt' => 'Three hours of active flexibility for splits and backbends.',
         ], [$cat('age_group', 'adults'), $cat('age_group', 'teens'), $cat('plan_tag', 'events')]);
+
+        // A series (decision 47): an 8-week Teen Lyra term from next week, sold as one.
+        $this->series($studio, $teenLyra, 'Teen Lyra · Winter Term', 1, 8, 16000);
 
         $studio->plans()->createMany([
             ['name' => 'Monthly Recreational', 'kind' => 'subscription', 'price_cents' => 9000, 'currency' => 'usd', 'billing_interval' => 'month', 'program_scope' => ['recreational'], 'sort' => 1, 'description' => 'Unlimited recreational classes.'],
@@ -201,6 +206,23 @@ class SampleStudio
         return ['owner' => $owner, 'coach' => $coach, 'parent' => $parent, 'adult' => $adult];
     }
 
+    /**
+     * A series of a weekly program (decision 47): $weeks classes starting $fromWeek weeks out, for
+     * $priceCents. Its classes are the program's on those dates.
+     */
+    private function series(Studio $studio, Program $program, string $name, int $fromWeek, int $weeks, int $priceCents): Series
+    {
+        $first = $program->sessions()->where('starts_at', '>', now()->addWeeks($fromWeek)->startOfWeek())->orderBy('starts_at')->first();
+        $from = $first ? $studio->local($first->starts_at) : $studio->localNow()->addWeeks($fromWeek);
+        $series = $studio->series()->create([
+            'program_id' => $program->id, 'name' => $name, 'price_cents' => $priceCents,
+            'starts_on' => $from->toDateString(), 'ends_on' => $from->copy()->addWeeks($weeks - 1)->toDateString(),
+        ]);
+        $series->attachSessions();
+
+        return $series;
+    }
+
     /** Answers to the studio's questions (decision 45), given by the account holder. */
     private function answered(User $by, string $photos): array
     {
@@ -231,7 +253,7 @@ class SampleStudio
             return $p;
         };
         $use = fn (int $q, int $per) => ['quantity' => $q, 'max_per_item' => $per];
-        $program(['title' => 'Pole Fundamentals', 'weekday' => 1, 'start_time' => '19:45', 'capacity' => 12, 'room_id' => $flex->id, 'instructor_id' => $okafor->id, 'excerpt' => 'Spins, climbs and floorwork from scratch.'], [$poles->id => $use(6, 2)]);
+        $poleIntro = $program(['title' => 'Pole Fundamentals', 'weekday' => 1, 'start_time' => '19:45', 'capacity' => 12, 'room_id' => $flex->id, 'instructor_id' => $okafor->id, 'excerpt' => 'Spins, climbs and floorwork from scratch.'], [$poles->id => $use(6, 2)]);
         $program(['title' => 'Aerial Hoop Flow', 'weekday' => 2, 'start_time' => '18:00', 'capacity' => 8, 'room_id' => $main->id, 'excerpt' => 'Linking shapes into flowing sequences.'], [$lyra->id => $use(4, 2)]);
         $program(['title' => 'Pole Spin & Climb', 'weekday' => 2, 'start_time' => '19:30', 'capacity' => 6, 'room_id' => $flex->id, 'instructor_id' => $okafor->id, 'excerpt' => 'Spinning pole technique, one per pole.'], [$poles->id => $use(6, 1)]);
         $program(['title' => 'Silks Level 2', 'weekday' => 3, 'start_time' => '19:00', 'duration_min' => 75, 'capacity' => 8, 'room_id' => $main->id, 'excerpt' => 'Drops, sequences and inversions in the air.'], [$silks->id => $use(8, 1)]);
@@ -303,11 +325,23 @@ class SampleStudio
             }
         }
 
+        // A six-week intro to pole from the week after next, with a few people signed up at the desk.
+        $intro = $this->series($studio, $poleIntro, 'Intro to Pole · 6 weeks', 2, 6, 15000);
+        $signups = app(SeriesSignups::class);
+        foreach (array_slice(array_values(array_filter($members, fn ($m) => ! in_array($m['u']->first_name, $lapsed, true))), 3, 5) as $n => $m) {
+            try {
+                $signups->addByStaff($intro, $m['self'], $owner, $n % 2 ? 'cash' : 'card', 15000);
+            } catch (Throwable) {
+                // not old enough, or already in it: someone else
+            }
+        }
+
         // Six weeks of past classes and attendance, so activity and risk scores have history.
         foreach ($studio->programs()->where('type', 'class')->get() as $p) {
             $first = $p->sessions()->orderBy('starts_at')->first();
             foreach (range(1, 6) as $w) {
                 $copy = $first->replicate();
+                $copy->series_id = null; // past weeks aren't part of a series
                 $copy->starts_at = $first->starts_at->copy()->subWeeks($w);
                 $copy->ends_at = $first->ends_at->copy()->subWeeks($w);
                 $copy->save();

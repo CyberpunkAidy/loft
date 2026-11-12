@@ -187,7 +187,7 @@
             @forelse ($entitlements as $e)
                 <div class="item small" style="padding:.4rem 0;border-bottom:1px solid var(--line)">
                     <div>
-                        <strong>{{ $e->plan?->name ?? 'Plan' }}</strong>
+                        <strong>{{ $e->name() }}</strong>
                         <div class="muted">
                             @if ($e->isCredits()){{ $e->credits_remaining }}/{{ $e->credits_total }} credits @endif
                             @if ($e->expires_at) · ends {{ $studio->local($e->expires_at)->format('M j, Y') }}@elseif ($e->current_period_end) · renews {{ $studio->local($e->current_period_end)->format('M j') }}@endif

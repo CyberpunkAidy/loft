@@ -82,6 +82,8 @@ export type Session = {
   waitlist: { count: number; capacity: number | null; is_full: boolean };
   apparatus: { id: number; name: string; spots: number; spots_left: number }[];
   booking_opens_at: string | null;
+  /** Part of a series (decision 47); drop_ins false: only people signed up for it book it. */
+  series?: { id: number; name: string; drop_ins: boolean } | null;
   mine?: { booking_id: number; attendee_id: number; status: string; position: number | null }[];
 };
 
@@ -248,3 +250,30 @@ export type Playback = {
 };
 
 export type Paged<T> = { data: T[]; meta?: { next_cursor?: string | null } };
+
+/** A run of classes sold as one (decision 47), and what signing up now costs. */
+export type Series = {
+  id: number;
+  name: string;
+  program: { id: number; title: string; excerpt: string | null; schedule: string };
+  starts_on: string;
+  ends_on: string;
+  dates: string;
+  currency: string;
+  price_cents: number;
+  price_now_cents: number;
+  classes_total: number;
+  classes_left: number;
+  spots_left: number;
+  open: boolean;
+  closed_message: string | null;
+  join_until_class: number;
+  makeups: boolean;
+  drop_ins: boolean;
+  url: string;
+  classes?: { session_id: number; starts_at: string; starts_at_local: string; done: boolean }[];
+  mine?: { attendee_id: number; status: 'pending' | 'active' }[];
+};
+
+export type SeriesSignup = { signed_up: boolean; checkout_id: string | null; checkout_url: string | null; return_url: string };
+

@@ -22,6 +22,7 @@ class BookingOptions
     public function __construct(
         private readonly Bookings $bookings,
         private readonly Waivers $waivers,
+        private readonly Entitlements $entitlements,
     ) {}
 
     /**
@@ -42,6 +43,10 @@ class BookingOptions
             $this->bookings->assertOpen($session);
         } catch (BookingException $e) {
             [$closed, $code] = [$e->getMessage(), $e->reason];
+        }
+        // A series class (decision 47) is for the people signed up, unless they hold a make-up credit.
+        if (! $closed && ($series = $this->bookings->seriesOnly($session)) && ! $this->entitlements->makeupFor($studio, $user->id, $session)) {
+            [$closed, $code] = ["This class is part of the {$series->name} series. Sign up for the series to join it.", 'series_only'];
         }
         if (! $closed && $session->isFull() && $session->waitlistIsFull() && ! ($session->isHybrid() && $session->onlineSpotsLeft() !== 0)) {
             [$closed, $code] = [$session->waitlist_capacity === 0 ? 'This class is full.' : 'This class and its waitlist are full.', 'full'];

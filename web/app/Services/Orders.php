@@ -223,12 +223,16 @@ class Orders
     }
 
     /**
-     * Cancel the plans an undone sale granted and restock its products. When it was refunded, a
+     * Cancel the plans an undone sale granted, take people out of the series it paid for (their
+     * classes still to come are cancelled), and restock its products. When it was refunded, a
      * renewing Stripe membership is left alone (Refunds ends it if staff ask).
      */
     private function takeBack(Order $order, string $reason): void
     {
-        foreach ($order->items()->with(['entitlement.plan'])->get() as $item) {
+        foreach ($order->items()->with(['entitlement.plan', 'seriesEnrollment.series'])->get() as $item) {
+            if ($item->seriesEnrollment) {
+                app(SeriesSignups::class)->withdraw($item->seriesEnrollment, $reason);
+            }
             $entitlement = $item->entitlement;
             $renewing = $reason === 'refunded' && filled($entitlement?->stripe_subscription_id);
             if ($entitlement && ! $renewing && in_array($entitlement->status, ['active', 'past_due'], true)) {

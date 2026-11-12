@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** One line of an order: a plan, a product, a fee (a season's registration fee), or something else on a Stripe invoice. */
-#[Fillable(['order_id', 'kind', 'plan_id', 'entitlement_id', 'product_variant_id', 'description', 'quantity', 'unit_price_cents', 'total_cents', 'tax_cents'])]
+/** One line of an order: a plan, a product, a series sign-up, a fee (a season's registration fee), or something else on a Stripe invoice. */
+#[Fillable(['order_id', 'kind', 'plan_id', 'entitlement_id', 'series_enrollment_id', 'product_variant_id', 'description', 'quantity', 'unit_price_cents', 'total_cents', 'tax_cents'])]
 class OrderItem extends Model
 {
     protected function casts(): array
@@ -33,5 +33,10 @@ class OrderItem extends Model
     public function entitlement(): BelongsTo
     {
         return $this->belongsTo(Entitlement::class);
+    }
+
+    public function seriesEnrollment(): BelongsTo
+    {
+        return $this->belongsTo(SeriesEnrollment::class);
     }
 }

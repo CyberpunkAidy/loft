@@ -31,7 +31,7 @@ class SessionController extends Controller
         $from = isset($data['from']) ? $studio->parseLocal($data['from'].' 00:00:00') : $studio->localNow()->startOfDay();
         $to = $from->copy()->addDays((int) ($data['days'] ?? 14));
 
-        $query = $studio->sessions()->withSeatCounts()->with(['program.categories', 'instructor', 'room'])
+        $query = $studio->sessions()->withSeatCounts()->with(['program.categories', 'instructor', 'room', 'series'])
             ->where('status', 'scheduled')
             ->where('starts_at', '>=', $from->copy()->utc())
             ->where('starts_at', '<', $to->copy()->utc())
@@ -57,7 +57,7 @@ class SessionController extends Controller
     public function show(Request $request, Studio $studio, ClassSession $session, BookingOptions $options): JsonResponse
     {
         abort_unless($session->program->is_published, 404);
-        $session->loadCount(ClassSession::seatCounts())->load(['program.categories', 'instructor', 'room'])->setRelation('studio', $studio);
+        $session->loadCount(ClassSession::seatCounts())->load(['program.categories', 'instructor', 'room', 'series'])->setRelation('studio', $studio);
         $user = $request->user('sanctum');
         $this->attachMine($request, $studio, collect([$session]));
 

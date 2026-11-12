@@ -13,8 +13,9 @@
         @if (! $s->isOnline() && $s->relationLoaded('room') && $s->room)<span class="muted"> · {{ $s->room->name }}</span>@endif
     </div>
     <h3><a href="{{ route('studio.program', ['program' => $program]) }}">{{ $program->title }}</a></h3>
-    @if ($labels->isNotEmpty() || $program->isEvent() || $program->ageLabel() || $s->delivery !== 'in_person')
+    @if ($labels->isNotEmpty() || $program->isEvent() || $program->ageLabel() || $s->delivery !== 'in_person' || $s->series_id)
         <div class="tags">
+            @if ($s->series_id && $s->series)<a class="badge badge-info" href="{{ route('studio.series', ['series' => $s->series]) }}">Series: {{ $s->series->name }}</a>@endif
             @if ($s->isOnline())<span class="badge badge-info">Online</span>@elseif ($s->isHybrid())<span class="badge badge-info">In studio or online</span>@endif
             @if ($program->isEvent())<span class="badge badge-info">Event</span>@endif
             @foreach ($labels as $label)<span class="tag">{{ $label->name }}</span>@endforeach

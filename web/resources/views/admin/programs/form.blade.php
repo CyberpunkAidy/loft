@@ -114,6 +114,34 @@
     </div>
 </form>
 
+@if ($program->exists && ! $program->isEvent())
+    <section class="mt">
+        <div class="page-head">
+            <h2 style="margin:0">Series</h2>
+            <a class="btn btn-secondary btn-small" href="{{ route('studio.admin.series.create', ['program' => $program->id]) }}">New series</a>
+        </div>
+        @if ($program->series->isEmpty())
+            <p class="small muted">Sell a run of these classes as one, like an 8-week course: members pay once and are booked into every class.</p>
+        @else
+            <div class="card card-flush table-wrap">
+                <table class="table">
+                    <thead><tr><th>Series</th><th>Dates</th><th>Price</th><th>Signed up</th></tr></thead>
+                    <tbody>
+                    @foreach ($program->series as $sr)
+                        <tr>
+                            <td><a href="{{ route('studio.admin.series.show', ['series' => $sr]) }}">{{ $sr->name }}</a></td>
+                            <td class="small">{{ $sr->datesLabel() }}</td>
+                            <td>{{ $sr->priceLabel() }}</td>
+                            <td>{{ $sr->enrollments()->where('status', 'active')->count() }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </section>
+@endif
+
 @if ($program->exists)
     <section class="mt">
         <div class="page-head">

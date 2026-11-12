@@ -44,6 +44,9 @@ class StudioEmails
     public function bookingCreated(BookingCreated $event): void
     {
         $b = $event->booking;
+        if ($b->source === 'series') {
+            return; // a series sign-up sends one email for all its classes (SeriesSignups)
+        }
         $studio = $b->studio;
         if ($event->waitlisted) {
             $this->send($b->user, new StudioMessage($studio, "You're on the waitlist",

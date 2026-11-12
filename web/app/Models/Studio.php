@@ -271,6 +271,17 @@ class Studio extends Model
         return $this->hasMany(Program::class);
     }
 
+    /** Runs of classes sold as a whole (decision 47). */
+    public function series(): HasMany
+    {
+        return $this->hasMany(Series::class);
+    }
+
+    public function seriesEnrollments(): HasMany
+    {
+        return $this->hasMany(SeriesEnrollment::class);
+    }
+
     public function sessions(): HasMany
     {
         return $this->hasMany(ClassSession::class);

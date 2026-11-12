@@ -68,7 +68,7 @@
                                 @if ($b->attendee->medical_notes)<div class="medical small">⚠ {{ $b->attendee->medical_notes }}</div>@endif
                             </td>
                             <td class="small"><a href="{{ route('studio.admin.members.show', ['member' => $b->user_id]) }}">{{ $b->user->name }}</a><div class="muted">{{ $b->user->email }}@if ($b->user->phone) · {{ $b->user->phone }}@endif</div></td>
-                            <td>{{ $b->statusLabel() }}{{ $b->position ? ' #'.$b->position : '' }}<div class="muted small">{{ $b->entitlement?->plan?->name ?? ($b->entitlement_id ? 'Plan' : 'Comp') }}</div></td>
+                            <td>{{ $b->statusLabel() }}{{ $b->position ? ' #'.$b->position : '' }}<div class="muted small">{{ $b->entitlement?->name() ?? ($b->series_enrollment_id ? 'Series' : ($b->entitlement_id ? 'Plan' : 'Comp')) }}</div></td>
                             @if ($slots->isNotEmpty())
                                 <td class="small">
                                     @if (in_array($b->status, [...\App\Models\Booking::SEAT_STATUSES, 'waitlisted'], true) && ! $session->isCancelled())

@@ -123,7 +123,12 @@ export default function ClassScreen() {
       {s.delivery === 'online' ? <Notice>This class is online. The link to join appears under My classes 15 minutes before it starts.</Notice> : null}
       {notice ? <Notice tone={notice.tone}>{notice.text}</Notice> : null}
 
-      {!options ? null : options.closed ? (
+      {!options ? null : options.closed && options.closed_code === 'series_only' && s.series ? (
+        <View style={{ gap: space.sm }}>
+          <Notice>{options.closed_message ?? 'This class is part of a series.'}</Notice>
+          <Button title="See the series" onPress={() => router.push({ pathname: '/studio/[slug]/series/[id]', params: { slug, id: String(s.series!.id) } })} />
+        </View>
+      ) : options.closed ? (
         <Notice tone="warn">{options.closed_message ?? 'Booking is closed for this class.'}</Notice>
       ) : (
         <>

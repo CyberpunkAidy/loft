@@ -22,7 +22,7 @@
             @endphp
             <div class="card item">
                 <div>
-                    <strong>{{ $e->plan?->name ?? 'Plan' }}</strong>
+                    <strong>{{ $e->name() }}</strong>
                     <div class="muted small">{{ $detail }}</div>
                     @if ($e->status === 'past_due')<div class="error-text small">Your last payment failed. Update your card to keep booking.</div>@endif
                 </div>

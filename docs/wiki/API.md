@@ -31,6 +31,9 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 404 | `not_found` | No such record, or not at this studio |
 | 422 | `validation_failed` | `fields`: `{field: [messages]}` |
 | 422 | `invalid_credentials` | Wrong email or password |
+| 422 | `series_only` | The class is part of a series that takes no drop-ins: `series_id`. Sign up for the series instead (a make-up credit can still book it) |
+| 409 | `already_enrolled` | Already signed up for that series |
+| 422 | `series_closed` | The series isn't taking sign-ups (too late to join, or closed) |
 | 422 | `questions_required` | Answer the studio's questions about this person first: `attendee_id`, `questions` (`health`, `photos`) |
 | 422 | `waiver_required` | Sign a waiver first: `attendee_id`, `waiver_id` |
 | 422 | `needs_plan` | No membership or credits cover the class: `plans` they can buy |
@@ -89,6 +92,9 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, booking policies (with `questions`: the questions it asks of each person, `health` and `photos`). The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
 | `GET /studios/{slug}/plans` | What it sells, with prices, labels, credits, season dates and `can_buy_online` |
 | `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` and `online_spots_left` (a hybrid class's online spots; `null` when there's no limit). With a token, `mine` lists the member's bookings in it |
+| `GET /studios/{slug}/series` | Series taking sign-ups ([Series](Series)): dates, `price_cents` for the whole series and `price_now_cents` for signing up now, `classes_total`, `classes_left`, `spots_left`, `open` or `closed_message`, `makeups`, `drop_ins` |
+| `GET /studios/{slug}/series/{id}` | One series, with its `classes`; with a member's token, `mine` (who on the account is in it: `pending` while paying, or `active`) |
+| `POST /studios/{slug}/series/{id}/signups` | `attendee_id`. `201` with `checkout_url`, `checkout_id` and `return_url` (open Checkout, then check `GET …/checkouts/{checkout_id}`: `kind` `series`, `fulfilled`), or `signed_up` true for a free series. Idempotent |
 | `GET /studios/{slug}/sessions/{id}` | One class. With a member's token, `booking` says for each person on the account whether they can book, and if not, why (`reason` uses the error codes above, with `questions` to answer and `waiver_id` to sign) |
 | `GET /studios/{slug}/videos` | The video library: title, description, length, `access` (`members` or `plan`), a signed `thumbnail_url`; with a token, `can_watch` and `locked_reason` (`sign_in`, `not_a_member`, `needs_plan`). `meta.plans` lists the plans that include videos |
 

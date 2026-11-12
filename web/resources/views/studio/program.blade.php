@@ -30,6 +30,15 @@
     </aside>
 </div>
 
+@if ($openSeries->isNotEmpty())
+    <h2 class="day">Sign up for a series</h2>
+    <div class="sessions mb">
+        @foreach ($openSeries as $s)
+            @include('studio._series-card', $s)
+        @endforeach
+    </div>
+@endif
+
 <h2 class="day">Upcoming</h2>
 @if ($sessions->isEmpty())
     <div class="card empty">No upcoming sessions.</div>

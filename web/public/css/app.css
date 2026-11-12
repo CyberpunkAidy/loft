@@ -520,6 +520,16 @@ form.inline { display: inline; }
 .medical { color: var(--warn); font-size: .88rem; font-weight: 500; }
 .photo-summary { margin: 0 0 .8rem; padding: .6rem .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
 .photo-summary span { margin-left: .35rem; }
+/* Series (decision 47): its page and cards. */
+.series-price { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem 1rem; margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--line); }
+.series-price strong { font-size: 1.35rem; font-family: var(--font-display); }
+.series-price .small { flex-basis: 100%; }
+.series-rules { margin: .9rem 0 0; padding-left: 1.1rem; color: var(--ink-2); }
+.series-rules li + li { margin-top: .2rem; }
+.series-classes { list-style: none; counter-reset: cls; margin: 0; padding: 0; }
+.series-classes li { counter-increment: cls; display: flex; justify-content: space-between; gap: 1rem; padding: .7rem 1.1rem; border-top: 1px solid var(--line); }
+.series-classes li:first-child { border-top: 0; }
+.series-classes li > span:first-child::before { content: counter(cls) ". "; color: var(--muted); }
 /* Recording a photo answer for someone (decision 46): a small disclosure under their name. */
 .photo-record { margin-top: .45rem; font-size: .9rem; }
 .photo-record > summary { cursor: pointer; color: var(--accent-text); font-weight: 550; width: max-content; }
