@@ -55,6 +55,7 @@ class BookingController extends Controller
 
             return match ($e->reason) {
                 'questions' => redirect()->route('studio.attendees.questions', ['attendee' => $attendee, 'return' => $back]),
+                'series_only' => redirect()->route('studio.series', ['series' => $e->context['series']])->with('warning', $e->getMessage()),
                 'waiver' => redirect()->route('studio.waiver', [
                     'attendee' => $attendee,
                     'waiver' => $e->context['waiver']->id,
@@ -94,6 +95,8 @@ class BookingController extends Controller
         }
 
         $message = match (true) {
+            $result['makeup'] => 'Cancelled. You’ve got a make-up class to use within two weeks of the series ending: book any class with it.',
+            $result['status'] === 'late_cancelled' && $booking->series_enrollment_id => 'Cancelled. It was inside the late-cancellation window, so there’s no make-up class for it.',
             $result['status'] === 'late_cancelled' && $booking->entitlement?->isCredits() && ! $result['credit_refunded'] => 'Cancelled. It was inside the late-cancellation window, so the class credit wasn’t returned.',
             $result['credit_refunded'] => 'Cancelled, and your class credit is back on your account.',
             default => 'Cancelled.',

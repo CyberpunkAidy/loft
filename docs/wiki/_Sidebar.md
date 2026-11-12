@@ -3,6 +3,7 @@
 - [Architecture](Architecture)
 - [Features](Features)
 - [Injury and Photo Questions](Injury-and-Photo-Questions)
+- [Series](Series)
 - [Deployment](Deployment)
 - [Stripe](Stripe)
 - [Email](Email)

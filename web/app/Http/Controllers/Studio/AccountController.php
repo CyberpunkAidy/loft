@@ -27,7 +27,7 @@ class AccountController extends Controller
     {
         // Checked in stays here until class ends: someone in an online class may need to join again.
         $list = $studio->bookings()
-            ->with(['classSession.program', 'classSession.room', 'attendee', 'apparatus'])
+            ->with(['classSession.program', 'classSession.room', 'attendee', 'apparatus', 'seriesEnrollment.series'])
             ->where('user_id', $request->user()->id)
             ->whereIn('status', [...Booking::ACTIVE_STATUSES, 'attended'])
             ->whereHas('classSession', fn ($q) => $q->where('ends_at', '>=', now()))

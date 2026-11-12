@@ -74,6 +74,7 @@ Route::prefix('{studio}')
             ->withoutMiddleware([EncryptCookies::class, AddQueuedCookiesToResponse::class, StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
             ->name('logo');
         Route::get('/classes/{program}', [Studio\ScheduleController::class, 'program'])->name('program');
+        Route::get('/series/{series}', [Studio\SeriesController::class, 'show'])->whereNumber('series')->name('series');
         Route::get('/plans', [Studio\PlanController::class, 'index'])->name('plans');
         Route::get('/shop', [Studio\ShopController::class, 'index'])->name('shop');
         Route::post('/shop/cart', [Studio\ShopController::class, 'add'])->middleware('throttle:60,1')->name('shop.add');
@@ -126,6 +127,8 @@ Route::prefix('{studio}')
             Route::get('/bookings/{booking}/join', [Studio\BookingController::class, 'join'])->name('bookings.join');
 
             Route::post('/checkout/{plan}', [Studio\CheckoutController::class, 'start'])->middleware('demo.off:payments')->name('checkout');
+            Route::post('/series/{series}', [Studio\SeriesController::class, 'store'])->whereNumber('series')->middleware('throttle:20,1')->name('series.signup');
+            Route::get('/series/{series}/done', [Studio\SeriesController::class, 'done'])->whereNumber('series')->name('series.done');
             Route::post('/shop/checkout', [Studio\ShopController::class, 'checkout'])->middleware(['throttle:20,1', 'demo.off:payments'])->name('shop.checkout');
             Route::get('/shop/complete', [Studio\ShopController::class, 'complete'])->name('shop.complete');
             Route::get('/checkout/complete', [Studio\CheckoutController::class, 'complete'])->name('checkout.complete');
@@ -150,6 +153,9 @@ Route::prefix('{studio}')
             Route::middleware('studio.role:admin')->group(function () {
                 Route::resource('programs', Admin\ProgramController::class)->except('show');
                 Route::post('programs/{program}/sessions', [Admin\ProgramController::class, 'sync'])->name('programs.sync');
+                Route::resource('series', Admin\SeriesController::class)->except('destroy');
+                Route::post('series/{series}/people', [Admin\SeriesController::class, 'add'])->name('series.add');
+                Route::post('series/{series}/people/{enrollment}/withdraw', [Admin\SeriesController::class, 'withdraw'])->name('series.withdraw');
 
                 Route::get('sessions', [Admin\SessionController::class, 'index'])->name('sessions.index');
                 Route::get('sessions/{session}', [Admin\SessionController::class, 'show'])->name('sessions.show');

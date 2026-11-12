@@ -30,6 +30,18 @@
     </div>
 @endif
 
+@if ($openSeries->isNotEmpty())
+    <section class="mb">
+        <h2 class="day">Series open for sign-up</h2>
+        <p class="small muted" style="margin-top:0">Sign up once for the whole run, and you’re booked into every class.</p>
+        <div class="sessions">
+            @foreach ($openSeries as $s)
+                @include('studio._series-card', $s)
+            @endforeach
+        </div>
+    </section>
+@endif
+
 <div class="pager">
     @if ($page > 0)
         <a class="btn btn-secondary btn-small" href="{{ $link(['week' => $page - 1]) }}">‹ Earlier</a>

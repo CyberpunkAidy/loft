@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Created by Stripe webhooks or by staff (a recorded payment or a comp); used up by bookings.
  */
 #[Fillable([
-    'studio_id', 'user_id', 'plan_id', 'kind', 'status', 'stripe_subscription_id', 'stripe_customer_id',
+    'studio_id', 'user_id', 'plan_id', 'series_enrollment_id', 'kind', 'status', 'stripe_subscription_id', 'stripe_customer_id',
     'stripe_checkout_session_id', 'credits_total', 'credits_remaining', 'expires_at', 'current_period_end',
     'program_scope', 'weekly_limit', 'import_id',
 ])]
@@ -68,6 +68,29 @@ class Entitlement extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /** The series a make-up credit came from (decision 47). */
+    public function seriesEnrollment(): BelongsTo
+    {
+        return $this->belongsTo(SeriesEnrollment::class);
+    }
+
+    public function isMakeup(): bool
+    {
+        return $this->series_enrollment_id !== null;
+    }
+
+    /** What to call it: the plan's name, or "Make-up class (Silks Level 1)". */
+    public function name(): string
+    {
+        if ($this->isMakeup()) {
+            $series = $this->seriesEnrollment?->series;
+
+            return 'Make-up class'.($series ? " ({$series->name})" : '');
+        }
+
+        return $this->plan?->name ?? 'Plan';
     }
 
     public function isCredits(): bool

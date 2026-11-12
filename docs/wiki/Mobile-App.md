@@ -8,6 +8,7 @@
 - **Schedule:** a week at a time in the studio's time zone, with spots left, waitlists, online and hybrid classes, and their own bookings marked.
 - **Book a class** for anyone on the account:
   - In the studio or online, for a class that's both; an apparatus, when the class has a choice.
+  - A class in a series: a link to the series, to sign up for all of it (Stripe Checkout in the browser, as plans). See [Series](Series).
   - The studio's injury and photo questions first, for someone who hasn't answered ([Injury and Photo Questions](Injury-and-Photo-Questions)).
   - A waiver to sign first: signed in the app (typed name and agreement), one after another.
   - No plan that covers it: the plans that do, and paying for one finishes the booking.

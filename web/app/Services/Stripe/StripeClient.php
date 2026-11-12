@@ -324,14 +324,14 @@ class StripeClient
      * Hosted Checkout for an online shop order (App\Services\Shop): one line per product, the studio's
      * Tax Rate on taxable ones, held for $minutes (the order's stock is reserved meanwhile).
      */
-    public function createShopCheckout(Studio $studio, User $user, Order $order, string $successUrl, string $cancelUrl, int $minutes): array
+    public function createShopCheckout(Studio $studio, User $user, Order $order, string $successUrl, string $cancelUrl, int $minutes, string $kind = 'shop'): array
     {
-        $taxRate = $this->ensureTaxRate($studio);
+        $taxRate = $kind === 'shop' ? $this->ensureTaxRate($studio) : null;
         $metadata = [
             'loft_studio_id' => $studio->id,
             'loft_user_id' => $user->id,
             'loft_order_id' => $order->id,
-            'loft_kind' => 'shop',
+            'loft_kind' => $kind, // shop, or series (decision 47)
         ];
         $params = [
             'customer' => $this->ensureCustomer($studio, $user),
@@ -354,7 +354,7 @@ class StripeClient
             $params['payment_intent_data']['application_fee_amount'] = (int) round($order->total_cents * $this->platformFeePercent / 100);
         }
 
-        return $this->post('checkout/sessions', $params, $this->account($studio), 'loft-shop-'.$order->id);
+        return $this->post('checkout/sessions', $params, $this->account($studio), "loft-{$kind}-".$order->id);
     }
 
     /* ------------------------------------------------------------------ Terminal (card readers) */

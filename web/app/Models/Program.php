@@ -75,6 +75,12 @@ class Program extends Model
         return $this->hasMany(ClassSession::class);
     }
 
+    /** Runs of this program sold as a whole (decision 47). */
+    public function series(): HasMany
+    {
+        return $this->hasMany(Series::class)->orderBy('starts_on');
+    }
+
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);

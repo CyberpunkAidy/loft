@@ -18,13 +18,17 @@
                 $end = $studio->local($b->classSession->ends_at);
                 $isLate = $late[$b->id];
                 $hours = (int) $studio->setting('late_cancel_hours');
-                $confirm = $isLate
-                    ? "This is within {$hours} hours of class, so a class credit won’t be returned. Cancel anyway?"
-                    : "Cancel {$b->attendee->first_name}’s spot in {$b->classSession->program->title}?";
+                $series = $b->seriesEnrollment?->series;
+                $confirm = match (true) {
+                    $series && $isLate => "This is within {$hours} hours of class, so there’s no make-up class for it. Cancel anyway?",
+                    $series && $series->makeups => "Cancel {$b->attendee->first_name}’s spot in this {$series->name} class? You’ll get a make-up class to use another time.",
+                    $isLate => "This is within {$hours} hours of class, so a class credit won’t be returned. Cancel anyway?",
+                    default => "Cancel {$b->attendee->first_name}’s spot in {$b->classSession->program->title}?",
+                };
             @endphp
             <div class="card item">
                 <div>
-                    <strong>{{ $b->classSession->program->title }}</strong>
+                    <strong>{{ $b->classSession->program->title }}</strong>@if ($series) <span class="badge badge-info">Series</span>@endif
                     <div class="muted small">{{ $start->format('D, M j') }} · {{ $start->format('g:i') }} – {{ $end->format('g:i A') }} · {{ $b->attendee->name }}@if ($b->apparatusLabel()) · {{ $b->status === 'waitlisted' ? 'waiting for '.$b->apparatusLabel() : $b->apparatusLabel() }}@endif @if ($b->attendsOnline()) · <strong>Online</strong>@elseif ($b->classSession->room) · {{ $b->classSession->room->name }}@endif</div>
                     @if ($b->attendsOnline() && ! $joinable[$b->id] && $b->status !== 'waitlisted' && ! $b->classSession->isCancelled())
                         <div class="small muted">The link to join appears here at {{ $studio->local($b->classSession->joinOpensAt())->format('g:i A') }}.</div>

@@ -64,6 +64,9 @@ class SessionGenerator
             $created++;
         }
 
+        // Classes in a series' date range belong to it (decision 47), including ones just made.
+        $program->series()->each(fn ($series) => $series->attachSessions());
+
         return ['created' => $created, 'removed' => $removed];
     }
 

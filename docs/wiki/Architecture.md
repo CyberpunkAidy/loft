@@ -70,6 +70,7 @@ Elsewhere in the repository:
 | `attendees` | The people who come to class: the account holder and their children, with date of birth, emergency contact, and answers to the injury and photo questions (`medical_notes`, `health_answered_at`, `photo_consent` with when, by whom and, when staff recorded it, how they heard) |
 | `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin`; `includes_videos` opens videos for members with the plan |
 | `entitlements` | What an account holds: a live membership or a credit balance, with scope and weekly limits |
+| `series`, `series_enrollments` | Runs of a program's classes sold as one, and who's signed up for each (pending while paying, active, withdrawn or released); classes, bookings, order lines and make-up credits point back at them ([Series](Series)) |
 | `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended`. With apparatus: which one (`apparatus_id`; for a waitlist entry, the one asked for, or null for any) and which item (`apparatus_item`, "Silks 3") |
 | `bookings.online_spot` | A hybrid class's online spot: not one of the studio's seats, with no apparatus or waitlist |
 | `videos`, `video_views` | The on-demand library: each video's Mux upload, asset and signed playback IDs, status (`uploading`, `processing`, `ready`, `errored`), length, who can watch (`members` or `plan`) and whether it's in the library; and one view per person, video and day |
@@ -112,6 +113,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Refunds`:** refunds a sale paid through Stripe from Loft, and can end the renewing membership it paid for ([Payments](Payments#refunds)).
 - **`PointOfSale`:** the front-desk till: prices the cart (with sales tax), then in one transaction takes stock, grants plans and records the order; emails the receipt.
 - **`CardReaders`** and **`ReaderPayments`:** Stripe Terminal at the point of sale. Readers are paired on the studio's account; a sale sent to one holds its stock in a pending order with a card-present PaymentIntent, and is recorded (numbered, plans granted, receipt) when the front desk's waiting page or the hourly sweep finds it paid. Refunds go back to the card, then void the sale.
+- **`SeriesSignups`:** series sign-up ([Series](Series)): quotes (classes left, price, spots), holds a spot in a pending enrollment and order while the member pays on Stripe Checkout (as the shop does), books every class once paid, adds people at the desk, and takes people out (also when their sale is refunded or voided).
 - **`Shop`:** the online shop: holds stock in a pending order, opens a 30-minute Stripe Checkout on the studio's account, marks the order paid (webhook or return page) and emails a pickup receipt, or releases it and restocks (`checkout.session.expired` releases abandoned ones). Housekeeping settles checkouts whose webhook never came.
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
@@ -160,6 +162,7 @@ The Laravel events above are in-process: they trigger emails, and nothing rememb
 | `entitlement.ended` | A plan ends: `reason` cancelled, expired or voided |
 | `payment.failed`, `checkout.failed` | A renewal fails (once per lapse), or a delayed checkout payment fails |
 | `waiver.signed` | A waiver is signed (the waiver, version and relationship) |
+| `series.enrolled`, `series.withdrawn` | Someone signed up for a series (`series_id`, `classes`, `price_cents`, `source`), or was taken out (`reason`: staff, refunded or voided) |
 | `order.paid`, `order.voided` | A sale is recorded in the ledger (number, channel, method, total, items), or voided |
 | `consent.email_marketing_granted`, `consent.email_marketing_withdrawn` | Marketing consent changes (`source`: join, profile or unsubscribe_link) |
 | `consent.photos_answered` | A person's photo answer (`answer`: public, studio or none; `previous`; `staff_id` and `note` when staff recorded it) |

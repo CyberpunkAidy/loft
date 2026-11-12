@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * An attendee reserved into a session (or waiting for a seat).
  */
 #[Fillable([
-    'studio_id', 'class_session_id', 'attendee_id', 'user_id', 'entitlement_id', 'status', 'position',
+    'studio_id', 'class_session_id', 'attendee_id', 'user_id', 'entitlement_id', 'series_enrollment_id', 'status', 'position',
     'credit_consumed', 'source', 'booked_at', 'cancelled_at', 'attended_at', 'apparatus_id', 'apparatus_item', 'online_spot',
 ])]
 class Booking extends Model
@@ -70,6 +70,12 @@ class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** The series sign-up this booking is part of (decision 47), if any. */
+    public function seriesEnrollment(): BelongsTo
+    {
+        return $this->belongsTo(SeriesEnrollment::class);
     }
 
     public function entitlement(): BelongsTo

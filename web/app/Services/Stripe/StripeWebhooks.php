@@ -15,6 +15,7 @@ use App\Services\Bookings;
 use App\Services\DomainEvents;
 use App\Services\Entitlements;
 use App\Services\Orders;
+use App\Services\SeriesSignups;
 use App\Services\Shop;
 use App\Support\BookingException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -47,6 +48,7 @@ class StripeWebhooks
         private readonly DomainEvents $events,
         private readonly Orders $orders,
         private readonly Shop $shop,
+        private readonly SeriesSignups $series,
     ) {}
 
     /**
@@ -128,7 +130,7 @@ class StripeWebhooks
             'checkout.session.completed',
             'checkout.session.async_payment_succeeded' => $this->fulfillCheckout($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
             'checkout.session.async_payment_failed' => $this->checkoutFailed($studio, $this->stripe->retrieveCheckoutSession($studio, $id)),
-            'checkout.session.expired' => $this->shop->expired($studio, $this->stripe->retrieveCheckoutSession($studio, $id)), // plan checkouts hold nothing
+            'checkout.session.expired' => $this->checkoutExpired($studio, $this->stripe->retrieveCheckoutSession($studio, $id)), // plan checkouts hold nothing
             'charge.refunded' => $this->chargeRefunded($studio, $this->stripe->retrieveCharge($studio, $id)),
             'invoice.paid' => $this->invoicePaid($studio, $this->stripe->retrieveInvoice($studio, $id)),
             'invoice.payment_failed' => $this->invoiceFailed($studio, $this->stripe->retrieveInvoice($studio, $id)),
@@ -151,6 +153,11 @@ class StripeWebhooks
     {
         if (($cs['metadata']['loft_kind'] ?? null) === 'shop') {
             $this->shop->fulfil($studio, $cs); // an online shop order, not a plan
+
+            return new CheckoutResult(null);
+        }
+        if (($cs['metadata']['loft_kind'] ?? null) === 'series') {
+            $this->series->fulfil($studio, $cs); // a series sign-up (decision 47)
 
             return new CheckoutResult(null);
         }
@@ -194,6 +201,13 @@ class StripeWebhooks
         return new CheckoutResult($entitlement, $created, $booking, $error);
     }
 
+    /** A Checkout Session expired unpaid: a shop order or series sign-up lets go of what it held. */
+    private function checkoutExpired(Studio $studio, array $cs): void
+    {
+        $this->shop->expired($studio, $cs);
+        $this->series->expired($studio, $cs);
+    }
+
     /**
      * A delayed one-time payment failed, so nothing was granted: tell the member. (Subscriptions
      * report the failure through invoice.payment_failed instead.)
@@ -207,6 +221,11 @@ class StripeWebhooks
         }
         if (($cs['metadata']['loft_kind'] ?? null) === 'shop') {
             $this->shop->failed($studio, $cs);
+
+            return;
+        }
+        if (($cs['metadata']['loft_kind'] ?? null) === 'series') {
+            $this->series->failed($studio, $cs);
 
             return;
         }

@@ -17,6 +17,9 @@ class LoginController extends Controller
     public function show(Request $request): View
     {
         $studio = $request->route('studio');
+        if ($return = ReturnPath::from($request)) {
+            $request->session()->put('url.intended', url($return)); // back to the page that sent them (a series, say)
+        }
 
         return view('auth.login', ['studio' => $studio instanceof Studio ? $studio : null]);
     }

@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\Entitlement;
 use App\Models\Plan;
 use App\Models\Program;
+use App\Models\SeriesEnrollment;
 use App\Models\Studio;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -42,6 +43,42 @@ class Entitlements
             ->filter(fn (Entitlement $e) => $e->isCredits())
             ->sortBy(fn (Entitlement $e) => $e->expires_at?->getTimestamp() ?? PHP_INT_MAX)
             ->first();
+    }
+
+    /** A make-up credit from a series (decision 47) that can pay for this session, soonest to expire first. */
+    public function makeupFor(Studio $studio, int $userId, ClassSession $session): ?Entitlement
+    {
+        return $studio->entitlements()->where('user_id', $userId)->where('status', 'active')->whereNotNull('series_enrollment_id')
+            ->orderBy('expires_at')->orderBy('id')->get()
+            ->first(fn (Entitlement $e) => $this->isUsable($e, $session));
+    }
+
+    /**
+     * One make-up credit for a series class cancelled in time (decision 47): good for any class,
+     * including the series' own, until two weeks after the series ends.
+     */
+    public function grantMakeup(SeriesEnrollment $enrollment): Entitlement
+    {
+        $series = $enrollment->series;
+        $entitlement = Entitlement::create([
+            'studio_id' => $enrollment->studio_id,
+            'user_id' => $enrollment->user_id,
+            'series_enrollment_id' => $enrollment->id,
+            'kind' => 'credits',
+            'status' => 'active',
+            'credits_total' => 1,
+            'credits_remaining' => 1,
+            'expires_at' => $series->makeupsExpireAt(),
+        ]);
+        $this->events->record('entitlement.granted', $entitlement->studio_id, [
+            'entitlement_id' => $entitlement->id,
+            'plan_name' => 'a make-up class',
+            'kind' => 'credits',
+            'source' => 'makeup',
+            'series_id' => $series->id,
+        ], $entitlement->user_id, $enrollment->attendee_id);
+
+        return $entitlement;
     }
 
     /** Can this entitlement pay for this session right now? */

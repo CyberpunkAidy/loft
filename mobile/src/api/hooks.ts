@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { request } from './client';
 import type {
-  Attendee, Booking, CheckInCode, Entitlement, Order, Paged, Plan, Session, SessionDetail, Studio, User, Video, Waiver,
+  Attendee, Booking, CheckInCode, Entitlement, Order, Paged, Plan, Series, Session, SessionDetail, Studio, User, Video, Waiver,
 } from './types';
 
 /** Query keys, so a change (a booking, say) can refresh what it affects. */
@@ -19,7 +19,13 @@ export const keys = {
   orders: (slug: string) => ['orders', slug] as const,
   videos: (slug: string) => ['videos', slug] as const,
   checkInCode: (slug: string, attendee: number) => ['check-in-code', slug, attendee] as const,
+  series: (slug: string, id: number) => ['series', slug, id] as const,
 };
+
+/** One series (decision 47), with its classes and, signed in, who on the account is in it. */
+export function useSeries(slug: string, id: number) {
+  return useQuery({ queryKey: keys.series(slug, id), queryFn: () => request<{ data: Series }>(`studios/${slug}/series/${id}`).then((r) => r.data), enabled: id > 0 });
+}
 
 export function useMe() {
   return useQuery({ queryKey: keys.me, queryFn: () => request<{ data: User }>('me').then((r) => r.data) });

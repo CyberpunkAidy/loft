@@ -50,11 +50,14 @@ class CheckoutController extends Controller
         $booking = $result->booking?->load(['attendee', 'apparatus', 'classSession.program', 'classSession.room']);
         $booking?->classSession->setRelation('studio', $studio);
 
+        $series = ($cs['metadata']['loft_kind'] ?? null) === 'series'; // a series sign-up (decision 47)
+
         return response()->json(['data' => [
             'id' => $cs['id'],
             'status' => $cs['status'] ?? null,               // open | complete | expired
             'payment_status' => $cs['payment_status'] ?? null, // paid | unpaid (a bank debit still clearing) | no_payment_required
-            'fulfilled' => $result->entitlement !== null,
+            'kind' => $series ? 'series' : 'plan',
+            'fulfilled' => $series ? $studio->orders()->whereKey((int) ($cs['metadata']['loft_order_id'] ?? 0))->where('status', 'paid')->exists() : $result->entitlement !== null,
             'entitlement' => $result->entitlement ? (new EntitlementResource($result->entitlement->load('plan')))->resolve() : null,
             'booking' => $booking ? (new BookingResource($booking))->resolve() : null,
             'booking_error' => $result->bookingError,

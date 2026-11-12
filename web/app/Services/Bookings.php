@@ -10,6 +10,8 @@ use App\Models\Attendee;
 use App\Models\Booking;
 use App\Models\ClassSession;
 use App\Models\Entitlement;
+use App\Models\Series;
+use App\Models\SeriesEnrollment;
 use App\Models\Studio;
 use App\Models\User;
 use App\Support\ApparatusSlot;
@@ -44,6 +46,9 @@ class Bookings
      * their own limit, no apparatus and no waitlist. (Everyone in an online class is online already.)
      * A member booking also needs the studio's questions answered (decision 45), except
      * $skipQuestions: completing a booking already paid for at checkout, which asked them first.
+     * A class in a series (decision 47) is only for the people signed up for it ($seriesEnrollment,
+     * source "series", paid for by the series), unless the series takes drop-ins; a member with a
+     * make-up credit from a series can still book one with it.
      *
      * @param  array{staff: User, reason: string}|null  $waiverOverride
      *
@@ -60,6 +65,7 @@ class Bookings
         ?int $apparatusId = null,
         bool $online = false,
         bool $skipQuestions = false,
+        ?SeriesEnrollment $seriesEnrollment = null,
     ): Booking {
         $studio = $session->studio;
         $online = $online && $session->isHybrid();
@@ -71,11 +77,19 @@ class Bookings
         if ($this->existing($session, $attendee)) {
             throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
         }
+        $makeup = null;
+        if ($source === 'web' && ! $seriesEnrollment && ($series = $this->seriesOnly($session))) {
+            $makeup = $this->entitlements->makeupFor($studio, $userId, $session);
+            if (! $makeup) {
+                throw new BookingException('series_only', "This class is part of the {$series->name} series. Sign up for the series to join it.", ['series' => $series]);
+            }
+        }
         if ($source === 'web' && ! $skipQuestions && ($questions = $attendee->questionsNeeded($studio))) {
             throw new BookingException('questions', $attendee->questionsMessage($questions), ['attendee' => $attendee, 'questions' => $questions]);
         }
         $unsigned = $this->waivers->nextUnsigned($studio, $attendee, $session->program);
-        if ($unsigned && ($source === 'web' || $waiverOverride === null)) {
+        // A series signs everyone up once, after checking its waivers; check-in still needs them signed.
+        if ($unsigned && $source !== 'series' && ($source === 'web' || $waiverOverride === null)) {
             throw new BookingException('waiver', "{$attendee->first_name} needs to sign “{$unsigned->title}” before booking.", ['attendee' => $attendee, 'waiver' => $unsigned]);
         }
         $this->assertAge($session, $attendee);
@@ -84,14 +98,18 @@ class Bookings
         }
 
         $entitlement = null;
-        if (! $skipEntitlement) {
+        if ($seriesEnrollment) {
+            $skipEntitlement = true; // the series paid for it
+        } elseif ($makeup) {
+            $entitlement = $makeup; // a series class takes only a make-up credit
+        } elseif (! $skipEntitlement) {
             $entitlement = $this->pickEntitlement($studio, $userId, $session, $preferred);
             if (! $entitlement) {
                 throw $this->needsPlan($studio, $session);
             }
         }
 
-        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride, $apparatusId, $online) {
+        [$booking, $waitlisted] = DB::transaction(function () use ($studio, $session, $attendee, $userId, $source, $entitlement, $unsigned, $waiverOverride, $apparatusId, $online, $seriesEnrollment) {
             $locked = ClassSession::whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($this->existing($locked, $attendee)) {
                 throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
@@ -126,6 +144,7 @@ class Bookings
                 'attendee_id' => $attendee->id,
                 'user_id' => $userId,
                 'entitlement_id' => $entitlement?->id,
+                'series_enrollment_id' => $seriesEnrollment?->id,
                 'status' => $full ? 'waitlisted' : 'booked',
                 'position' => $full ? $this->nextWaitlistPosition($locked) : null,
                 'credit_consumed' => $creditConsumed,
@@ -144,6 +163,7 @@ class Bookings
                 'source' => $source,
                 'position' => $booking->position,
                 'entitlement_id' => $booking->entitlement_id,
+                'series_enrollment_id' => $booking->series_enrollment_id,
                 'credit_consumed' => $creditConsumed,
                 'apparatus_id' => $booking->apparatus_id,
                 'online' => $online || $locked->isOnline() ? true : null,
@@ -159,9 +179,10 @@ class Bookings
     }
 
     /**
-     * Cancel a booking. Staff cancels are never late. Returns the new status and whether a credit came back.
+     * Cancel a booking. Staff cancels are never late. Returns the new status, whether a credit came
+     * back, and whether a series class cancelled in time earned a make-up credit (decision 47).
      *
-     * @return array{status: string, credit_refunded: bool}
+     * @return array{status: string, credit_refunded: bool, makeup: bool}
      *
      * @throws BookingException
      */
@@ -182,8 +203,10 @@ class Bookings
         $late = ! $byAdmin && $wasBooked && $this->isLate($session);
         $studioKeepsCredit = $late && ! $session->studio->setting('late_cancel_keeps_credit');
         $refund = $booking->credit_consumed && $booking->entitlement_id && ! $studioKeepsCredit;
+        $enrollment = $booking->seriesEnrollment;
+        $makeup = $wasBooked && ! $late && $enrollment?->isActive() && $enrollment->series?->makeups;
 
-        DB::transaction(function () use ($booking, $late, $refund, $byAdmin, $wasBooked) {
+        DB::transaction(function () use ($booking, $late, $refund, $byAdmin, $wasBooked, $makeup, $enrollment) {
             $booking->update([
                 'status' => $late ? 'late_cancelled' : 'cancelled',
                 'cancelled_at' => now(),
@@ -193,12 +216,16 @@ class Bookings
             if ($refund && $booking->entitlement) {
                 $this->entitlements->refundCredit($booking->entitlement);
             }
-            $this->events->forBooking('booking.cancelled', $booking, [
+            $this->events->forBooking('booking.cancelled', $booking, array_filter([
                 'by' => $byAdmin ? 'staff' : 'member',
                 'late' => $late,
                 'from' => $wasBooked ? 'booked' : 'waitlisted',
                 'credit_refunded' => (bool) $refund,
-            ]);
+                'makeup' => $makeup ? true : null,
+            ], fn ($v) => $v !== null));
+            if ($makeup) {
+                $this->entitlements->grantMakeup($enrollment);
+            }
         });
 
         BookingCancelled::dispatch($booking, $late);
@@ -207,7 +234,15 @@ class Bookings
             $this->promoteWaitlist($session);
         }
 
-        return ['status' => $booking->status, 'credit_refunded' => (bool) $refund];
+        return ['status' => $booking->status, 'credit_refunded' => (bool) $refund, 'makeup' => (bool) $makeup];
+    }
+
+    /** The series a class belongs to, when that series takes only its own people (no drop-ins). */
+    public function seriesOnly(ClassSession $session): ?Series
+    {
+        $series = $session->series_id ? $session->series : null;
+
+        return $series && ! $series->allow_dropins ? $series : null;
     }
 
     /**

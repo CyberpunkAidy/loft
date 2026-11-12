@@ -4,15 +4,26 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Staff record photo answers** ([decision 46](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions#when-staff-record-a-photo-answer))
+- **Series sign-up** ([decision 47](Decisions), [Series](Series))
+  - **Sell a run of classes as one:** Admin → **Series** (also from a program's page): pick a weekly program's dates and a price. Members sign up once, pay in full on Stripe Checkout, and are booked into every class.
+  - **Joining late:** until a class the studio sets, paying for the classes left.
+  - **Make-ups:** cancelling a series class in time gives a make-up credit for another class, good until two weeks after the series ends.
+  - **Closed groups:** series classes take only their own people (and make-ups) unless the studio allows drop-ins. On the schedule they show **Part of a series**, and **Series open for sign-up** lists what's open.
+  - **Staff:** who's signed up and how they paid, add someone (paid at the desk or free), take someone out. Refunding or voiding the sale takes them out too.
+  - **App and API:** series list, details and sign-up; classes say which series they're in; `series_only`, `already_enrolled` and `series_closed` errors.
+  - **Demo:** an 8-week Teen Lyra term and a 6-week Intro to Pole.
+  - **Also:** signing in from a page now comes back to it.
+  - **Database:** `series`, `series_enrollments`; `series_id` on classes, and `series_enrollment_id` on bookings, order lines and credits.
+
+## 2026-11-12
+
+- **Staff record photo answers** ([decision 46](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions#when-staff-record-a-photo-answer), [#45](https://github.com/CyberpunkAidy/loft-studio/pull/45))
   - **Record photo answer** under each person on Check-in, and on the member page: the answer, and a note on how they heard ("At the front desk").
   - **The member is emailed** with the answer and how the studio heard, and can change it; their Family page and the app say the studio recorded it.
   - **The record:** the member page shows who recorded it and the note; Activity keeps it.
   - **API:** `photo_consent_by_studio` and `photo_consent_note` on people.
   - **Privacy Policy and Terms:** staff may record your photo answer from what you tell them, and you're emailed so you can check it.
   - **Database:** `attendees.photo_consent_note`.
-
-## 2026-11-12
 
 - **Injury and photo questions** ([decision 45](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions), [#44](https://github.com/CyberpunkAidy/loft-studio/pull/44))
   - **Two questions about each person:** any injuries, health conditions or allergies (No, or Yes with the details), and photos and video (yes, including social media; only inside the studio; or no). Asked when someone is added; everyone else answers before their next booking, before the waiver. Parents answer for their children; answers can be changed under Family.

@@ -53,6 +53,8 @@ class SessionResource extends ApiResource
                 'id' => $slot->apparatus->id, 'name' => $slot->apparatus->name, 'spots' => $slot->spots(), 'spots_left' => $slot->left(),
             ])->values(),
             'booking_opens_at' => self::utc($opensAt),
+            // Part of a series (decision 47): drop_ins false means only people signed up for it book it.
+            'series' => $this->series_id && $this->series ? ['id' => $this->series->id, 'name' => $this->series->name, 'drop_ins' => $this->series->allow_dropins] : null,
             'mine' => $this->when($this->relationLoaded('myBookings'), fn () => $this->getRelation('myBookings')->map(fn ($b) => [
                 'booking_id' => $b->id, 'attendee_id' => $b->attendee_id, 'status' => $b->status, 'position' => $b->position,
             ])->values()),

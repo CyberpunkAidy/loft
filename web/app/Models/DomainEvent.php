@@ -44,6 +44,8 @@ class DomainEvent extends Model
         'consent.email_marketing_granted' => 'Opted in to marketing emails',
         'consent.email_marketing_withdrawn' => 'Opted out of marketing emails',
         'consent.photos_answered' => 'Answered the photo question',
+        'series.enrolled' => 'Signed up for a series',
+        'series.withdrawn' => 'Taken out of a series',
     ];
 
     protected function casts(): array
@@ -89,6 +91,7 @@ class DomainEvent extends Model
                 'stripe' => ' (paid online)',
                 'reader' => ' (paid on a card reader)',
                 'comp' => ' (comped)',
+                'makeup' => ' (for a series class cancelled in time)',
                 'staff' => ' (given by staff)',
                 'import' => ' (brought over from the old system)',
                 default => ' (paid in person: '.strtolower(Payment::METHODS[$p['source']] ?? $p['source']).')',
@@ -109,6 +112,8 @@ class DomainEvent extends Model
             'consent.photos_answered' => 'Photos and video: '.lcfirst(Attendee::PHOTO_CONSENT[$p['answer'] ?? ''] ?? 'answered')
                 .(isset($p['previous']) ? ' (was: '.lcfirst(Attendee::PHOTO_CONSENT[$p['previous']] ?? $p['previous']).')' : '')
                 .(isset($p['note']) ? ', recorded by staff: “'.$p['note'].'”' : ''),
+            'series.enrolled' => 'Signed up for '.($p['series_name'] ?? 'a series').(isset($p['classes']) ? ' ('.$p['classes'].' '.($p['classes'] === 1 ? 'class' : 'classes').')' : ''),
+            'series.withdrawn' => 'Taken out of '.($p['series_name'] ?? 'a series').(($p['reason'] ?? null) === 'refunded' ? ' (refunded)' : ''),
             'video.watched' => 'Watched '.(isset($p['title']) ? '“'.$p['title'].'”' : 'a video'),
             'waiver.signed' => 'Signed '.($p['waiver_title'] ?? 'a waiver').(isset($p['version']) ? ' (v'.$p['version'].')' : ''),
             default => $label,
