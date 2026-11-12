@@ -458,6 +458,7 @@ form.inline { display: inline; }
 .question > legend { float: left; width: 100%; padding: 0; margin: 0; font-weight: 650; font-size: 1.02rem; }
 .question > legend + * { clear: both; }
 .question > p { margin: 0; }
+.question > .notice-line { padding: .55rem .8rem; border-radius: var(--radius); background: var(--info-bg); color: var(--ink-2); }
 
 /* ---------------------------------------------------------------- Waiver */
 .waiver-text { max-height: 380px; overflow: auto; padding: 1.1rem 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); font-size: .95rem; line-height: 1.65; }
@@ -519,6 +520,12 @@ form.inline { display: inline; }
 .medical { color: var(--warn); font-size: .88rem; font-weight: 500; }
 .photo-summary { margin: 0 0 .8rem; padding: .6rem .85rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
 .photo-summary span { margin-left: .35rem; }
+/* Recording a photo answer for someone (decision 46): a small disclosure under their name. */
+.photo-record { margin-top: .45rem; font-size: .9rem; }
+.photo-record > summary { cursor: pointer; color: var(--accent-text); font-weight: 550; width: max-content; }
+.photo-record-form { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; margin-top: .45rem; }
+.photo-record-form .input { width: auto; min-height: 2.15rem; flex: 1 1 12rem; }
+.photo-record-form select.input { flex: 0 1 16rem; }
 
 /* Pagination */
 .pagination { display: flex; gap: .35rem; margin-top: 1.25rem; flex-wrap: wrap; }

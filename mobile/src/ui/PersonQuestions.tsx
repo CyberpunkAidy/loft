@@ -2,19 +2,21 @@ import { View } from 'react-native';
 
 import type { Question } from '../api/types';
 import { type Answers, PHOTO_CHOICES } from '../lib/questions';
-import { Choice, Heading, Muted, TextField } from './index';
+import { Choice, Heading, Muted, Notice, TextField } from './index';
 import { space } from './theme';
 
 /**
  * The studio's questions for one person (decision 45): injuries and health, then photos. When the
  * studio doesn't ask about health, a plain medical notes field instead, as before.
  */
-export function PersonQuestions({ asked, studioName, value, onChange, error }: {
+export function PersonQuestions({ asked, studioName, value, onChange, error, recordedNote }: {
   asked: Question[];
   studioName: string;
   value: Answers;
   onChange: (next: Answers) => void;
   error?: (field: string) => string | undefined;
+  /** How the studio heard, when its staff recorded the current photo answer (decision 46). */
+  recordedNote?: string | null;
 }) {
   const set = (patch: Partial<Answers>) => onChange({ ...value, ...patch });
   return (
@@ -53,6 +55,7 @@ export function PersonQuestions({ asked, studioName, value, onChange, error }: {
         <View style={{ gap: space.sm }}>
           <Heading>Photos and video</Heading>
           <Muted>{studioName} sometimes takes photos and short videos in class. Is that OK?</Muted>
+          {recordedNote ? <Notice>{`${studioName} recorded this answer from what you told them (“${recordedNote}”). If it isn’t right, choose another.`}</Notice> : null}
           {PHOTO_CHOICES.map((p) => (
             <Choice key={p.value} title={p.title} subtitle={p.subtitle} selected={value.photo_consent === p.value} onPress={() => set({ photo_consent: p.value })} />
           ))}

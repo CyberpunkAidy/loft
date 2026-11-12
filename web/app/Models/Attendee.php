@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
  * A person who attends classes: a child on a family account, or the account holder ("self").
  */
 #[Fillable(['studio_id', 'user_id', 'first_name', 'last_name', 'dob', 'is_self', 'medical_notes', 'emergency_contact', 'status', 'import_id',
-    'health_answered_at', 'photo_consent', 'photo_consent_at', 'photo_consent_by'])]
+    'health_answered_at', 'photo_consent', 'photo_consent_at', 'photo_consent_by', 'photo_consent_note'])]
 class Attendee extends Model
 {
     /** The photo question's answers (decision 45), as the member reads them. */
@@ -111,7 +111,7 @@ class Attendee extends Model
             $out['medical_notes'] = $data['medical_notes'];
         }
         if (! empty($data['photo_consent']) && $data['photo_consent'] !== $this->photo_consent) {
-            $out += ['photo_consent' => $data['photo_consent'], 'photo_consent_at' => now(), 'photo_consent_by' => $by->id];
+            $out += ['photo_consent' => $data['photo_consent'], 'photo_consent_at' => now(), 'photo_consent_by' => $by->id, 'photo_consent_note' => null];
         }
 
         return $out;
@@ -123,6 +123,12 @@ class Attendee extends Model
         $what = count($questions) === 1 ? 'a quick question' : 'two quick questions';
 
         return $this->is_self ? 'Answer '.$what.' before booking.' : "Answer {$what} about {$this->first_name} before booking.";
+    }
+
+    /** Whether staff recorded the current photo answer for the account holder (decision 46). */
+    public function photoRecordedByStudio(): bool
+    {
+        return $this->photo_consent !== null && $this->photo_consent_by !== null && (int) $this->photo_consent_by !== (int) $this->user_id;
     }
 
     /** The health answer: null until answered, then whether there's anything instructors should know. */
@@ -166,7 +172,7 @@ class Attendee extends Model
         return $this->hasMany(Booking::class);
     }
 
-    /** Who gave the photo answer: the account holder, or staff who recorded it. */
+    /** Who gave the photo answer: the account holder, or staff who recorded it for them. */
     public function photoConsentBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'photo_consent_by');

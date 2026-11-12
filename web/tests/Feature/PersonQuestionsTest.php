@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Mail\StudioMessage;
 use App\Models\Attendee;
 use App\Models\DomainEvent;
 use App\Models\Studio;
 use App\Models\User;
 use App\Services\Bookings;
 use App\Support\BookingException;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -229,5 +231,80 @@ class PersonQuestionsTest extends TestCase
         $other = $this->classSession($this->program($studio));
         app(Bookings::class)->book($other, Attendee::where('first_name', 'Ruby')->sole(), Attendee::where('first_name', 'Ruby')->sole()->user_id, 'admin', skipEntitlement: true);
         $this->get("/{$studio->slug}/admin/sessions/{$other->id}")->assertOk()->assertSee('everyone in this class said yes');
+    }
+
+    public function test_staff_record_a_photo_answer_from_check_in_and_the_member_is_emailed(): void
+    {
+        Mail::fake();
+        $studio = $this->studio(['name' => 'Skyline']);
+        $coach = $this->userIn($studio, 'instructor', ['first_name' => 'Cam', 'last_name' => 'Rivera']);
+        $parent = $this->userIn($studio, 'member', ['first_name' => 'Priya', 'email' => 'priya@example.com']);
+        $leo = $this->attendee($studio, $parent, ['first_name' => 'Leo', 'last_name' => 'Shah', 'photo_consent' => null, 'photo_consent_at' => null]);
+        $session = $this->classSession($this->program($studio));
+        app(Bookings::class)->book($session, $leo, $parent->id, 'admin', skipEntitlement: true);
+        $checkin = "/{$studio->slug}/admin/checkin?date=".$studio->local($session->starts_at)->toDateString();
+        $this->actingAs($coach);
+
+        $this->get($checkin)->assertOk()->assertSee('Record photo answer')->assertSee('We’ll email Priya so they can check it.');
+
+        // Both parts are needed, and the error shows on Leo's form only.
+        $this->from($checkin)->post("/{$studio->slug}/admin/people/{$leo->id}/photos", ['photo_consent' => 'none'])
+            ->assertRedirect($checkin."#photos-{$leo->id}")->assertSessionHasErrorsIn("photos{$leo->id}", ['photo_note']);
+        $this->assertNull($leo->fresh()->photo_consent);
+        $photoEmails = fn () => Mail::queued(StudioMessage::class, fn (StudioMessage $m) => $m->kind === 'photo_answer_recorded')->count();
+        $this->assertSame(0, $photoEmails());
+
+        $this->from($checkin)->post("/{$studio->slug}/admin/people/{$leo->id}/photos", ['photo_consent' => 'none', 'photo_note' => ' Mum said so at the front desk '])
+            ->assertRedirect($checkin."#photos-{$leo->id}")
+            ->assertSessionHas('success', 'Recorded for Leo: no photos or video. We’ve emailed Priya so they can check it.');
+        $leo->refresh();
+        $this->assertSame(['none', $coach->id, 'Mum said so at the front desk', true], [$leo->photo_consent, $leo->photo_consent_by, $leo->photo_consent_note, $leo->photoRecordedByStudio()]);
+        Mail::assertQueued(StudioMessage::class, fn (StudioMessage $m) => $m->kind === 'photo_answer_recorded' && $m->hasTo('priya@example.com')
+            && $m->headline === 'Leo’s photo answer was recorded'
+            && $m->details === ['For' => 'Leo Shah', 'Photos and video' => 'No photos or video', 'How we heard' => 'Mum said so at the front desk']
+            && str_contains($m->lines[0], 'Cam at Skyline recorded Leo’s answer'));
+        $this->assertSame('Photos and video: no photos or video, recorded by staff: “Mum said so at the front desk”',
+            DomainEvent::where('type', 'consent.photos_answered')->sole()->label());
+
+        // The same answer again changes nothing and emails nobody.
+        $this->from($checkin)->post("/{$studio->slug}/admin/people/{$leo->id}/photos", ['photo_consent' => 'none', 'photo_note' => 'Again'])
+            ->assertSessionHas('success', 'That was already Leo’s answer.');
+        $this->assertSame(1, $photoEmails());
+        $this->get($checkin)->assertOk()->assertSee('Change photo answer')->assertSee('No photos: Leo Shah.');
+
+        // The owner sees who recorded it and how they heard.
+        $this->actingAs($this->userIn($studio, 'owner'))->get("/{$studio->slug}/admin/members/{$parent->id}")->assertOk()
+            ->assertSee('Recorded by Cam Rivera')->assertSee('“Mum said so at the front desk”');
+
+        // The parent sees it on Leo's page, and their own answer replaces it.
+        $this->actingAs($parent)->get("/{$studio->slug}/account/family/{$leo->id}")->assertOk()
+            ->assertSee('Skyline recorded this answer on')->assertSee('(“Mum said so at the front desk”)');
+        $token = $parent->createToken('Test phone', ['member'])->plainTextToken;
+        $this->api('GET', "studios/{$studio->slug}/attendees", $token)
+            ->assertJsonPath('data.0.photo_consent_by_studio', true)->assertJsonPath('data.0.photo_consent_note', 'Mum said so at the front desk');
+        $this->actingAs($parent)->put("/{$studio->slug}/account/family/{$leo->id}/questions", ['has_health_notes' => '0', 'photo_consent' => 'studio'])
+            ->assertRedirect("/{$studio->slug}/account/family");
+        $leo->refresh();
+        $this->assertSame(['studio', $parent->id, null, false], [$leo->photo_consent, $leo->photo_consent_by, $leo->photo_consent_note, $leo->photoRecordedByStudio()]);
+        $this->get("/{$studio->slug}/account/family/{$leo->id}")->assertDontSee('recorded this answer');
+    }
+
+    public function test_only_staff_record_answers_and_only_for_this_studio(): void
+    {
+        $studio = $this->studio();
+        $parent = $this->userIn($studio);
+        $leo = $this->attendee($studio, $parent, ['photo_consent' => null]);
+        $data = ['photo_consent' => 'public', 'photo_note' => 'Paper form'];
+
+        $this->actingAs($parent)->post("/{$studio->slug}/admin/people/{$leo->id}/photos", $data)->assertForbidden();
+        $other = $this->studio();
+        $this->actingAs($this->userIn($other, 'owner'))->post("/{$other->slug}/admin/people/{$leo->id}/photos", $data)->assertNotFound();
+        $this->assertNull($leo->fresh()->photo_consent);
+
+        // With the photo question off there's nothing to record.
+        $studio = $this->settings($studio, ['ask_photo_consent' => false]);
+        $owner = $this->userIn($studio, 'owner');
+        $this->actingAs($owner)->post("/{$studio->slug}/admin/people/{$leo->id}/photos", $data)->assertNotFound();
+        $this->get("/{$studio->slug}/admin/members/{$parent->id}")->assertOk()->assertDontSee('Record photo answer');
     }
 }

@@ -99,6 +99,9 @@ export type Attendee = {
   health_answered_at: string | null;
   photo_consent: PhotoConsent | null;
   photo_consent_at: string | null;
+  /** Staff recorded the photo answer from what the member told them (decision 46), and how they heard. */
+  photo_consent_by_studio?: boolean;
+  photo_consent_note?: string | null;
   /** Questions to answer before booking (an older API leaves this out: treat as none). */
   questions_needed?: Question[];
 };

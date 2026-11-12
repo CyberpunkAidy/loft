@@ -31,10 +31,17 @@
                                 <td class="small">
                                     @if ($a->photo_consent)
                                         {{ \App\Models\Attendee::PHOTO_CONSENT_SHORT[$a->photo_consent] }}
-                                        <div class="muted" title="{{ \App\Models\Attendee::PHOTO_CONSENT[$a->photo_consent] }}">Answered {{ $studio->local($a->photo_consent_at)->format('M j, Y') }}</div>
+                                        <div class="muted" title="{{ \App\Models\Attendee::PHOTO_CONSENT[$a->photo_consent] }}">
+                                            @if ($a->photoRecordedByStudio())
+                                                Recorded by {{ $a->photoConsentBy?->name ?? 'staff' }}, {{ $studio->local($a->photo_consent_at)->format('M j, Y') }}: “{{ $a->photo_consent_note }}”
+                                            @else
+                                                Answered {{ $studio->local($a->photo_consent_at)->format('M j, Y') }}
+                                            @endif
+                                        </div>
                                     @else
                                         <span class="muted">Not asked yet</span>
                                     @endif
+                                    @include('admin._photo-record', ['person' => $a, 'account' => $member])
                                 </td>
                                 <td class="small">
                                     @if ($a->medical_notes)<span class="medical">{{ $a->medical_notes }}</span>@elseif ($a->health_answered_at)None@else<span class="muted">Not asked yet</span>@endif

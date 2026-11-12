@@ -98,7 +98,14 @@ function PersonForm({ existing, askOnly, hasSelf }: { existing?: Attendee; askOn
           {!hasSelf || existing?.is_self ? <Checkbox label="This is me" checked={isSelf} onChange={setIsSelf} /> : null}
         </>
       )}
-      <PersonQuestions asked={asked} studioName={studio.name} value={answers} onChange={setAnswers} error={(field) => error?.fieldMessage(field)} />
+      <PersonQuestions
+        asked={asked}
+        studioName={studio.name}
+        value={answers}
+        onChange={setAnswers}
+        error={(field) => error?.fieldMessage(field)}
+        recordedNote={existing?.photo_consent_by_studio && answers.photo_consent === existing.photo_consent ? existing.photo_consent_note : null}
+      />
       {error && !Object.keys(error.fields).length ? <Notice tone="err">{error.message}</Notice> : null}
       <Button title={askOnly ? 'Save and go back to the class' : existing ? 'Save' : 'Add'} onPress={save} loading={busy} disabled={!ready} />
       <View style={{ height: space.lg }} />

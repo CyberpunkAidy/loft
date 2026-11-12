@@ -22,7 +22,7 @@ Every studio email is logged in `message_deliveries` by `App\Services\Messages`:
 
 ## Marketing email and consent
 
-Transactional email (bookings, receipts, reminders, payment problems) always goes out. Marketing email (news, offers, and the planned birthday and win-back messages) needs consent:
+Transactional email (bookings, receipts, reminders, payment problems, a photo answer staff recorded for someone) always goes out. Marketing email (news, offers, and the planned birthday and win-back messages) needs consent:
 - **Opting in:** an unticked box on the join form ("Email me news and offers from …"), or **My account → Profile**. Consent is per studio, recorded with when and where (`studio_users.email_marketing_consent_*`), and each change is a domain event.
 - **Opting out:** the profile box, or the **Unsubscribe** link in every marketing email. The link is a signed URL (`/{studio}/unsubscribe/{member}`) that works without signing in.
 - **One-click unsubscribe:** marketing emails carry `List-Unsubscribe` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058), which Gmail and Yahoo expect from bulk senders. Mail apps POST to the same signed URL.
