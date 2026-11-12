@@ -41,7 +41,7 @@
         <h3>You give us</h3>
         <ul>
             <li><strong>Your account:</strong> name, email address, phone number (optional) and password (stored only as a one-way hash).</li>
-            <li><strong>Your family:</strong> the names, birthdays, medical notes and emergency contacts of people you book for, including your children. Medical notes can include health information; add only what the studio needs to keep everyone safe in class.</li>
+            <li><strong>Your family:</strong> the names, birthdays, medical notes and emergency contacts of people you book for, including your children, and your answers to the studio’s questions about each of them: any injuries or health conditions, and whether the studio may take photos or video of them (with when you answered). Medical notes can include health information; add only what the studio needs to keep everyone safe in class. You can change these answers any time in your account.</li>
             <li><strong>Waivers:</strong> when you sign one, your typed name, your relationship to the person it covers, the drawing of your signature, the exact version of the text, and the time.</li>
             <li><strong>Studios:</strong> if you run a studio, its name, address, settings and branding; the classes, plans, products and videos you add; your staff’s names and emails; and, when you start it, how you heard about Loft and any referral code you used.</li>
             <li><strong>Messages to us:</strong> anything you send when you contact us.</li>
@@ -68,7 +68,7 @@
         <h2>3. How it’s used</h2>
         <ul>
             <li>to provide the Service: accounts, booking, waitlists, waivers, check-in, payments, plans, videos and live classes;</li>
-            <li>to show the studios you belong to what they need to run your classes, including your family’s medical notes and emergency contacts;</li>
+            <li>to show the studios you belong to what they need to run your classes, including your family’s medical notes, emergency contacts and photo answers;</li>
             <li>to send emails about your bookings, payments and account, and, for studios, about their Loft subscription;</li>
             <li>to send a studio’s news and offers on its behalf, only if you agreed to receive them;</li>
             <li>to keep the Service secure, prevent abuse and fix problems;</li>
@@ -86,7 +86,7 @@
         <ul>
             <li><strong>contract:</strong> to provide the Service you’ve signed up for;</li>
             <li><strong>legitimate interests:</strong> to keep the Service secure, improve it, and support studios (for example, with activity history and risk scores), balanced against your rights;</li>
-            <li><strong>consent:</strong> for marketing emails, and for the health information you choose to add in medical notes; you can withdraw it at any time; and</li>
+            <li><strong>consent:</strong> for marketing emails, and for the health information you choose to give in medical notes or in answer to a studio’s injury question; you can withdraw it at any time; and</li>
             <li><strong>legal obligation:</strong> where the law requires us to keep or share information.</li>
         </ul>
         <p>For information a studio controls, the studio decides its own legal basis.</p>

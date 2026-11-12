@@ -14,9 +14,10 @@
 
 - **Schedule:** two weeks at a time (configurable), filtered by age group and level. Each class shows its time, instructor, room, tags, drop-in price and spots left.
 - **Booking:** choose who's coming (yourself or family members), then:
-  1. Each person needs a signed, current waiver.
-  2. The booking needs a plan that covers the class: a membership within its weekly limit, or a credit.
-  3. If there's none, the member picks a plan, pays by Stripe Checkout, and the booking completes automatically after payment.
+  1. Each person answers the studio's injury and photo questions once, if they haven't ([Injury and Photo Questions](Injury-and-Photo-Questions)).
+  2. Each person needs a signed, current waiver.
+  3. The booking needs a plan that covers the class: a membership within its weekly limit, or a credit.
+  4. If there's none, the member picks a plan, pays by Stripe Checkout, and the booking completes automatically after payment.
 - **Online and hybrid classes:** a class can be in the studio, online, or both. For one that's both, members choose **In the studio** or **Online**: online spots are separate from the studio's seats (with their own limit, no apparatus and no waitlist), so a full studio can still have room online. People booked online see **Join online** under Upcoming from 15 minutes before class until it ends; it opens the studio's Zoom, Meet or other link, and joining checks them in. The link isn't shown anywhere else. The choice is kept through signing a waiver and paying at checkout.
 - **Apparatus:** when a class uses more than one kind (say silks and lyra), members choose one, with the spots left on each, or "No preference". The choice is kept through signing a waiver and paying at checkout. The account page shows the spot, such as "Silks 3".
 - **Waitlists:** a full class takes a waitlist spot, unless the class caps its waitlist and the cap is reached. When a seat frees up, the next person is booked automatically if their plan still covers it, and emailed.
@@ -25,7 +26,7 @@
   - Inside the late-cancel window, the credit is kept by the studio, unless the studio's settings say otherwise.
 - **My account tabs:**
   - **Upcoming** and **History:** classes booked and attended.
-  - **Family:** add, edit or remove attendees; medical notes and emergency contacts.
+  - **Family:** add, edit or remove attendees; emergency contacts, and the answers to the injury and photo questions.
   - **Plans & billing:** memberships and credits, their purchases (with order numbers, and shop orders to pick up), a link to Stripe's billing portal (cards, invoices, cancelling), and buying more.
   - **Check-in:** a QR code for each person on the account, to scan at the studio's kiosk; it changes every 30 seconds.
   - **Waivers:** every waiver in force, per attendee, and what each is for ("Only for Silks"). Signing, with an optional drawn signature, goes from one missing waiver to the next.
@@ -42,7 +43,7 @@
 | Area | What it does | Who |
 |---|---|---|
 | Dashboard | Members, members at high risk of leaving, sales this month, shop orders to pick up, active memberships, past-due, bookings in the last 7 days, waitlists; today's classes; a setup checklist, which becomes the studio's schedule link once every step is done | admin |
-| Check-in | Today's classes (or any date), roster with waiver status, apparatus spot and medical notes, mark attended or no-show | instructor+ |
+| Check-in | Today's classes (or any date), roster with waiver status, apparatus spot, injury notes and photo answers (who to leave out of a photo), mark attended or no-show | instructor+ |
 | Check-in devices | Kiosks and readers members check themselves in at (each with a device code, shown once), and every scan with its result. Tags (cards, fobs) are given out on a member's page | admin |
 | Sessions | Every class by date, rosters (people booked online are marked), capacity (raising it promotes the waitlist), waitlist limit, where it happens (in the studio, online, or both, with online spots and the meeting link), room and apparatus, instructor, notes, add someone (optionally comped, on a chosen apparatus), move someone to another apparatus, remove, cancel the class (emails everyone, returns credits). Warns when another class is in the same room at the same time, or the room's apparatus is over-used | admin |
 | Programs | Weekly classes and one-off events; generate sessions across the season. Room, apparatus, waitlist limit and where it happens (with online spots and the meeting link) for new sessions, and **Apply to upcoming sessions** to update existing ones. A class can't stop being in the studio and online while people hold online spots | admin |
@@ -78,6 +79,8 @@
 | `waitlist_auto_promote` | true | Whether freed seats go to the waitlist automatically |
 | `minor_age` | 18 | Under this age, a parent or guardian signs the waiver |
 | `schedule_weeks` | 2 | Weeks shown on the public schedule |
+| `ask_health` | true | Ask each person about injuries and health conditions before they book |
+| `ask_photo_consent` | true | Ask each person whether the studio may take photos and video |
 
 Other rules:
 - **Members only:** a program can be "members only", in which case only memberships and seasonal tuition can book it, not packs or drop-ins.

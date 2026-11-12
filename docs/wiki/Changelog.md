@@ -4,12 +4,22 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **The demo never builds in the visitor's request** ([Demo Studio](Demo-Studio))
+- **Injury and photo questions** ([decision 45](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions))
+  - **Two questions about each person:** any injuries, health conditions or allergies (No, or Yes with the details), and photos and video (yes, including social media; only inside the studio; or no). Asked when someone is added; everyone else answers before their next booking, before the waiver. Parents answer for their children; answers can be changed under Family.
+  - **App:** the same questions when adding someone and before booking; Family now opens each person to edit their details and answers.
+  - **Staff:** check-in and class rosters name who to leave out of a photo, and badge **No photos**, **In-studio photos only** and **Not asked yet**. The member page shows each answer and when it was given; photo answers appear in Activity.
+  - **Settings:** **Questions for each person** turns either question off (both on by default).
+  - **API:** `questions_required` when booking; new fields on people and on the studio's policies.
+  - **Privacy Policy and Terms:** the answers are listed with what members give and what studios see; studios follow the photo answers. Both dated November 12, 2026.
+  - **Demo:** Priya's son Leo hasn't answered yet, so booking him shows the questions.
+  - **Database:** `attendees.health_answered_at`, `photo_consent`, `photo_consent_at`, `photo_consent_by`.
+
+## 2026-11-11
+
+- **The demo never builds in the visitor's request** ([Demo Studio](Demo-Studio), [#43](https://github.com/CyberpunkAidy/loft-studio/pull/43))
   - On Render, building a demo took 33 seconds, too long to hold a request open: the first live try never reached its dashboard. Now a ready spare opens at once, and with none ready the visitor waits on "Setting up your studio…", which opens the demo by itself when the worker has built one.
   - The spare-building job builds one at a time, retries (right after a deploy, the outgoing worker can't run it), and is restarted by the waiting page if it stalls.
   - A demo's classes run eight weeks ahead instead of a whole season: about 780 fewer queries per build.
-
-## 2026-11-11
 
 - **Try the demo** ([decision 44](Decisions), [Demo Studio](Demo-Studio), [#42](https://github.com/CyberpunkAidy/loft-studio/pull/42))
   - **[loftstudio.app/demo](https://loftstudio.app/demo):** each visitor gets their own copy of a sample aerial and pole studio (63 members, a booked-up week, a month of sales), signed in as the owner, for a day. The home page's second button is now **Try the demo**.

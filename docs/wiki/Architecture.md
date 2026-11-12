@@ -67,7 +67,7 @@ Elsewhere in the repository:
 | `programs` | A class or one-off event: weekday and time, duration, capacity, age limits, price, instructor, and the room, waitlist limit and delivery (below) for new sessions |
 | `class_sessions` | Each dated occurrence of a program, with its own capacity, waitlist limit (`waitlist_capacity`, null = none), room, instructor and status, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` (a hybrid class's online spots, null = no limit) and `meeting_url` |
 | `program_apparatus`, `session_apparatus` | The apparatus a class uses (`quantity`, `max_per_item`): a program's default, copied to each new session, which can change it |
-| `attendees` | The people who come to class: the account holder and their children, with date of birth, medical notes and emergency contact |
+| `attendees` | The people who come to class: the account holder and their children, with date of birth, emergency contact, and answers to the injury and photo questions (`medical_notes`, `health_answered_at`, `photo_consent` with when and by whom) |
 | `plans` | What a studio sells: `subscription` (monthly), `season` (monthly until the season ends), `pack` (credits) or `dropin`; `includes_videos` opens videos for members with the plan |
 | `entitlements` | What an account holds: a live membership or a credit balance, with scope and weekly limits |
 | `bookings` | An attendee in a session: `booked`, `waitlisted` (with position), `cancelled`, `late_cancelled`, `no_show` or `attended`. With apparatus: which one (`apparatus_id`; for a waitlist entry, the one asked for, or null for any) and which item (`apparatus_item`, "Silks 3") |
@@ -162,6 +162,7 @@ The Laravel events above are in-process: they trigger emails, and nothing rememb
 | `waiver.signed` | A waiver is signed (the waiver, version and relationship) |
 | `order.paid`, `order.voided` | A sale is recorded in the ledger (number, channel, method, total, items), or voided |
 | `consent.email_marketing_granted`, `consent.email_marketing_withdrawn` | Marketing consent changes (`source`: join, profile or unsubscribe_link) |
+| `consent.photos_answered` | A person's photo answer (`answer`: public, studio or none; `previous`) |
 
 - **What's in an event:** the studio, the account and attendee it's about, the type, when, and a payload of IDs and facts: never names or email addresses. Deleting an account unlinks its events, which stay as anonymous history.
 - **Relaying:** after the transaction commits, the `RelayDomainEvents` job hands new events to each handler in `config('loft.event_handlers')` (classes implementing `App\Contracts\DomainEventHandler`). Each event is relayed in its own transaction, with its row locked (`FOR UPDATE SKIP LOCKED` on Postgres). A handler that throws is retried by later relays, up to 5 times, and the error is kept on the event (`relay_attempts`, `relay_error`). Housekeeping sweeps up anything left.

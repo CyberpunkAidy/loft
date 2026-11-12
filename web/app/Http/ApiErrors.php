@@ -21,6 +21,7 @@ class ApiErrors
 {
     /** BookingException reasons → API codes and statuses. */
     private const BOOKING = [
+        'questions' => ['questions_required', 422],
         'waiver' => ['waiver_required', 422],
         'needs_plan' => ['needs_plan', 422],
         'waitlist_full' => ['full', 422],
@@ -55,6 +56,7 @@ class ApiErrors
         $details = array_filter([
             'attendee_id' => isset($e->context['attendee']) ? $e->context['attendee']->id : null,
             'waiver_id' => isset($e->context['waiver']) ? $e->context['waiver']->id : null,
+            'questions' => $e->context['questions'] ?? null,
             'plans' => isset($e->context['plans']) ? PlanResource::collection($e->context['plans'])->resolve() : null,
         ], fn ($value) => $value !== null);
 

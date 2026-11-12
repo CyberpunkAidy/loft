@@ -53,6 +53,7 @@
         @if ($roster->isEmpty())
             <div class="card empty">Nobody booked yet.</div>
         @else
+            @include('admin._photo-summary')
             <div class="card card-flush table-wrap">
                 <table class="table">
                     <thead><tr><th>Attendee</th><th>Account</th><th>Status</th>@if ($slots->isNotEmpty())<th>Apparatus</th>@endif<th></th></tr></thead>
@@ -63,6 +64,7 @@
                                 <strong>{{ $b->attendee->name }}</strong>@if ($b->attendee->age() !== null) <span class="muted">({{ $b->attendee->age() }})</span>@endif
                                 @if ($b->online_spot)<span class="badge badge-info">Online</span>@endif
                                 @unless ($waiverOk[$b->id])<span class="badge badge-full">No waiver</span>@endunless
+                                @include('admin._person-flags', ['person' => $b->attendee])
                                 @if ($b->attendee->medical_notes)<div class="medical small">⚠ {{ $b->attendee->medical_notes }}</div>@endif
                             </td>
                             <td class="small"><a href="{{ route('studio.admin.members.show', ['member' => $b->user_id]) }}">{{ $b->user->name }}</a><div class="muted">{{ $b->user->email }}@if ($b->user->phone) · {{ $b->user->phone }}@endif</div></td>

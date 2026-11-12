@@ -8,6 +8,7 @@
 - **Schedule:** a week at a time in the studio's time zone, with spots left, waitlists, online and hybrid classes, and their own bookings marked.
 - **Book a class** for anyone on the account:
   - In the studio or online, for a class that's both; an apparatus, when the class has a choice.
+  - The studio's injury and photo questions first, for someone who hasn't answered ([Injury and Photo Questions](Injury-and-Photo-Questions)).
   - A waiver to sign first: signed in the app (typed name and agreement), one after another.
   - No plan that covers it: the plans that do, and paying for one finishes the booking.
   - A full class: the waitlist.
@@ -15,7 +16,7 @@
 - **Videos:** the library, and the player for videos they can watch (signed playback from Mux).
 - **Account:**
   - **Check-in code:** a QR code for each person, changing every 30 seconds, for the studio's kiosk.
-  - **Family:** everyone on the account, the waivers they still need, adding someone.
+  - **Family:** everyone on the account and what they still need (questions or waivers); adding someone, or changing their details and answers.
   - **Plans & purchases:** memberships and credits, every purchase (refunds shown), cards and invoices on the website.
   - **Buy a plan:** on Stripe's Checkout page in an in-app browser. Plans that include videos aren't sold in the app ([decision 33](Decisions)).
   - Contacting the studio, its website, switching or adding studios, signing out, and deleting the account (on the website).

@@ -31,6 +31,7 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 404 | `not_found` | No such record, or not at this studio |
 | 422 | `validation_failed` | `fields`: `{field: [messages]}` |
 | 422 | `invalid_credentials` | Wrong email or password |
+| 422 | `questions_required` | Answer the studio's questions about this person first: `attendee_id`, `questions` (`health`, `photos`) |
 | 422 | `waiver_required` | Sign a waiver first: `attendee_id`, `waiver_id` |
 | 422 | `needs_plan` | No membership or credits cover the class: `plans` they can buy |
 | 422 | `full` | The class and its waitlist are full |
@@ -85,10 +86,10 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 
 | | |
 |---|---|
-| `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, booking policies. The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
+| `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, booking policies (with `questions`: the questions it asks of each person, `health` and `photos`). The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
 | `GET /studios/{slug}/plans` | What it sells, with prices, labels, credits, season dates and `can_buy_online` |
 | `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` and `online_spots_left` (a hybrid class's online spots; `null` when there's no limit). With a token, `mine` lists the member's bookings in it |
-| `GET /studios/{slug}/sessions/{id}` | One class. With a member's token, `booking` says for each person on the account whether they can book, and if not, why (`reason` uses the error codes above, with `waiver_id` to sign) |
+| `GET /studios/{slug}/sessions/{id}` | One class. With a member's token, `booking` says for each person on the account whether they can book, and if not, why (`reason` uses the error codes above, with `questions` to answer and `waiver_id` to sign) |
 | `GET /studios/{slug}/videos` | The video library: title, description, length, `access` (`members` or `plan`), a signed `thumbnail_url`; with a token, `can_watch` and `locked_reason` (`sign_in`, `not_a_member`, `needs_plan`). `meta.plans` lists the plans that include videos |
 
 ### Members of the studio
@@ -100,8 +101,8 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `POST /studios/{slug}/bookings/{id}/join` | | `{url}`: the online class's meeting link, from 15 minutes before class until it ends. Checks them in. Otherwise `not_open_yet` (with `opens_at`), `ended`, `not_online`, `not_booked` or `no_link` |
 | `DELETE /studios/{slug}/bookings/{id}` | | Cancelled, with `credit_refunded` (late cancellations may keep the credit) |
 | `GET /studios/{slug}/attendees` | | The people on the account |
-| `POST /studios/{slug}/attendees` | `first_name`, `last_name`, `dob`?, `is_self`?, `emergency_contact`?, `medical_notes`? | `201`. Idempotent |
-| `PATCH /studios/{slug}/attendees/{id}` | the same fields | |
+| `POST /studios/{slug}/attendees` | `first_name`, `last_name`, `dob`?, `is_self`?, `emergency_contact`?, `medical_notes`?, `has_health_notes`?, `photo_consent`? | `201`. Idempotent. Ask the studio's questions here (`policies.questions` on the studio): `has_health_notes` true needs `medical_notes`, false clears them; `photo_consent` is `public`, `studio` or `none`. They're optional here and required before booking. Each person has `has_health_notes` (null until answered), `health_answered_at`, `photo_consent`, `photo_consent_at` and `questions_needed` |
+| `PATCH /studios/{slug}/attendees/{id}` | the same fields | Only what's sent changes |
 | `DELETE /studios/{slug}/attendees/{id}` | | `204`: removed from the account (kept in the studio's records) |
 | `GET /studios/{slug}/waivers` | | Waivers in force with their text, and for each person: `signed`, `expired`, `needed` |
 | `POST /studios/{slug}/attendees/{id}/waiver-signatures` | `waiver_id`, `signed_name`, `agree` (true), `signature_png`? (a data URL) | `201`, with `next_waiver_id` to sign next (or `null`). A waitlist spot waiting on the waiver may go through. Idempotent |
@@ -130,8 +131,9 @@ Kiosks and readers sign in with their own **device token** (`loftdev_…`, from 
 
 1. `GET /studios/{slug}/sessions/{id}` with the token: each person's `can_book`, or why not.
 2. `POST …/sessions/{id}/bookings` with an `Idempotency-Key`.
-3. On `waiver_required`: show the waiver (`GET …/waivers`), sign it (`POST …/attendees/{id}/waiver-signatures`), then book again with a new key.
-4. On `needs_plan`: show `error.plans`, then buy one with the class attached (`POST …/checkouts` with `session_id` and `attendee_id`), so the booking finishes once paid.
+3. On `questions_required`: ask `error.questions` (see [Injury and Photo Questions](Injury-and-Photo-Questions)), save the answers with `PATCH …/attendees/{id}`, then book again with a new key.
+4. On `waiver_required`: show the waiver (`GET …/waivers`), sign it (`POST …/attendees/{id}/waiver-signatures`), then book again with a new key.
+5. On `needs_plan`: show `error.plans`, then buy one with the class attached (`POST …/checkouts` with `session_id` and `attendee_id`), so the booking finishes once paid.
 
 ## Online classes
 

@@ -42,6 +42,8 @@ class Bookings
      * spots free. A waitlist entry remembers it, and is promoted only when that apparatus has a spot.
      * $online takes one of a hybrid class's online spots instead of a seat in the studio: those have
      * their own limit, no apparatus and no waitlist. (Everyone in an online class is online already.)
+     * A member booking also needs the studio's questions answered (decision 45), except
+     * $skipQuestions: completing a booking already paid for at checkout, which asked them first.
      *
      * @param  array{staff: User, reason: string}|null  $waiverOverride
      *
@@ -57,6 +59,7 @@ class Bookings
         ?array $waiverOverride = null,
         ?int $apparatusId = null,
         bool $online = false,
+        bool $skipQuestions = false,
     ): Booking {
         $studio = $session->studio;
         $online = $online && $session->isHybrid();
@@ -67,6 +70,9 @@ class Bookings
         $this->assertOpen($session, $source);
         if ($this->existing($session, $attendee)) {
             throw new BookingException('duplicate', "{$attendee->first_name} is already booked for this class.");
+        }
+        if ($source === 'web' && ! $skipQuestions && ($questions = $attendee->questionsNeeded($studio))) {
+            throw new BookingException('questions', $attendee->questionsMessage($questions), ['attendee' => $attendee, 'questions' => $questions]);
         }
         $unsigned = $this->waivers->nextUnsigned($studio, $attendee, $session->program);
         if ($unsigned && ($source === 'web' || $waiverOverride === null)) {

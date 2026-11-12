@@ -73,6 +73,13 @@
     </fieldset>
 
     <fieldset class="fieldset form">
+        <legend>Questions for each person</legend>
+        <p class="small muted" style="margin:0">Asked when a member adds someone to their account, and of anyone not asked yet before their next booking. Parents answer for their children, and members can change their answers any time.</p>
+        <x-checkbox name="ask_health" label="Ask about injuries and health conditions" :checked="$settings['ask_health']" hint="What they tell you shows on class rosters and at check-in." />
+        <x-checkbox name="ask_photo_consent" label="Ask whether you may take photos and video" :checked="$settings['ask_photo_consent']" hint="Yes, including social media; only inside the studio; or no. Rosters and check-in show who said no." />
+    </fieldset>
+
+    <fieldset class="fieldset form">
         <legend>Merchandise</legend>
         <x-field name="sales_tax_percent" label="Sales tax on products (%)" type="number" min="0" max="30" step="0.001" :value="rtrim(rtrim(number_format(($settings['sales_tax_milli'] ?? 0) / 1000, 3, '.', ''), '0'), '.')" hint="Added at the point of sale to products marked taxable. Classes and plans aren’t taxed. Check the rate for your area; 0 for none." />
     </fieldset>

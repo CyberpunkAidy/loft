@@ -19,6 +19,16 @@ class AttendeeFactory extends Factory
             'last_name' => fake()->lastName(),
             'dob' => now()->subYears(12)->toDateString(),
             'status' => 'active',
+            // Has answered the studio's questions (decision 45): nothing to tell, photos fine.
+            'health_answered_at' => now(),
+            'photo_consent' => 'public',
+            'photo_consent_at' => now(),
         ];
+    }
+
+    /** Not asked the studio's questions yet, like everyone was when they arrived. */
+    public function unanswered(): static
+    {
+        return $this->state(['health_answered_at' => null, 'photo_consent' => null, 'photo_consent_at' => null]);
     }
 }

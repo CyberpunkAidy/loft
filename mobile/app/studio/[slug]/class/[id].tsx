@@ -57,7 +57,9 @@ export default function ClassScreen() {
       setNotice({ tone: res.data.status === 'waitlisted' ? 'warn' : 'ok', text: res.message });
       await refresh();
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'waiver_required') {
+      if (e instanceof ApiError && e.code === 'questions_required') {
+        router.push({ pathname: '/studio/[slug]/person', params: { slug, attendee: String(option.attendee.id), ask: '1' } });
+      } else if (e instanceof ApiError && e.code === 'waiver_required') {
         router.push({ pathname: '/studio/[slug]/waiver', params: { slug, attendee: String(option.attendee.id), waiver: String(e.details.waiver_id ?? '') } });
       } else if (e instanceof ApiError && e.code === 'needs_plan') {
         router.push({
@@ -172,6 +174,11 @@ export default function ClassScreen() {
                     ) : null
                   ) : o.can_book ? (
                     <Button title={s.is_full && !goOnline ? 'Join the waitlist' : `Book ${o.attendee.first_name}`} small onPress={() => book(o)} loading={busy === o.attendee.id} />
+                  ) : o.reason === 'questions_required' ? (
+                    <>
+                      <Muted>{o.message}</Muted>
+                      <Button title="Answer the questions" small variant="secondary" onPress={() => router.push({ pathname: '/studio/[slug]/person', params: { slug, attendee: String(o.attendee.id), ask: '1' } })} />
+                    </>
                   ) : o.reason === 'waiver_required' ? (
                     <>
                       <Muted>{o.message}</Muted>

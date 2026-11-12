@@ -72,8 +72,8 @@ return [
         'entity' => env('LOFT_LEGAL_ENTITY', 'Goldseam Tech LLC'),
         'state' => env('LOFT_LEGAL_STATE', 'Wyoming'),
         'email' => env('LOFT_LEGAL_EMAIL', 'privacy@loftstudio.app'),
-        'terms_version' => '2026-11-11',
-        'privacy_version' => '2026-11-11',
+        'terms_version' => '2026-11-12',
+        'privacy_version' => '2026-11-12',
     ],
 
     /*

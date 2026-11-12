@@ -44,7 +44,7 @@ The [Privacy Policy](https://loftstudio.app/privacy) describes this page to memb
 | Data | Where |
 |---|---|
 | Name, email, phone, password hash | `users` |
-| Children's names, dates of birth, medical notes, emergency contacts | `attendees` (per studio) |
+| Children's names, dates of birth, medical notes, emergency contacts, photo answers | `attendees` (per studio); each photo answer also in `domain_events` |
 | Waiver signatures: typed name, IP, browser, drawing | `waiver_signatures`; drawings on the private disk |
 | Marketing email consent: when, where, unsubscribed | `studio_users` (per studio) |
 | Activity history and the email log | `domain_events`, `message_deliveries`: IDs and facts, no names or addresses |

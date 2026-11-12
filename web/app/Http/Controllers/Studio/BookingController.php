@@ -15,7 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Book a class: choose who's going → waiver check → membership/credit check → (checkout) → booked.
+ * Book a class: choose who's going → the studio's questions → waiver check → membership/credit check →
+ * (checkout) → booked.
  * The plugin did this with modals over its REST API; here each step is a page, so it works without JavaScript.
  */
 class BookingController extends Controller
@@ -28,14 +29,16 @@ class BookingController extends Controller
         $states = $found['attendees']->mapWithKeys(fn (array $o) => [$o['attendee']->id => [
             'booking' => $o['booking'],
             'age_error' => $o['age_error'],
+            'questions' => count($o['questions']),
             'needs_waiver' => $o['waiver'] !== null,
         ]])->all();
         $closed = $found['closed'];
         $slots = $session->isOnline() ? collect() : $session->apparatusSlots();
         $chosen = $slots->has($request->integer('apparatus')) ? $request->integer('apparatus') : null;
+        $picked = $request->integer('attendee'); // back from the questions or a waiver: still chosen
         $online = $session->isHybrid() && ($request->boolean('online') || ($session->isFull() && $session->waitlistIsFull()));
 
-        return view('studio.book', compact('session', 'attendees', 'states', 'closed', 'slots', 'chosen', 'online'));
+        return view('studio.book', compact('session', 'attendees', 'states', 'closed', 'slots', 'chosen', 'online', 'picked'));
     }
 
     public function store(Request $request, Studio $studio, ClassSession $session, Bookings $bookings): View|RedirectResponse
@@ -48,11 +51,14 @@ class BookingController extends Controller
         try {
             $booking = $bookings->book($session, $attendee, $request->user()->id, apparatusId: $apparatusId, online: $online);
         } catch (BookingException $e) {
+            $back = route('studio.book', array_filter(['session' => $session, 'attendee' => $attendee->id, 'apparatus' => $apparatusId, 'online' => $online ? 1 : null]), false);
+
             return match ($e->reason) {
+                'questions' => redirect()->route('studio.attendees.questions', ['attendee' => $attendee, 'return' => $back]),
                 'waiver' => redirect()->route('studio.waiver', [
                     'attendee' => $attendee,
                     'waiver' => $e->context['waiver']->id,
-                    'return' => route('studio.book', array_filter(['session' => $session, 'apparatus' => $apparatusId, 'online' => $online ? 1 : null]), false),
+                    'return' => $back,
                 ])->with('warning', $e->getMessage()),
                 'needs_plan' => view('studio.choose-plan', ['session' => $session, 'attendee' => $attendee, 'plans' => $e->context['plans'], 'apparatusId' => $apparatusId, 'online' => $online]),
                 default => back()->withInput()->with('error', $e->getMessage()),

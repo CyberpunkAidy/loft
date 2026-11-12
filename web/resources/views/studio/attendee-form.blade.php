@@ -16,8 +16,8 @@
         </div>
         <x-field name="dob" label="Date of birth" type="date" :value="$attendee->dob?->format('Y-m-d')" hint="Used for age-limited classes and waivers for minors." />
         <x-field name="emergency_contact" label="Emergency contact (name & phone)" :value="$attendee->emergency_contact" />
-        <x-textarea name="medical_notes" label="Medical notes / allergies" :value="$attendee->medical_notes" hint="Shown to instructors on the class roster." />
         <x-checkbox name="is_self" label="This is me" :checked="$attendee->is_self" />
+        @include('studio._person-questions')
         <div class="actions"><button class="btn">{{ $attendee->exists ? 'Save' : 'Add' }}</button></div>
     </form>
     @if ($attendee->exists)
