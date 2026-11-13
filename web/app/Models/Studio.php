@@ -5,8 +5,10 @@ namespace App\Models;
 use App\Services\StudioBilling;
 use App\Support\BillingState;
 use App\Support\Color;
+use App\Support\Phone;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +33,9 @@ use Illuminate\Support\Carbon;
     'logo_hash', 'logo_type', 'logo_width', 'logo_height',
     'referral_code_id', 'referral_rewarded_at', 'referral_reward', 'referral_reward_cents',
     'heard_from', 'heard_from_detail', 'signup_source', 'demo_expires_at', 'demo_claimed_at',
+    'twilio_account_sid', 'twilio_auth_token', 'sms_from', 'sms_number_sid', 'sms_connected_at',
 ])]
+#[Hidden(['twilio_auth_token'])]
 class Studio extends Model
 {
     use HasFactory;
@@ -55,6 +59,13 @@ class Studio extends Model
         'sales_tax_milli' => 0, // sales tax on taxable products, in thousandths of a percent (8875 = 8.875%)
         'ask_health' => true, // the injury question (decision 45)
         'ask_photo_consent' => true, // the photo and video question
+    ] + self::TEXT_SETTINGS;
+
+    /** Which booking messages also go by text, to members who opted in (decision 48). Set on Admin → Text messages. */
+    public const TEXT_SETTINGS = [
+        'text_reminders' => true,
+        'text_waitlist' => true,
+        'text_cancellations' => true,
     ];
 
     /** @var Collection<int, Waiver>|null */
@@ -81,6 +92,8 @@ class Studio extends Model
             'signup_source' => 'array',
             'demo_expires_at' => 'datetime',
             'demo_claimed_at' => 'datetime',
+            'twilio_auth_token' => 'encrypted',
+            'sms_connected_at' => 'datetime',
         ];
     }
 
@@ -206,6 +219,18 @@ class Studio extends Model
         }
 
         return [max(1, $width), $height];
+    }
+
+    /** Twilio is connected with a number to text from (decision 48). Never in a demo studio. */
+    public function textsReady(): bool
+    {
+        return $this->sms_from !== null && $this->twilio_account_sid !== null && $this->twilio_auth_token !== null && ! $this->isDemo();
+    }
+
+    /** The number texts come from, as "(303) 555-0123". */
+    public function textsFrom(): string
+    {
+        return Phone::display($this->sms_from);
     }
 
     public function stripeReady(): bool

@@ -9,6 +9,7 @@ use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Studio;
 use App\Http\Controllers\StudioBillingWebhookController;
+use App\Http\Controllers\TwilioWebhookController;
 use App\Models\Automation;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -52,6 +53,9 @@ Route::get('/studios', [PlatformController::class, 'studios'])->middleware('auth
 
 Route::post('/stripe/webhook', StripeWebhookController::class)->name('stripe.webhook');
 Route::post('/stripe/billing-webhook', StudioBillingWebhookController::class)->name('stripe.billing-webhook');
+// Each studio's Twilio account, signed with its Auth Token (decision 48).
+Route::post('/twilio/{studioId}/incoming', [TwilioWebhookController::class, 'incoming'])->whereNumber('studioId')->middleware('throttle:120,1')->name('twilio.incoming');
+Route::post('/twilio/{studioId}/status', [TwilioWebhookController::class, 'status'])->whereNumber('studioId')->middleware('throttle:600,1')->name('twilio.status');
 
 /*
 |--------------------------------------------------------------------------
@@ -237,6 +241,12 @@ Route::prefix('{studio}')
                 Route::get('payments/return', [Admin\PaymentsController::class, 'return'])->name('payments.return');
                 Route::post('payments/{payment}/void', [Admin\PaymentsController::class, 'void'])->name('payments.void');
 
+                Route::get('texts', [Admin\TextsController::class, 'show'])->name('texts');
+                Route::post('texts/connect', [Admin\TextsController::class, 'connect'])->middleware(['throttle:10,1', 'demo.off:texts'])->name('texts.connect');
+                Route::post('texts/number', [Admin\TextsController::class, 'number'])->middleware(['throttle:10,1', 'demo.off:texts'])->name('texts.number');
+                Route::put('texts/settings', [Admin\TextsController::class, 'settings'])->name('texts.settings');
+                Route::post('texts/test', [Admin\TextsController::class, 'test'])->middleware(['throttle:10,1', 'demo.off:texts'])->name('texts.test');
+                Route::delete('texts', [Admin\TextsController::class, 'destroy'])->name('texts.destroy');
                 Route::get('settings', [Admin\SettingsController::class, 'edit'])->name('settings');
                 Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
                 Route::post('settings/logo', [Admin\LogoController::class, 'store'])->middleware('throttle:20,1')->name('settings.logo');

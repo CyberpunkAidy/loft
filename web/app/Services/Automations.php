@@ -24,8 +24,9 @@ use Illuminate\Support\Facades\DB;
  *   high, reading only member_risk_scores; at most once per CHURN_COOLDOWN_DAYS, and not right after
  *   a win-back email.
  *
- * Every send goes through Messages as marketing, under a dedupe key, so it goes out once and only
- * to members who opted in. Each delivery is logged with its automation.
+ * Every send goes through Messages (email) and Texts (text, decision 48) as marketing, under a dedupe
+ * key, so it goes out once and only to members who opted in to that channel. Each delivery is logged
+ * with its automation.
  */
 class Automations
 {
@@ -41,7 +42,10 @@ class Automations
     /** …and not within this many days of a win-back email. */
     public const CHURN_AFTER_WIN_BACK_DAYS = 14;
 
-    public function __construct(private readonly Messages $messages) {}
+    public function __construct(
+        private readonly Messages $messages,
+        private readonly Texts $texts,
+    ) {}
 
     /** From the outbox (App\Services\AutomationTriggers): a first class queues the first_class email. */
     public function onEvent(DomainEvent $event): void
@@ -86,33 +90,56 @@ class Automations
         return $sent;
     }
 
-    /** Send $automation to $user (and about $attendee). Null if it was already sent. */
+    /**
+     * Send $automation to $user (and about $attendee), by email, text or both: each only if they
+     * opted in to it. Returns a delivery if either was logged, null if both were already sent.
+     */
     public function send(Automation $automation, User $user, ?Attendee $attendee, array $values, string $dedupeKey, ?int $domainEventId = null): ?MessageDelivery
     {
-        return $this->messages->email($user, $this->message($automation, $user, $attendee, $values), $dedupeKey, 'marketing', $domainEventId, $automation->id);
+        $email = $automation->sendsEmail()
+            ? $this->messages->email($user, $this->message($automation, $user, $attendee, $values), $dedupeKey, 'marketing', $domainEventId, $automation->id)
+            : null;
+        $text = $automation->sendsText()
+            ? $this->texts->send($user, $automation->studio, $automation->trigger, $this->text($automation, $user, $attendee, $values), $dedupeKey.':sms', 'marketing', $domainEventId, $automation->id)
+            : null;
+
+        return $email ?? $text;
     }
 
-    /** Send the current text to a staff member, with sample values, marked as a test. */
-    public function sendTest(Automation $automation, User $staff): ?MessageDelivery
+    /**
+     * Send the current version to a staff member, with sample values, marked as a test: the email,
+     * and the text to their own phone if it sends texts and they have a number.
+     *
+     * @return array{email: ?MessageDelivery, text: ?MessageDelivery}
+     */
+    public function sendTest(Automation $automation, User $staff): array
     {
-        $message = $this->message($automation, $staff, null, $this->sampleValues($automation));
-        $message->headline = 'Test: '.$message->headline;
-        $message->kind = 'automation_test';
+        $values = $this->sampleValues($automation);
+        $email = null;
+        if ($automation->sendsEmail()) {
+            $message = $this->message($automation, $staff, null, $values);
+            $message->headline = 'Test: '.$message->headline;
+            $message->kind = 'automation_test';
+            $email = $this->messages->email($staff, $message);
+        }
+        $text = $automation->sendsText() && $automation->studio->textsReady()
+            ? $this->texts->testTo($staff, $automation->studio, $this->text($automation, $staff, null, $values))
+            : null;
 
-        return $this->messages->email($staff, $message);
+        return ['email' => $email, 'text' => $text];
+    }
+
+    /** The text version, placeholders filled in, before the studio's name and "Reply STOP" are added. */
+    public function text(Automation $automation, User $user, ?Attendee $attendee, array $values = []): string
+    {
+        return trim(Automation::fillPlaceholders($automation->smsText(), $this->values($automation, $user, $attendee, $values)));
     }
 
     /** The email itself: placeholders filled in, paragraphs split on blank lines, a button to the schedule. */
     public function message(Automation $automation, User $user, ?Attendee $attendee, array $values = []): StudioMessage
     {
         $studio = $automation->studio;
-        $values += [
-            'first_name' => $user->first_name,
-            'attendee_first_name' => $attendee?->first_name ?? $user->first_name,
-            'who' => ! $attendee || $attendee->is_self ? 'you' : $attendee->first_name,
-            'studio' => $studio->name,
-            'days' => $automation->days(),
-        ];
+        $values = $this->values($automation, $user, $attendee, $values);
         $paragraphs = array_values(array_filter(array_map('trim', preg_split('/\R\s*\R/', Automation::fillPlaceholders($automation->body, $values)))));
 
         return new StudioMessage(
@@ -125,6 +152,19 @@ class Automations
             Automation::TRIGGERS[$automation->trigger]['action'],
             $automation->trigger,
         );
+    }
+
+    /** @return array<string, mixed> every placeholder's value for this member */
+    private function values(Automation $automation, User $user, ?Attendee $attendee, array $values): array
+    {
+        return $values + [
+            'first_name' => $user->first_name,
+            'attendee_first_name' => $attendee?->first_name ?? $user->first_name,
+            'who' => ! $attendee || $attendee->is_self ? 'you' : $attendee->first_name,
+            'studio' => $automation->studio->name,
+            'days' => $automation->days(),
+            'link' => route('studio.schedule', $automation->studio),
+        ];
     }
 
     /** @return array<string, mixed> stand-ins for previews and test sends */

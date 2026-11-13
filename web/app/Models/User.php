@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Consent;
+use App\Support\Phone;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -26,6 +28,16 @@ class User extends Authenticatable
 
     /** @var array<int, StudioUser|null> */
     private array $membershipCache = [];
+
+    protected static function booted(): void
+    {
+        // Consent to texts is for a number: a new number needs it given again.
+        static::updated(function (User $user) {
+            if ($user->wasChanged('phone_e164') && $user->getOriginal('phone_e164') !== null) {
+                app(Consent::class)->phoneChanged($user);
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -58,6 +70,12 @@ class User extends Authenticatable
     public static function termsAccepted(): array
     {
         return ['terms_accepted_at' => now(), 'terms_version' => (string) config('loft.legal.terms_version')];
+    }
+
+    /** Setting phone also sets phone_e164, for texting and for matching replies (decision 48), with or without model events. */
+    protected function phone(): Attribute
+    {
+        return Attribute::set(fn (?string $value) => ['phone' => $value, 'phone_e164' => Phone::e164($value)]);
     }
 
     protected function name(): Attribute

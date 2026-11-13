@@ -37,6 +37,12 @@ export default function Account() {
         <Row icon="card" title="Plans & purchases" subtitle="Memberships, class credits and receipts" onPress={() => router.push(`/studio/${slug}/purchases`)} />
         <Divider />
         <Row icon="receipt" title="Buy a plan" onPress={() => router.push(`/studio/${slug}/plans`)} />
+        {studio.texts ? (
+          <>
+            <Divider />
+            <Row icon="text" title="Text messages" subtitle="Class reminders and updates by text" onPress={() => router.push(`/studio/${slug}/texts`)} />
+          </>
+        ) : null}
       </Card>
 
       <Card style={{ paddingVertical: 4 }}>

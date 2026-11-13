@@ -18,7 +18,8 @@ Every studio email is logged in `message_deliveries` by `App\Services\Messages`:
 - **Once only:** each send has a dedupe key, such as `booked:booking:42`, `reminder:booking:42` or `payment_failed:entitlement:7:2026-11-08`. A second send with the same key is skipped, so a retried webhook or an extra housekeeping run can't send twice.
 - **Status:** `queued`, then `sent` (with Resend's message ID) when the mailer sends it, or `failed` if the queue gives up. Marketing email to someone without consent is logged as `suppressed` and not sent.
 - **What's kept:** the kind, category, status and times, not the address or the content. Deleting an account unlinks its rows.
-- **Where staff see it:** each member's page in the admin lists their recent emails and their marketing consent.
+- **Where staff see it:** each member's page in the admin lists their recent emails and texts, and their marketing and text consent.
+- **Texts** are logged here too, with `channel` `sms` ([Text Messages](Text-Messages#how-its-stored)).
 
 ## Marketing email and consent
 
@@ -27,7 +28,7 @@ Transactional email (bookings, receipts, reminders, payment problems, series sig
 - **Opting out:** the profile box, or the **Unsubscribe** link in every marketing email. The link is a signed URL (`/{studio}/unsubscribe/{member}`) that works without signing in.
 - **One-click unsubscribe:** marketing emails carry `List-Unsubscribe` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058), which Gmail and Yahoo expect from bulk senders. Mail apps POST to the same signed URL.
 - **Sending marketing email:** `Messages::email($user, $message, $dedupeKey, 'marketing')`. It checks consent, adds the footer line and the headers.
-- **SMS:** consent for marketing texts (TCPA) will be collected when SMS is added.
+- **Texts:** consent to texts is separate, per studio: booking texts and news and offers by text are two boxes ([Text Messages](Text-Messages)).
 
 ## Invitations and renewals for imported members
 
@@ -40,7 +41,7 @@ Members imported from another system ([Data Import](Data-Import)) hear nothing u
 
 ## Automations
 
-Admin → Automations: emails a studio sets up once that then go out by themselves (`App\Services\Automations`). Each is off until the studio turns it on.
+Admin → Automations: emails and texts a studio sets up once that then go out by themselves (`App\Services\Automations`). Each is off until the studio turns it on, and goes by email, text or both.
 
 | Automation | Sent | Once per |
 |---|---|---|
@@ -55,7 +56,7 @@ Admin → Automations: emails a studio sets up once that then go out by themselv
   - **After a first class:** from the outbox. `AutomationTriggers`, the first registered handler, sees `booking.attended` with `first_visit` and queues `SendAutomatedMessage` for later. When it runs, it checks the automation is still on and the member still there.
   - **Birthday and we miss you:** checked by the hourly housekeeping run.
   - Each send has a dedupe key (such as `automation:4:birthday:attendee:12:2026`), so it goes out once however often these run. The delivery log records which automation sent it.
-- **Text messages:** the same automations will send SMS once a provider is set up. In the US that needs A2P 10DLC brand and campaign registration (through Twilio or similar), which takes weeks, so start it early.
+- **By text:** with the studio's Twilio number connected, each automation can go by **Text message** or **Email and text**, with a short text version (up to 250 characters, the same placeholders plus `{link}`). Texts go to members who opted in to news and offers by text, end with "Reply STOP to opt out.", and wait for 9 AM to 8 PM studio time ([Text Messages](Text-Messages#automations-by-text)).
 
 ## Templates
 

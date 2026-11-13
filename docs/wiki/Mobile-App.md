@@ -19,6 +19,7 @@
   - **Check-in code:** a QR code for each person, changing every 30 seconds, for the studio's kiosk.
   - **Family:** everyone on the account and what they still need (questions or waivers); adding someone, or changing their details and answers.
   - **Plans & purchases:** memberships and credits, every purchase (refunds shown), cards and invoices on the website.
+  - **Text messages** (when the studio texts members): their mobile number, and boxes for booking texts and news and offers by text ([Text Messages](Text-Messages)). Signing up has the booking-texts box too.
   - **Buy a plan:** on Stripe's Checkout page in an in-app browser. Plans that include videos aren't sold in the app ([decision 33](Decisions)).
   - Contacting the studio, its website, switching or adding studios, signing out, and deleting the account (on the website).
 
@@ -63,7 +64,7 @@ Not done yet. It needs accounts only the owner can open:
 
 - **Push notifications:** the API keeps devices' push tokens, but nothing sends them yet, and the app doesn't register one.
 - **A drawn signature** on waivers (the website has one; the app takes a typed name).
-- **Editing or removing family members**, and the profile (name, phone, email preferences): on the website for now.
+- **Editing or removing family members**, and the rest of the profile (name, email preferences): on the website for now. The phone number can be changed under Text messages.
 - **Offline use:** the app needs a connection.
 
 ## Privacy policy and terms

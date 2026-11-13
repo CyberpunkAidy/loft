@@ -43,8 +43,9 @@ class SettingsController extends Controller
             'sales_tax_percent' => ['nullable', 'numeric', 'between:0,30', 'decimal:0,3'],
         ]);
 
-        $settings = [];
-        foreach (Studio::DEFAULT_SETTINGS as $key => $default) {
+        // Text settings live on Admin → Text messages, so this form keeps them as they are.
+        $settings = array_intersect_key($studio->settings ?? [], Studio::TEXT_SETTINGS);
+        foreach (array_diff_key(Studio::DEFAULT_SETTINGS, Studio::TEXT_SETTINGS) as $key => $default) {
             $settings[$key] = is_bool($default) ? $request->boolean($key) : (int) ($data[$key] ?? $default);
         }
         $settings['sales_tax_milli'] = (int) round(1000 * (float) ($data['sales_tax_percent'] ?? 0));

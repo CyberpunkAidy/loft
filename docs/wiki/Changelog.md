@@ -4,7 +4,20 @@ Every change to the web app, newest first. Each links to its pull request. All w
 
 ## In review
 
-- **Series sign-up** ([decision 47](Decisions), [Series](Series))
+- **Text messages** ([decision 48](Decisions), [Text Messages](Text-Messages))
+  - **Connect Twilio:** Admin → **Text messages**: paste the Account SID and Auth Token, choose the number. Studios pay Twilio for their texts; Loft adds nothing. The page lists what to fill in for A2P 10DLC registration.
+  - **Booking texts:** class reminders, a spot opening on the waitlist, and a class the studio cancelled, as well as the email, to members who opted in. Each can be turned off.
+  - **Automations by text:** each automation goes by email, text or both, with its own short text and a `{link}` placeholder. Marketing texts end with "Reply STOP to opt out." and go out only from 9 AM to 8 PM studio time.
+  - **Members opt in** when joining, in their profile, or in the app (Account → Text messages): booking texts and news and offers are separate boxes, with a confirmation text. A new number turns texts off until they opt in again.
+  - **Replies:** STOP and START change what they get; anything else is emailed to the studio's owners and admins, and replying answers by email.
+  - **Staff see** what each member chose, every text and whether it was delivered, and why texts failed.
+  - **API:** `texts` on the studio, `GET`/`PATCH /studios/{slug}/texts`, and `text_updates` when registering.
+  - **Privacy Policy and Terms:** a section on texts; studios that text use their own Twilio account and follow the texting rules.
+  - **Database:** Twilio keys and number on `studios` (the token encrypted), `users.phone_e164`, consent columns on `studio_users`, `automations.sms_body`.
+
+## 2026-11-12
+
+- **Series sign-up** ([decision 47](Decisions), [Series](Series), [#46](https://github.com/CyberpunkAidy/loft-studio/pull/46))
   - **Sell a run of classes as one:** Admin → **Series** (also from a program's page): pick a weekly program's dates and a price. Members sign up once, pay in full on Stripe Checkout, and are booked into every class.
   - **Joining late:** until a class the studio sets, paying for the classes left.
   - **Make-ups:** cancelling a series class in time gives a make-up credit for another class, good until two weeks after the series ends.
@@ -14,8 +27,6 @@ Every change to the web app, newest first. Each links to its pull request. All w
   - **Demo:** an 8-week Teen Lyra term and a 6-week Intro to Pole.
   - **Also:** signing in from a page now comes back to it.
   - **Database:** `series`, `series_enrollments`; `series_id` on classes, and `series_enrollment_id` on bookings, order lines and credits.
-
-## 2026-11-12
 
 - **Staff record photo answers** ([decision 46](Decisions), [Injury and Photo Questions](Injury-and-Photo-Questions#when-staff-record-a-photo-answer), [#45](https://github.com/CyberpunkAidy/loft-studio/pull/45))
   - **Record photo answer** under each person on Check-in, and on the member page: the answer, and a note on how they heard ("At the front desk").

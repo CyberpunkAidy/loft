@@ -12,6 +12,8 @@ export type Studio = {
   contact_email: string | null;
   website_url: string;
   online_payments: boolean;
+  /** Set when the studio texts members (decision 48): the number texts come from. Members opt in under Account. */
+  texts: { from: string } | null;
   policies: {
     late_cancel_hours: number;
     booking_opens_days_before: number;
@@ -277,3 +279,18 @@ export type Series = {
 
 export type SeriesSignup = { signed_up: boolean; checkout_id: string | null; checkout_url: string | null; return_url: string };
 
+
+/** The member's text choices at a studio (GET/PATCH studios/{slug}/texts). */
+export type TextChoices = {
+  available: boolean;
+  from: string | null;
+  phone: string | null;
+  phone_textable: boolean;
+  updates: boolean;
+  marketing: boolean;
+  /** When they replied STOP: only texting START turns texts back on. */
+  stopped_at: string | null;
+  labels: { updates: string; marketing: string };
+  disclosure: string;
+  privacy_url: string;
+};

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Studio;
 use App\Http\Controllers\Controller;
 use App\Models\Studio;
 use App\Services\Memberships;
+use App\Services\Texts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,11 @@ class JoinController extends Controller
             return back()->withErrors(['email' => 'Something went wrong. Please try again.']);
         }
         $data = $request->validate(Memberships::registrationRules(), ['email.unique' => 'An account with that email already exists. Sign in to join.']);
-        $user = $memberships->register($studio, $data, $request->boolean('marketing_email'));
+        $texts = $studio->textsReady() && $request->boolean('text_updates');
+        if ($texts) {
+            Texts::assertTextable($data['phone'] ?? null);
+        }
+        $user = $memberships->register($studio, $data, $request->boolean('marketing_email'), $texts);
 
         Auth::login($user, true);
         $request->session()->regenerate();

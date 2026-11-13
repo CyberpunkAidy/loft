@@ -35,9 +35,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(SecurityHeaders::class);
         // Where a guest's visit began, saved with the studio if they start one (decision 43).
         $middleware->web(append: RememberSignupSource::class);
-        // Stripe signs webhooks instead; unsubscribe links are signed URLs, and mail apps POST to them
-        // for one-click unsubscribe (RFC 8058) without a session.
-        $middleware->validateCsrfTokens(except: ['stripe/webhook', 'stripe/billing-webhook', '*/unsubscribe/*']);
+        // Stripe and Twilio sign webhooks instead; unsubscribe links are signed URLs, and mail apps
+        // POST to them for one-click unsubscribe (RFC 8058) without a session.
+        $middleware->validateCsrfTokens(except: ['stripe/webhook', 'stripe/billing-webhook', 'twilio/*', '*/unsubscribe/*']);
+        // Twilio signs the parameters exactly as it sent them (decision 48), so its webhooks get them untouched.
+        $middleware->trimStrings(except: [fn (Request $request) => $request->is('twilio/*')]);
+        $middleware->convertEmptyStringsToNull(except: [fn (Request $request) => $request->is('twilio/*')]);
         // Behind a load balancer that terminates HTTPS (Render, Fly, Cloudflare…), trust its
         // X-Forwarded-* headers so URLs are https and client IPs are real. Off unless set:
         // TRUSTED_PROXIES=* or a comma-separated list of proxy IPs/CIDRs.

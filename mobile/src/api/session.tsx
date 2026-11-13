@@ -17,6 +17,8 @@ export type Registration = {
   password: string;
   phone?: string;
   marketing_email?: boolean;
+  /** Booking texts from the studio (decision 48); needs a mobile number. */
+  text_updates?: boolean;
 };
 
 type SessionValue = {

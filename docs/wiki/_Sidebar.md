@@ -4,6 +4,7 @@
 - [Features](Features)
 - [Injury and Photo Questions](Injury-and-Photo-Questions)
 - [Series](Series)
+- [Text Messages](Text-Messages)
 - [Deployment](Deployment)
 - [Stripe](Stripe)
 - [Email](Email)

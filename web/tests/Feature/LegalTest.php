@@ -13,7 +13,7 @@ class LegalTest extends TestCase
     {
         $this->get('/terms')->assertOk()
             ->assertSee('Terms of Service')
-            ->assertSee('Last updated November 12, 2026')
+            ->assertSee('Last updated November 13, 2026')
             ->assertSee('A studio that starts with another studio’s or a Loft partner’s referral code gets 30 more days of free trial.', false)
             ->assertSee('the owners and admins of a studio can’t use its code for a studio of their own', false)
             ->assertSee('Goldseam Tech LLC')
@@ -70,9 +70,9 @@ class LegalTest extends TestCase
 
         $this->post('/signup', $form + ['terms' => '1'])->assertRedirect('/pilates/admin');
         $studio = Studio::sole();
-        $this->assertSame(['2026-11-12', now()->toDateTimeString()], [$studio->terms_version, $studio->terms_accepted_at->toDateTimeString()]);
+        $this->assertSame(['2026-11-13', now()->toDateTimeString()], [$studio->terms_version, $studio->terms_accepted_at->toDateTimeString()]);
         $owner = User::where('email', 'ola@example.com')->sole();
-        $this->assertSame(['2026-11-12', now()->toDateTimeString()], [$owner->terms_version, $owner->terms_accepted_at->toDateTimeString()]);
+        $this->assertSame(['2026-11-13', now()->toDateTimeString()], [$owner->terms_version, $owner->terms_accepted_at->toDateTimeString()]);
     }
 
     public function test_members_agree_when_they_create_an_account(): void
@@ -80,7 +80,7 @@ class LegalTest extends TestCase
         $studio = $this->studio();
         $this->get("/{$studio->slug}/join")->assertOk()->assertSee('By creating an account, you agree to Loft’s', false);
         $this->post("/{$studio->slug}/join", ['first_name' => 'Maya', 'last_name' => 'Lee', 'email' => 'maya@example.com', 'password' => 'secret-pass'])->assertRedirect();
-        $this->assertSame('2026-11-12', User::where('email', 'maya@example.com')->sole()->terms_version);
+        $this->assertSame('2026-11-13', User::where('email', 'maya@example.com')->sole()->terms_version);
 
         $this->postJson("/api/v1/studios/{$studio->slug}/register", ['first_name' => 'Sam', 'last_name' => 'Ortiz', 'email' => 'sam@example.com', 'password' => 'secret-pass', 'device_name' => 'Phone'])
             ->assertCreated();

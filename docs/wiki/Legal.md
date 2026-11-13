@@ -30,7 +30,7 @@ Links: the site, studio and admin footers; the studio signup form (a **required*
 
 1. Edit the text, then set the version in `config/loft.php` to the date it takes effect.
 2. **For changes that matter, email studios' owners at least 30 days before they apply** (the terms promise this, as they do for price changes, removing important features, and adding or replacing a subprocessor).
-3. **Subprocessors:** section 15.5 of the terms lists Render, Resend, Mux and Stripe. Adding one (for example Twilio for SMS, or Expo for push notifications) means updating that list and emailing owners 30 days ahead.
+3. **Subprocessors:** section 15.5 of the terms lists Render, Resend, Mux and Stripe. Adding one (for example Expo for push notifications) means updating that list and emailing owners 30 days ahead. Twilio isn't one: each studio texts through its own Twilio account, under its own agreement with Twilio, as with its Stripe account for members' payments ([decision 48](Decisions)). Section 15.5 says so.
 
 ## To set up
 

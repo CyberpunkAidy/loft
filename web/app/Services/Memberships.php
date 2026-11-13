@@ -15,6 +15,7 @@ class Memberships
     public function __construct(
         private readonly DomainEvents $events,
         private readonly Consent $consent,
+        private readonly Texts $texts,
     ) {}
 
     /** @return array<string, mixed> validation rules for a new account */
@@ -48,11 +49,12 @@ class Memberships
 
     /**
      * A new account, a member of the studio. If they take classes themselves ("is_student"), they're
-     * added as the first person on the account.
+     * added as the first person on the account. $textUpdates: they ticked the box for booking texts
+     * (check their number with Texts::assertTextable() first); they get the confirmation text.
      *
      * @param  array{first_name: string, last_name: string, email: string, phone?: ?string, password: string, is_student?: bool}  $data
      */
-    public function register(Studio $studio, array $data, bool $marketing): User
+    public function register(Studio $studio, array $data, bool $marketing, bool $textUpdates = false): User
     {
         $user = DB::transaction(function () use ($studio, $data, $marketing) {
             $user = User::create([
@@ -69,6 +71,10 @@ class Memberships
 
             return $user;
         });
+        if ($textUpdates && $studio->textsReady() && $user->phone_e164) {
+            $membership = $studio->studioUsers()->where('user_id', $user->id)->firstOrFail();
+            $this->texts->confirm($membership, $this->consent->setTexts($membership, true, false, 'join'));
+        }
         MemberJoined::dispatch($studio, $user);
 
         return $user;

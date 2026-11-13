@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Listeners\StudioEmails;
+use App\Listeners\StudioTexts;
 use App\Models\Booking;
 use App\Models\Entitlement;
 use App\Models\Studio;
@@ -18,6 +19,7 @@ use App\Services\ReaderPayments;
 use App\Services\SeriesSignups;
 use App\Services\Shop;
 use App\Services\StudioBilling;
+use App\Services\Texts;
 use App\Services\Videos;
 use Illuminate\Console\Attributes\AsCommand;
 use Illuminate\Console\Command;
@@ -90,9 +92,12 @@ class Housekeeping extends Command
             ->where('status', 'booked')
             ->whereHas('classSession', fn ($q) => $q->where('status', 'scheduled')->where('starts_at', '>=', $from)->where('starts_at', '<', $to))
             ->with(['classSession.program', 'attendee', 'user', 'studio'])
-            ->each(function (Booking $b) use (&$sent) {
+            ->each(function (Booking $b) use ($studio, &$sent) {
                 if (app(Messages::class)->email($b->user, StudioEmails::reminder($b), "reminder:booking:{$b->id}")) {
                     $sent++;
+                }
+                if ($studio->setting('text_reminders')) {
+                    app(Texts::class)->send($b->user, $studio, 'reminder', StudioTexts::reminder($b), "reminder:booking:{$b->id}:sms");
                 }
             });
 

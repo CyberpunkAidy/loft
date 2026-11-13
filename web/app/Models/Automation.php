@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * An email a studio sets up once that then goes out by itself (App\Services\Automations). One per
- * trigger per studio. Every automation counts as marketing: it goes only to members who opted in,
- * with an unsubscribe link.
+ * A message a studio sets up once that then goes out by itself (App\Services\Automations), by email,
+ * text or both (decision 48). One per trigger per studio. Every automation counts as marketing: it
+ * goes only to members who opted in to that channel, with an unsubscribe link or "Reply STOP".
  */
-#[Fillable(['studio_id', 'trigger', 'conditions', 'channel', 'delay_minutes', 'subject', 'body', 'active'])]
+#[Fillable(['studio_id', 'trigger', 'conditions', 'channel', 'delay_minutes', 'subject', 'body', 'sms_body', 'active'])]
 class Automation extends Model
 {
     protected $attributes = ['channel' => 'email', 'delay_minutes' => 0, 'active' => false];
@@ -29,6 +29,7 @@ class Automation extends Model
             'delay_minutes' => 180,
             'subject' => 'Thanks for coming to {class}!',
             'body' => "Hi {first_name},\n\nThanks for joining us for {class}. We hope {who} had a great time.\n\nWhenever you're ready for the next one, it's all on the schedule.",
+            'sms' => 'Thanks for coming to {class}! We hope {who} had a great time. Book the next one: {link}',
         ],
         'birthday' => [
             'label' => 'Birthday',
@@ -37,6 +38,7 @@ class Automation extends Model
             'action' => 'Book a class',
             'subject' => 'Happy birthday, {attendee_first_name}!',
             'body' => "Hi {first_name},\n\nEveryone at {studio} wishes {attendee_first_name} a very happy birthday!\n\nWe can't wait to see {who} in class.",
+            'sms' => 'Happy birthday, {attendee_first_name}! Everyone at {studio} hopes it’s a great one.',
         ],
         'win_back' => [
             'label' => 'We miss you',
@@ -46,6 +48,7 @@ class Automation extends Model
             'days' => 30,
             'subject' => 'We miss you at {studio}',
             'body' => "Hi {first_name},\n\nIt's been {days} days since we last saw you at {studio}, and your spot is waiting.\n\nTake a look at what's coming up this week.",
+            'sms' => 'Hi {first_name}, it’s been {days} days and we miss you! See what’s on this week: {link}',
         ],
         'churn_risk' => [
             'label' => 'At risk of leaving',
@@ -54,6 +57,7 @@ class Automation extends Model
             'action' => 'See what’s on',
             'subject' => 'How are classes going, {first_name}?',
             'body' => "Hi {first_name},\n\nWe haven't seen as much of you at {studio} lately, and we wanted to check in. Is there a class time that would suit you better, or something you'd like to try?\n\nJust reply to this email, or take a look at what's coming up.",
+            'sms' => 'Hi {first_name}, we haven’t seen as much of you lately. Is there a class time that would suit you better? See what’s on: {link}',
         ],
     ];
 
@@ -64,7 +68,14 @@ class Automation extends Model
         'studio' => 'the studio’s name',
         'class' => 'the class they came to',
         'days' => 'days since their last class',
+        'link' => 'a link to your schedule (texts only)',
     ];
+
+    /** How it goes out. Texts need Twilio connected (Admin → Text messages). */
+    public const CHANNELS = ['email' => 'Email', 'sms' => 'Text message', 'both' => 'Email and text'];
+
+    /** Longest text a studio can write: with the studio's name and "Reply STOP to opt out." it stays around two text segments. */
+    public const SMS_MAX = 250;
 
     protected function casts(): array
     {
@@ -94,6 +105,7 @@ class Automation extends Model
         return [
             'subject' => $t['subject'],
             'body' => $t['body'],
+            'sms_body' => $t['sms'],
             'delay_minutes' => $t['delay_minutes'] ?? 0,
             'conditions' => isset($t['days']) ? ['days' => $t['days']] : null,
             'active' => false,
@@ -109,6 +121,33 @@ class Automation extends Model
     public function placeholders(): array
     {
         return self::TRIGGERS[$this->trigger]['placeholders'];
+    }
+
+    public function sendsEmail(): bool
+    {
+        return $this->channel !== 'sms';
+    }
+
+    public function sendsText(): bool
+    {
+        return in_array($this->channel, ['sms', 'both'], true);
+    }
+
+    public function channelLabel(): string
+    {
+        return self::CHANNELS[$this->channel] ?? self::CHANNELS['email'];
+    }
+
+    /** The text version, or the starting text if the studio hasn't written one. */
+    public function smsText(): string
+    {
+        return $this->sms_body ?? self::TRIGGERS[$this->trigger]['sms'];
+    }
+
+    /** @return list<string> placeholders the text version can use: the email's, plus {link} */
+    public function smsPlaceholders(): array
+    {
+        return [...$this->placeholders(), 'link'];
     }
 
     public function days(): int
@@ -137,11 +176,11 @@ class Automation extends Model
         return preg_replace_callback('/\{([a-z_]+)\}/', fn ($m) => array_key_exists($m[1], $values) ? (string) $values[$m[1]] : $m[0], $text);
     }
 
-    /** @return list<string> {placeholders} in $text this trigger doesn't offer */
-    public function unknownPlaceholders(string $text): array
+    /** @return list<string> {placeholders} in $text this trigger doesn't offer ($sms: the text version, which also has {link}) */
+    public function unknownPlaceholders(string $text, bool $sms = false): array
     {
         preg_match_all('/\{([a-z_]+)\}/', $text, $m);
 
-        return array_values(array_diff(array_unique($m[1]), $this->placeholders()));
+        return array_values(array_diff(array_unique($m[1]), $sms ? $this->smsPlaceholders() : $this->placeholders()));
     }
 }

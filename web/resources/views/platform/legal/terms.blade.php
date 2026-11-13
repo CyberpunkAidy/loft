@@ -104,6 +104,7 @@
 
         <h3>5.5 Marketing</h3>
         <p>Send marketing emails only to members who agreed to receive them, using Loft’s consent settings, and follow the laws that apply to you (such as CAN-SPAM in the US, CASL in Canada, and the GDPR and its UK equivalent). Loft adds an unsubscribe link to marketing emails and stops sending them to anyone who unsubscribes.</p>
+        <p>If you text members, you do it through your own Twilio account and number, under your agreement with Twilio, and you pay for your texts. Register your number with the carriers before you text (in the US, A2P 10DLC registration), and follow the laws and carrier rules on texts (such as the TCPA). Loft texts only members who agreed to that kind of text at your studio, adds “Reply STOP to opt out.” to marketing texts, and stops texting anyone who replies STOP.</p>
 
         <h3>5.6 Your content</h3>
         <p>Anything you put into Loft (class descriptions, waivers, logos, product photos, videos, emails) must be yours or licensed to you, and lawful. You give us a worldwide, non-exclusive, royalty-free licence to host, copy, process, display and deliver it, only as needed to provide the Service to you and your members. You keep ownership of it. Meeting links you add for live classes lead to other companies’ services, under their terms.</p>
@@ -130,7 +131,7 @@
 
     <section id="third-parties">
         <h2>8. Other companies’ services</h2>
-        <p>The Service works with other companies’ services, including Stripe (payments), Mux (video), video-meeting providers chosen by studios, and Apple’s and Google’s app stores. Their terms may also apply when you use them, and we aren’t responsible for their services.</p>
+        <p>The Service works with other companies’ services, including Stripe (payments), Mux (video), Twilio (texts, through a studio’s own account), video-meeting providers chosen by studios, and Apple’s and Google’s app stores. Their terms may also apply when you use them, and we aren’t responsible for their services.</p>
     </section>
 
     <section id="availability">
@@ -183,7 +184,7 @@
         <p>We process Studio Data only to provide the Service as these terms and the studio’s use of Loft’s features describe, which are the studio’s documented instructions, or where the law requires us to (and then we’ll tell the studio first, unless the law forbids it). We don’t sell Studio Data, use it for advertising, or keep, use or disclose it outside our relationship with the studio. We combine it with other information only where the Service needs to, for example so that one person’s login works at every studio they belong to.</p>
 
         <h3>15.3 What’s processed</h3>
-        <p>Subject matter and purpose: providing the Service. People: the studio’s members, their family members (including children), its staff, and people it imports from another system. Information: names and contact details; birthdays; medical notes and emergency contacts; answers to the studio’s injury and photo questions, and when, by whom and how each photo answer was given; bookings, attendance and waitlists; plans, purchases and payment records (not card numbers, which Stripe holds); waiver signatures, including the signer’s IP address and browser; check-in codes, tags and scans; marketing consent and the emails sent; videos watched; and activity history and the “at risk of leaving” scores Loft works out from it for the studio. Duration: while the studio uses Loft, then as in 15.8.</p>
+        <p>Subject matter and purpose: providing the Service. People: the studio’s members, their family members (including children), its staff, and people it imports from another system. Information: names and contact details; birthdays; medical notes and emergency contacts; answers to the studio’s injury and photo questions, and when, by whom and how each photo answer was given; bookings, attendance and waitlists; plans, purchases and payment records (not card numbers, which Stripe holds); waiver signatures, including the signer’s IP address and browser; check-in codes, tags and scans; marketing consent, consent to texts, and the emails and texts sent (not what they said); videos watched; and activity history and the “at risk of leaving” scores Loft works out from it for the studio. Duration: while the studio uses Loft, then as in 15.8.</p>
 
         <h3>15.4 Confidentiality and security</h3>
         <p>Everyone who can access Studio Data on our side is bound to keep it confidential. We protect it with appropriate technical and organisational measures, including: encrypted connections (HTTPS); passwords stored only as one-way hashes; access to each studio’s data limited to the staff roles that studio grants, and on our side to people who need it; signed, expiring links for invitations and unsubscribes; card details never stored by Loft (Stripe handles them); and hosting with providers that maintain physical, network and backup security.</p>
@@ -201,6 +202,7 @@
                 </tbody>
             </table>
         </div>
+        <p>A studio’s own accounts with other companies, such as its Stripe account for members’ payments and its Twilio account for texts, aren’t our subprocessors: the studio chooses them, and they process Studio Data under the studio’s agreement with them.</p>
         <p>We hold our subprocessors to data protection terms that protect Studio Data at least as well as this section, and we remain responsible for them. We’ll update this list, and email studios’ owners, at least 30 days before adding or replacing a subprocessor. A studio can object by emailing us in that time; if we can’t resolve it, the studio can end its subscription and we’ll refund any fees paid for the time after it ends.</p>
 
         <h3>15.6 Helping the studio</h3>

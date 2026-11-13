@@ -218,6 +218,16 @@ form.inline { display: inline; }
 .table select.input { min-height: 2.2rem; padding-top: .3rem; padding-bottom: .3rem; }
 .email-preview { border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; background: var(--surface-2); }
 .email-preview p { margin: 0 0 .6rem; }
+/* Admin → Text messages: setup steps, and the registration answers to copy. */
+.steps-list { margin: 0 0 1.1rem; padding-left: 1.3rem; display: grid; gap: .45rem; }
+.registration > summary { cursor: pointer; }
+.copy-list { margin: .75rem 0 0; display: grid; gap: .35rem; }
+.copy-list dt { font-weight: 650; margin-top: .55rem; }
+.copy-list dd { margin: 0; font-size: .92rem; }
+.copy-list pre { margin: .2rem 0 .45rem; padding: .6rem .75rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .9rem; }
+/* A text message as it lands on a phone: a grey bubble on the left. */
+.text-preview { display: grid; gap: .35rem; margin-bottom: 1rem; }
+.text-bubble { justify-self: start; max-width: 22rem; padding: .6rem .85rem; border-radius: 1.1rem 1.1rem 1.1rem .3rem; background: var(--surface-2); border: 1px solid var(--line); font-size: .92rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 .apparatus-table th, .apparatus-table td { padding: .5rem .6rem; }
 .apparatus-table td:first-child { min-width: 11rem; }
 .apparatus-table td:not(:first-child) input { max-width: 7rem; }

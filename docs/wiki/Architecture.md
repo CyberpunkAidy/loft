@@ -117,6 +117,7 @@ All datetimes are stored in UTC and shown in the studio's time zone. Money is st
 - **`Shop`:** the online shop: holds stock in a pending order, opens a 30-minute Stripe Checkout on the studio's account, marks the order paid (webhook or return page) and emails a pickup receipt, or releases it and restocks (`checkout.session.expired` releases abandoned ones). Housekeeping settles checkouts whose webhook never came.
 - **`DomainEvents`:** the outbox. Records events inside the caller's transaction, and relays them to handlers.
 - **`Messages`:** sends and logs every studio email, once per dedupe key; marketing email only with consent.
+- **`Texts`:** sends and logs every text through the studio's own Twilio account (`SendText` job), once per dedupe key, only to members who opted in to that kind; Twilio reports delivery, STOP and replies to `TwilioWebhookController` ([Text Messages](Text-Messages)).
 - **`Imports\Imports`, `PeopleImporter`, `PlansImporter`:** data import from another system: preview, run (on the queue), undo. **`MemberInvitations`:** invitations to imported members, and carrying their memberships on in Loft.
 - **`Demo\DemoStudios`** and **`Demo\SampleStudio`:** "Try the demo": spare demo studios built ahead, starting and switching, and the hourly cleanup; and the sample studio both the demos and the local seed are built from ([Demo Studio](Demo-Studio)).
 - **`Referrals`:** studios' referral codes, checking a code at signup, and the referrer's reward when a referred studio first pays (a Stripe customer-balance credit, or more trial), with its thank-you email ([Referrals and Signups](Referrals)). `SignupSource` holds the "How did you hear about Loft?" answers and records where a guest's visit began.
@@ -166,6 +167,8 @@ The Laravel events above are in-process: they trigger emails, and nothing rememb
 | `order.paid`, `order.voided` | A sale is recorded in the ledger (number, channel, method, total, items), or voided |
 | `consent.email_marketing_granted`, `consent.email_marketing_withdrawn` | Marketing consent changes (`source`: join, profile or unsubscribe_link) |
 | `consent.photos_answered` | A person's photo answer (`answer`: public, studio or none; `previous`; `staff_id` and `note` when staff recorded it) |
+| `consent.sms_updates_granted`, `consent.sms_updates_withdrawn`, `consent.sms_marketing_granted`, `consent.sms_marketing_withdrawn` | Text consent changes (`source`: join, profile, app, reply_start, or phone_changed when a new number turned texts off) |
+| `consent.sms_stopped`, `consent.sms_started` | They replied STOP (`source`: reply_stop, or carrier when Twilio refused a text) or START |
 
 - **What's in an event:** the studio, the account and attendee it's about, the type, when, and a payload of IDs and facts: never names or email addresses. Deleting an account unlinks its events, which stay as anonymous history.
 - **Relaying:** after the transaction commits, the `RelayDomainEvents` job hands new events to each handler in `config('loft.event_handlers')` (classes implementing `App\Contracts\DomainEventHandler`). Each event is relayed in its own transaction, with its row locked (`FOR UPDATE SKIP LOCKED` on Postgres). A handler that throws is retried by later relays, up to 5 times, and the error is kept on the event (`relay_attempts`, `relay_error`). Housekeeping sweeps up anything left.

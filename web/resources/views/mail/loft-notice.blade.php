@@ -22,6 +22,6 @@
 @endsection
 
 @section('footer')
-    <p style="margin:0 0 6px;">You’re getting this because you own {{ $studio->name }} on {{ config('app.name') }}.</p>
+    <p style="margin:0 0 6px;">{{ $footerLine ?? 'You’re getting this because you own '.$studio->name.' on '.config('app.name').'.' }}</p>
     <p style="margin:0;">{{ config('app.name') }} · Scheduling, memberships, waivers and billing for studios.</p>
 @endsection

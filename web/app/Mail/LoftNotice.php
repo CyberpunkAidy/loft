@@ -13,6 +13,9 @@ use Illuminate\Mail\Mailables\Envelope;
  */
 class LoftNotice extends StudioMessage
 {
+    /** Why they're getting it, at the bottom; null for owners ("you own …"). */
+    public ?string $footerLine = null;
+
     public function envelope(): Envelope
     {
         return new Envelope(

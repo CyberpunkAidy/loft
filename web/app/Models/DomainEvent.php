@@ -44,6 +44,12 @@ class DomainEvent extends Model
         'consent.email_marketing_granted' => 'Opted in to marketing emails',
         'consent.email_marketing_withdrawn' => 'Opted out of marketing emails',
         'consent.photos_answered' => 'Answered the photo question',
+        'consent.sms_updates_granted' => 'Opted in to texts about bookings',
+        'consent.sms_updates_withdrawn' => 'Opted out of texts about bookings',
+        'consent.sms_marketing_granted' => 'Opted in to news and offers by text',
+        'consent.sms_marketing_withdrawn' => 'Opted out of news and offers by text',
+        'consent.sms_stopped' => 'Replied STOP to texts',
+        'consent.sms_started' => 'Replied START to texts',
         'series.enrolled' => 'Signed up for a series',
         'series.withdrawn' => 'Taken out of a series',
     ];
@@ -112,6 +118,8 @@ class DomainEvent extends Model
             'consent.photos_answered' => 'Photos and video: '.lcfirst(Attendee::PHOTO_CONSENT[$p['answer'] ?? ''] ?? 'answered')
                 .(isset($p['previous']) ? ' (was: '.lcfirst(Attendee::PHOTO_CONSENT[$p['previous']] ?? $p['previous']).')' : '')
                 .(isset($p['note']) ? ', recorded by staff: “'.$p['note'].'”' : ''),
+            'consent.sms_updates_withdrawn', 'consent.sms_marketing_withdrawn' => $label.(($p['source'] ?? null) === 'phone_changed' ? ' (changed their phone number)' : ''),
+            'consent.sms_stopped' => $label.(($p['source'] ?? null) === 'carrier' ? ' (Twilio reported it when a text was sent)' : ''),
             'series.enrolled' => 'Signed up for '.($p['series_name'] ?? 'a series').(isset($p['classes']) ? ' ('.$p['classes'].' '.($p['classes'] === 1 ? 'class' : 'classes').')' : ''),
             'series.withdrawn' => 'Taken out of '.($p['series_name'] ?? 'a series').(($p['reason'] ?? null) === 'refunded' ? ' (refunded)' : ''),
             'video.watched' => 'Watched '.(isset($p['title']) ? '“'.$p['title'].'”' : 'a video'),

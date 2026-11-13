@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One message to one member: what kind, whether it went out, and the key that stops it going out
- * twice. Holds no address or content; the member's account is unlinked if it's deleted.
+ * One message to one member, by email or text (channel email or sms): what kind, whether it went
+ * out, and the key that stops it going out twice. Holds no address, number or content; the member's
+ * account is unlinked if it's deleted.
  */
 #[Fillable([
     'studio_id', 'user_id', 'domain_event_id', 'automation_id', 'channel', 'category', 'kind', 'dedupe_key', 'status',
@@ -35,9 +36,13 @@ class MessageDelivery extends Model
         'automation_test' => 'Automation test',
         'receipt' => 'Receipt (point of sale)',
         'shop_order' => 'Shop order, ready to pick up',
+        'texts_confirmed' => 'Signed up for texts',
+        'text_test' => 'Test text',
+        'text_reply' => 'A member’s text, forwarded',
     ];
 
-    public const STATUSES = ['queued' => 'Queued', 'sent' => 'Sent', 'failed' => 'Failed', 'suppressed' => 'Not sent (no consent)'];
+    /** Texts go on from sent (Twilio has it) to delivered (the phone has it), when Twilio reports back. */
+    public const STATUSES = ['queued' => 'Queued', 'sent' => 'Sent', 'delivered' => 'Delivered', 'failed' => 'Failed', 'suppressed' => 'Not sent (no consent)'];
 
     protected function casts(): array
     {
@@ -62,6 +67,11 @@ class MessageDelivery extends Model
     public function kindLabel(): string
     {
         return self::KINDS[$this->kind] ?? ucfirst(str_replace('_', ' ', $this->kind));
+    }
+
+    public function isText(): bool
+    {
+        return $this->channel === 'sms';
     }
 
     public function statusLabel(): string

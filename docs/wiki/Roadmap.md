@@ -1,6 +1,6 @@
 # Roadmap
 
-A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). All ten steps are built (step 4 by email; SMS waits on carrier registration; step 8 with QR codes and tags; step 9 with rules; step 10 with meeting links and Mux); what's left in each is listed under [Order](#order), with the schema sketches the steps started from.
+A plan for the next features, drafted on 2026-11-08 from a review of the current code, and confirmed the same day: Loft stays on Laravel, and rooms and room-based apparatus from the [proposed Prisma schema](Decisions#a-proposed-prisma-schema) are folded in (option A). All ten steps are built (step 4 by email and text; step 8 with QR codes and tags; step 9 with rules; step 10 with meeting links and Mux); what's left in each is listed under [Order](#order), with the schema sketches the steps started from.
 
 ## Starting point
 
@@ -159,7 +159,7 @@ POST /api/v1/devices/check-ins           Authorization: Bearer <device token>   
 
 ## Schema sketches
 
-These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns. The rooms, waiver and event sketches are built; their migrations are the source of truth, and the sketches stay for reference. As built, the events schema differs a little: `message_deliveries` gains `automation_id` with automations (step 4), and SMS consent columns come with SMS.
+These follow the existing conventions: `studio_id` on every studio-owned row, UTC `dateTime` columns. The rooms, waiver and event sketches are built; their migrations are the source of truth, and the sketches stay for reference. As built, the events schema differs a little: `message_deliveries` gains `automation_id` with automations (step 4), and SMS consent came with texts as `sms_updates_at`, `sms_marketing_at` and `sms_stopped_at` ([Text Messages](Text-Messages#how-its-stored)).
 
 **Rooms and apparatus:**
 ```php
@@ -300,7 +300,7 @@ Schema::table('studio_users', function (Blueprint $t) {             // consent, 
 1. [x] **Waiver hardening** (built 2026-11-08, [#15](https://github.com/CyberpunkAidy/loft-studio/pull/15)): program-level waivers, enforcement everywhere, overrides, text hash, keeping signatures, and downloading signed waivers.
 2. [x] **Rooms, apparatus capacity and waitlist limits** (built 2026-11-08, [#16](https://github.com/CyberpunkAidy/loft-studio/pull/16)): settles the booking model before anything depends on it.
 3. [x] **Event backbone** (built 2026-11-08, [#17](https://github.com/CyberpunkAidy/loft-studio/pull/17)): outbox, `booking.attended`, `message_deliveries`, consent, and the nightly snapshots.
-4. [x] **Automations, email first** (built 2026-11-08, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18)): first class, birthday, win-back. Still to do: SMS, once carrier registration (A2P 10DLC) is through; it's a business task, so start it early. Each studio will connect its own Twilio account ([decision 24](Decisions)).
+4. [x] **Automations, email first** (built 2026-11-08, [#18](https://github.com/CyberpunkAidy/loft-studio/pull/18)): first class, birthday, win-back. Texts followed on 2026-11-13: each studio connects its own Twilio account ([decisions 24 and 48](Decisions), [Text Messages](Text-Messages)), and automations go by email, text or both. Each studio still registers its own number with the carriers (A2P 10DLC), which takes days to weeks.
 5. [x] **Orders ledger** (built 2026-11-09, [#19](https://github.com/CyberpunkAidy/loft-studio/pull/19)): plan checkouts, membership invoices and recorded payments all go through `orders`.
 6. [x] **Merchandise and point of sale** (built 2026-11-09):
    - [x] Products with variants and stock, sales tax on products, and the front-desk point of sale paid in person ([decision 26](Decisions), [#20](https://github.com/CyberpunkAidy/loft-studio/pull/20)).

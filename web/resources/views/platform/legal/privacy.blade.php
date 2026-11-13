@@ -40,7 +40,7 @@
         <h2>2. What we collect</h2>
         <h3>You give us</h3>
         <ul>
-            <li><strong>Your account:</strong> name, email address, phone number (optional) and password (stored only as a one-way hash).</li>
+            <li><strong>Your account:</strong> name, email address, phone number (optional) and password (stored only as a one-way hash). If you agree to texts from a studio, your mobile number is used for them (<a href="#texts">below</a>).</li>
             <li><strong>Your family:</strong> the names, birthdays, medical notes and emergency contacts of people you book for, including your children, and your answers to the studio’s questions about each of them: any injuries or health conditions, and whether the studio may take photos or video of them (with when you answered; if you tell the studio’s staff instead, they can record your photo answer for you, with how they heard, and we email you so you can check it). Medical notes can include health information; add only what the studio needs to keep everyone safe in class. You can change these answers any time in your account.</li>
             <li><strong>Waivers:</strong> when you sign one, your typed name, your relationship to the person it covers, the drawing of your signature, the exact version of the text, and the time.</li>
             <li><strong>Studios:</strong> if you run a studio, its name, address, settings and branding; the classes, plans, products and videos you add; your staff’s names and emails; and, when you start it, how you heard about Loft and any referral code you used.</li>
@@ -51,7 +51,7 @@
             <li><strong>Bookings and attendance:</strong> classes booked, waitlists, cancellations, check-ins and no-shows.</li>
             <li><strong>Plans and purchases:</strong> memberships, class packs and shop orders, with amounts, dates and refunds. Card numbers go straight to Stripe and never reach Loft; we keep only Stripe’s references to them.</li>
             <li><strong>Check-in:</strong> rotating check-in codes and any cards or fobs the studio gives you, and a log of each scan with its result.</li>
-            <li><strong>Email:</strong> a log of the emails sent to you (which kind, when, and whether it was delivered), and your choice about the studio’s marketing emails.</li>
+            <li><strong>Email and texts:</strong> a log of the emails and texts sent to you (which kind, when, and whether it was delivered, not what they said), your choices about each studio’s marketing emails and texts, and when you replied STOP or START to a studio’s texts.</li>
             <li><strong>Videos:</strong> which of the studio’s videos you watched, and on which day.</li>
             <li><strong>Activity and risk scores:</strong> a history of the things above, nightly summaries of your activity at each studio, and, for studios, an “at risk of leaving” score worked out from them with simple rules (for example, not having booked in a while). Studios use these scores to check in with members; they don’t lead to any automatic decision about you.</li>
             <li><strong>Technical information:</strong> your IP address and browser when you sign in, sign a waiver or use the Service, the name of the device you sign in to the app on, and the records our host keeps of requests to the Service.</li>
@@ -71,6 +71,7 @@
             <li>to show the studios you belong to what they need to run your classes, including your family’s medical notes, emergency contacts and photo answers;</li>
             <li>to send emails about your bookings, payments and account, and, for studios, about their Loft subscription;</li>
             <li>to send a studio’s news and offers on its behalf, only if you agreed to receive them;</li>
+            <li>to send texts from a studio about your bookings, and its news and offers by text, only if you agreed to each at that studio, and to pass your replies to the studio;</li>
             <li>to keep the Service secure, prevent abuse and fix problems;</li>
             <li>to bill studios for Loft, and to reward studios that bring other studios to Loft;</li>
             <li>to see which ways of finding Loft work for studios;</li>
@@ -86,7 +87,7 @@
         <ul>
             <li><strong>contract:</strong> to provide the Service you’ve signed up for;</li>
             <li><strong>legitimate interests:</strong> to keep the Service secure, improve it, and support studios (for example, with activity history and risk scores), balanced against your rights;</li>
-            <li><strong>consent:</strong> for marketing emails, and for the health information you choose to give in medical notes or in answer to a studio’s injury question; you can withdraw it at any time; and</li>
+            <li><strong>consent:</strong> for marketing emails, for texts, and for the health information you choose to give in medical notes or in answer to a studio’s injury question; you can withdraw it at any time; and</li>
             <li><strong>legal obligation:</strong> where the law requires us to keep or share information.</li>
         </ul>
         <p>For information a studio controls, the studio decides its own legal basis.</p>
@@ -98,6 +99,7 @@
             <li><strong>Studios you belong to:</strong> their staff see your account details, family, bookings, plans, waivers and check-ins at that studio, and nothing from other studios.</li>
             <li><strong>Service providers</strong> who process information for us under contract: Render (hosting, database and file storage), Resend (sending email), Mux (hosting and streaming videos; it receives your IP address when you watch, with no cookies and no member details), and Stripe (payments).</li>
             <li><strong>Stripe:</strong> payments you make to a studio are processed by Stripe on the studio’s own Stripe account, under Stripe’s privacy policy and the studio’s agreement with Stripe.</li>
+            <li><strong>Twilio:</strong> a studio that texts its members does it through its own Twilio account, so Twilio gets your mobile number and each text, under Twilio’s privacy policy and the studio’s agreement with Twilio.</li>
             <li><strong>The law:</strong> when we must, to comply with law or legal process, or to protect someone’s safety or rights.</li>
             <li><strong>A new owner:</strong> if our business is merged or sold, with notice to you.</li>
         </ul>
@@ -127,8 +129,11 @@
             <li><strong>See and correct</strong> your details and your family’s in your account.</li>
             <li><strong>Delete</strong> your account yourself, at any time.</li>
             <li><strong>Stop marketing emails</strong> with the unsubscribe link in any of them, or in your profile.</li>
+            <li><strong>Stop texts</strong> by replying STOP to any of them, or in your profile (<a href="#texts">below</a>).</li>
             <li><strong>Get a copy</strong> of your information, or ask us to restrict or stop using it, by emailing <a href="mailto:{{ $email }}">{{ $email }}</a>.</li>
         </ul>
+        <h3 id="texts">Text messages</h3>
+        <p>A studio that texts its members does it from its own number, and only to members who tick a box for it in their profile, when they join, or in the app: one box for texts about bookings (class reminders, a spot opening on the waitlist, a class cancelled), and a separate one for news and offers. Neither is needed to book or buy anything. Message frequency varies with your bookings, and message and data rates may apply. Reply <strong>STOP</strong> to any text to stop all texts from that studio, <strong>START</strong> to get texts about bookings again, or <strong>HELP</strong> for help. Changing your number turns texts off until you agree again. Replies you send are emailed to the studio’s owners and admins. We don’t sell or share mobile numbers, or your agreement to texts, with anyone for their own marketing.</p>
         <p>Depending on where you live (for example in the EEA, the UK, Canada, Australia or some US states), you may have rights to access, correct, delete, port or restrict your information, to object to how it’s used, and to withdraw consent. To use them, email us; we’ll confirm who you are and reply within the time the law allows, and we won’t treat you differently for asking. Where a studio controls the information, we’ll pass your request to it or help it reply. You can also complain to your data protection authority.</p>
     </section>
 

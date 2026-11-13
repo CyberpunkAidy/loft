@@ -11,6 +11,7 @@ use App\Services\Bookings;
 use App\Services\Consent;
 use App\Services\OnlineClasses;
 use App\Services\Stripe\StripeException;
+use App\Services\Texts;
 use App\Services\Waivers;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -100,19 +101,22 @@ class AccountController extends Controller
     public function profile(Request $request, AccountDeletion $deletion): View
     {
         $user = $request->user();
+        $membership = StudioUser::where('studio_id', $request->route('studio')->id)->where('user_id', $user->id)->first();
 
         return view('studio.account.profile', [
             'user' => $user,
-            'marketingEmail' => (bool) StudioUser::where('studio_id', $request->route('studio')->id)->where('user_id', $user->id)->first()?->allowsMarketingEmail(),
+            'membership' => $membership,
+            'marketingEmail' => (bool) $membership?->allowsMarketingEmail(),
             // Studios they're the only owner of, each with the staff who could take it over.
             'ownedStudios' => $deletion->soleOwnerOf($user)
                 ->map(fn (Studio $owned) => ['studio' => $owned, 'successors' => $deletion->successorsFor($owned, $user)]),
         ]);
     }
 
-    public function updateProfile(Request $request, Studio $studio, Consent $consent): RedirectResponse
+    public function updateProfile(Request $request, Studio $studio, Consent $consent, Texts $texts): RedirectResponse
     {
         $user = $request->user();
+        $wantsTexts = $studio->textsReady() && ($request->boolean('text_updates') || $request->boolean('text_marketing'));
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -121,6 +125,9 @@ class AccountController extends Controller
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
             'password' => ['nullable', 'confirmed', Password::min(8)],
         ]);
+        if ($wantsTexts) {
+            Texts::assertTextable($data['phone'] ?? null);
+        }
         $user->fill([
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
@@ -136,6 +143,11 @@ class AccountController extends Controller
         }
         if ($membership = StudioUser::where('studio_id', $studio->id)->where('user_id', $user->id)->first()) {
             $consent->setMarketingEmail($membership, $request->boolean('marketing_email'), 'profile');
+            if ($studio->textsReady()) {
+                // Fresh: a new phone number has just turned texts off (Consent::phoneChanged).
+                $membership->refresh();
+                $texts->confirm($membership, $consent->setTexts($membership, $request->boolean('text_updates'), $request->boolean('text_marketing'), 'profile'));
+            }
         }
 
         return back()->with('success', 'Profile saved.');

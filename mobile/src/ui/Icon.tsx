@@ -26,6 +26,7 @@ export const icons = {
   check: { ios: 'checkmark', android: 'check', web: 'check' },
   plus: { ios: 'plus', android: 'add', web: 'add' },
   mail: { ios: 'envelope', android: 'mail', web: 'mail' },
+  text: { ios: 'message', android: 'sms', web: 'sms' },
   trash: { ios: 'trash', android: 'delete', web: 'delete' },
 } satisfies Record<string, Names>;
 

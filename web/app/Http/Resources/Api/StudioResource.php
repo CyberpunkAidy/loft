@@ -22,6 +22,7 @@ class StudioResource extends ApiResource
             'contact_email' => $this->contact_email,
             'website_url' => route('studio.schedule', ['studio' => $this->slug]),
             'online_payments' => $this->stripeReady(),
+            'texts' => $this->textsReady() ? ['from' => $this->textsFrom()] : null, // members can opt in to texts (GET /texts)
             'policies' => [
                 'late_cancel_hours' => (int) $this->setting('late_cancel_hours'),
                 'booking_opens_days_before' => (int) $this->setting('booking_opens_days_before'),

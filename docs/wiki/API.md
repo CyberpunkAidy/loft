@@ -31,6 +31,8 @@ Use `code` to decide what to do. `message` is written for the member and can cha
 | 404 | `not_found` | No such record, or not at this studio |
 | 422 | `validation_failed` | `fields`: `{field: [messages]}` |
 | 422 | `invalid_credentials` | Wrong email or password |
+| 422 | `texts_unavailable` | The studio doesn't send texts |
+| 409 | `texts_stopped` | They replied STOP to the studio's texts: only texting START (to `from`) turns them back on |
 | 422 | `series_only` | The class is part of a series that takes no drop-ins: `series_id`. Sign up for the series instead (a make-up credit can still book it) |
 | 409 | `already_enrolled` | Already signed up for that series |
 | 422 | `series_closed` | The series isn't taking sign-ups (too late to join, or closed) |
@@ -89,7 +91,7 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 
 | | |
 |---|---|
-| `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, booking policies (with `questions`: the questions it asks of each person, `health` and `photos`). The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
+| `GET /studios/{slug}` | Name, time zone, currency, colour, `logo` (`url`, `width`, `height`, or `null`: show the initial), contact email, website, whether it takes online payments, `texts` (`{from}` when the studio texts members, or `null`), booking policies (with `questions`: the questions it asks of each person, `health` and `photos`). The logo URL changes when the logo does, so it can be cached for good; `/me`'s studios carry `logo` too |
 | `GET /studios/{slug}/plans` | What it sells, with prices, labels, credits, season dates and `can_buy_online` |
 | `GET /studios/{slug}/sessions` | The schedule: `from` (studio date, default today), `days` (1–62, default 14), `program_id`, `age_group`, `level`. Each class has times, program, instructor, room, price, `spots_left`, waitlist, apparatus spots, `booking_opens_at`, and where it happens: `delivery` (`in_person`, `online` or `hybrid`), `online_capacity` and `online_spots_left` (a hybrid class's online spots; `null` when there's no limit). With a token, `mine` lists the member's bookings in it |
 | `GET /studios/{slug}/series` | Series taking sign-ups ([Series](Series)): dates, `price_cents` for the whole series and `price_now_cents` for signing up now, `classes_total`, `classes_left`, `spots_left`, `open` or `closed_message`, `makeups`, `drop_ins` |
@@ -112,6 +114,8 @@ Tokens don't expire. They're revoked by signing out, when the password is change
 | `DELETE /studios/{slug}/attendees/{id}` | | `204`: removed from the account (kept in the studio's records) |
 | `GET /studios/{slug}/waivers` | | Waivers in force with their text, and for each person: `signed`, `expired`, `needed` |
 | `POST /studios/{slug}/attendees/{id}/waiver-signatures` | `waiver_id`, `signed_name`, `agree` (true), `signature_png`? (a data URL) | `201`, with `next_waiver_id` to sign next (or `null`). A waitlist spot waiting on the waiver may go through. Idempotent |
+| `GET /studios/{slug}/texts` | | Their text choices at the studio ([Text Messages](Text-Messages)): `available`, `from`, `phone`, `phone_textable`, `updates` (booking texts), `marketing` (news and offers), `stopped_at`, and the box `labels`, `disclosure` and `privacy_url` to show beside them |
+| `PATCH /studios/{slug}/texts` | `updates`, `marketing`, `phone`? | Ticking either needs a number Loft can text (`validation_failed` on `phone`). A newly ticked box sends a confirmation text. A new `phone` turns texts off at every studio, then these choices apply here |
 | `GET /studios/{slug}/entitlements` | | Memberships and credits, current ones first |
 | `GET /studios/{slug}/orders` | | Purchases, newest first. `status` is `paid`, `refunded` or `void`; `refunded_cents` and `refunded_at` show any refund (part of a sale can be refunded while it stays `paid`) |
 | `POST /studios/{slug}/checkouts` | `plan_id`, and to finish a booking once paid: `session_id`, `attendee_id`, `apparatus_id`?, `online`? | `201` `{id, url, expires_at, return_url}`. Idempotent |

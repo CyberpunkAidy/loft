@@ -205,9 +205,9 @@
             @endforelse
         </div>
         <div class="card">
-            <h3>Emails</h3>
+            <h3>Emails and texts</h3>
             <p class="small" style="margin:0 0 .5rem">
-                Marketing:
+                Marketing email:
                 @if ($membership->allowsMarketingEmail())
                     <strong>opted in</strong> <span class="muted">{{ $studio->local($membership->email_marketing_consent_at)->format('M j, Y') }}{{ $membership->email_marketing_consent_source ? ' ('.str_replace('_', ' ', $membership->email_marketing_consent_source).')' : '' }}</span>
                 @elseif ($membership->email_unsubscribed_at)
@@ -216,14 +216,31 @@
                     <strong>not opted in</strong>
                 @endif
             </p>
-            <p class="small muted" style="margin:0 0 .5rem">Members choose this themselves, on joining or in their profile.</p>
+            @if ($studio->textsReady() || $membership->sms_updates_at || $membership->sms_marketing_at || $membership->sms_stopped_at)
+                <p class="small" style="margin:0 0 .5rem">
+                    Texts:
+                    @if ($membership->sms_stopped_at)
+                        <strong>replied STOP</strong> <span class="muted">{{ $studio->local($membership->sms_stopped_at)->format('M j, Y') }}</span>
+                    @else
+                        @php
+                            $textChoices = array_filter([
+                                $membership->sms_updates_at ? 'booking texts <span class="muted">('.e($studio->local($membership->sms_updates_at)->format('M j, Y')).')</span>' : null,
+                                $membership->sms_marketing_at ? 'news and offers <span class="muted">('.e($studio->local($membership->sms_marketing_at)->format('M j, Y')).')</span>' : null,
+                            ]);
+                        @endphp
+                        @if ($textChoices)<strong>opted in</strong> to {!! implode(' and ', $textChoices) !!}@else<strong>not opted in</strong>@endif
+                        @if (($textChoices || $studio->textsReady()) && ! $member->phone_e164)<span class="muted">· no mobile number we can text</span>@endif
+                    @endif
+                </p>
+            @endif
+            <p class="small muted" style="margin:0 0 .5rem">Members choose these themselves, on joining or in their profile.</p>
             @forelse ($deliveries as $d)
                 <div class="item small" style="padding:.35rem 0;border-top:1px solid var(--line)">
-                    <div>{{ $d->kindLabel() }} <span class="muted">· {{ $studio->local($d->created_at)->format('M j, g:i A') }}</span></div>
+                    <div>@if ($d->isText())<span class="muted">Text:</span> @endif{{ $d->kindLabel() }} <span class="muted">· {{ $studio->local($d->created_at)->format('M j, g:i A') }}</span>@if ($d->status === 'failed' && $d->error)<div class="muted">{{ \Illuminate\Support\Str::limit($d->error, 120) }}</div>@endif</div>
                     <span @class(['badge', 'badge-full' => $d->status === 'failed', 'badge-muted' => in_array($d->status, ['queued', 'suppressed'])])>{{ $d->statusLabel() }}</span>
                 </div>
             @empty
-                <p class="muted small" style="margin:0">No emails yet.</p>
+                <p class="muted small" style="margin:0">Nothing sent yet.</p>
             @endforelse
         </div>
         <div class="card">

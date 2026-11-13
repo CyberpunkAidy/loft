@@ -54,6 +54,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::post('attendees/{attendee}/waiver-signatures', [V1\WaiverController::class, 'store'])->middleware('idempotent')->name('waivers.sign');
                 Route::get('attendees/{attendee}/check-in-code', [V1\CheckInController::class, 'code'])->name('check-in-code');
 
+                Route::get('texts', [V1\TextsController::class, 'show'])->name('texts.show');
+                Route::patch('texts', [V1\TextsController::class, 'update'])->name('texts.update');
+
                 Route::get('entitlements', [V1\PurchaseController::class, 'entitlements'])->name('entitlements');
                 Route::get('orders', [V1\PurchaseController::class, 'orders'])->name('orders');
                 Route::post('checkouts', [V1\CheckoutController::class, 'store'])->middleware(['idempotent', 'throttle:20,1'])->name('checkouts.store');

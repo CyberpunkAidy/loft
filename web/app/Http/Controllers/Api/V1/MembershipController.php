@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\MembershipResource;
 use App\Models\Studio;
 use App\Services\Memberships;
+use App\Services\Texts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,8 +18,13 @@ class MembershipController extends Controller
         $data = $request->validate(Memberships::registrationRules() + [
             'device_name' => ['required', 'string', 'max:100'],
             'marketing_email' => ['nullable', 'boolean'],
+            'text_updates' => ['nullable', 'boolean'],
         ], ['email.unique' => 'An account with that email already exists. Sign in, then join.']);
-        $user = $memberships->register($studio, $data, $request->boolean('marketing_email'));
+        $texts = $studio->textsReady() && $request->boolean('text_updates');
+        if ($texts) {
+            Texts::assertTextable($data['phone'] ?? null);
+        }
+        $user = $memberships->register($studio, $data, $request->boolean('marketing_email'), $texts);
 
         return TokenController::issued($user, $data['device_name']);
     }

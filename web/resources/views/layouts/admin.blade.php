@@ -18,6 +18,7 @@
         'Business' => [
             $nav('studio.admin.members.index', 'Members', 'users', 'studio.admin.members.*'),
             $nav('studio.admin.automations.index', 'Automations', 'zap', 'studio.admin.automations.*'),
+            $nav('studio.admin.texts', 'Text messages', 'message-square', 'studio.admin.texts*'),
             $nav('studio.admin.plans.index', 'Plans & pricing', 'tag', 'studio.admin.plans.*'),
             $nav('studio.admin.pos', 'Point of sale', 'store', 'studio.admin.pos*'),
             $nav('studio.admin.products.index', 'Products', 'shopping-bag', 'studio.admin.products.*'),

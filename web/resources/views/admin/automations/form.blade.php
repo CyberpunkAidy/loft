@@ -35,9 +35,25 @@
         </fieldset>
 
         <fieldset class="fieldset form">
-            <legend>Message</legend>
-            <x-field name="subject" label="Subject" :value="$automation->subject" required maxlength="150" />
-            <x-textarea name="body" label="Message" :value="$automation->body" rows="9" required hint="Plain text. Leave a blank line between paragraphs. A button to your schedule is added below it." />
+            <legend>Send by</legend>
+            @if ($studio->textsReady())
+                <x-select name="channel" label="Email, text or both" :options="\App\Models\Automation::CHANNELS" :value="$automation->channel" hint="Each goes only to members who opted in to it: news and offers by email, or by text." />
+            @else
+                <input type="hidden" name="channel" value="{{ $automation->channel }}">
+                <p class="small" style="margin:0">
+                    {{ $automation->channelLabel() }}.
+                    @if ($automation->sendsText())
+                        <strong>Texts aren’t connected</strong>, so the text version isn’t going out.
+                    @endif
+                    To send it by text too, <a href="{{ route('studio.admin.texts') }}">connect your Twilio number</a>.
+                </p>
+            @endif
+        </fieldset>
+
+        <fieldset class="fieldset form" data-show-when="channel=email,both">
+            <legend>Email</legend>
+            <x-field name="subject" label="Subject" :value="$automation->subject" maxlength="150" />
+            <x-textarea name="body" label="Message" :value="$automation->body" rows="9" hint="Plain text. Leave a blank line between paragraphs. A button to your schedule is added below it." />
             <div class="small">
                 <span class="muted">Placeholders:</span>
                 <ul style="margin:.3rem 0 0;padding-left:1.1rem">
@@ -47,12 +63,27 @@
                 </ul>
             </div>
         </fieldset>
+
+        <fieldset class="fieldset form" data-show-when="channel=sms,both">
+            <legend>Text message</legend>
+            <x-textarea name="sms_body" label="Text" :value="$automation->smsText()" rows="3" :maxlength="\App\Models\Automation::SMS_MAX" :hint="'Up to '.\App\Models\Automation::SMS_MAX.' characters. “'.$studio->name.':” goes in front, and “Reply STOP to opt out.” after it.'" />
+            <p class="small" style="margin:0"><span class="muted">Placeholders, as in the email:</span> @foreach ($automation->placeholders() as $placeholder)<code>{{ '{'.$placeholder.'}' }}</code> @endforeach <span class="muted">and</span> <code>{link}</code><span class="muted">, a link to your schedule.</span></p>
+        </fieldset>
         <div class="actions"><button class="btn">Save</button></div>
     </form>
 
     <aside class="card">
         <h3>Preview</h3>
         <p class="small muted">The saved version, with sample names. Save to update it.</p>
+        @if ($automation->sendsText())
+            <p class="small" style="margin:0 0 .35rem"><strong>Text</strong></p>
+            <div class="text-preview" aria-label="Text message preview">
+                <div class="text-bubble">{{ $sampleText }}</div>
+                <div class="small muted">{{ strlen($sampleText) }} characters{{ strlen($sampleText) > 160 ? ' · '.(int) ceil(strlen($sampleText) / 153).' text segments' : '' }}</div>
+            </div>
+        @endif
+        @if ($automation->sendsEmail())
+        @if ($automation->sendsText())<p class="small" style="margin:0 0 .35rem"><strong>Email</strong></p>@endif
         <div class="email-preview">
             <div class="small muted">[{{ $studio->name }}] {{ $sample['headline'] }}</div>
             <h4 style="margin:.6rem 0">{{ $sample['headline'] }}</h4>
@@ -62,6 +93,7 @@
             <span class="btn btn-small" aria-hidden="true">{{ $sample['action'] }}</span>
             <p class="small muted" style="margin:.8rem 0 0">You’re getting this because you asked for news from {{ $studio->name }}. Unsubscribe</p>
         </div>
+        @endif
     </aside>
 </div>
 @endsection

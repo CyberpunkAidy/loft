@@ -13,4 +13,4 @@
 
 @endforeach
 —
-You're getting this because you own {!! $studio->name !!} on {!! config('app.name') !!}.
+{!! $footerLine ?? "You're getting this because you own ".$studio->name.' on '.config('app.name').'.' !!}
